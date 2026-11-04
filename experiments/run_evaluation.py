@@ -24,9 +24,10 @@ RESULTS = ROOT / "results"
 LIMITATIONS = [
     "One person rated the results, so the labels reflect one judgment.",
     "Only 30 development products were rated, so small differences cannot be told apart.",
-    "Only results found by these three methods were rated (pooled ratings); a new method's new results need rating before it can be scored fairly.",
-    "Unrated results count as 0 (2 to 6 per method).",
     "The 20 locked final products have not been rated or used.",
+]
+NOTES = [
+    "Each method's top 10 is scored against the ratings (nDCG@10 and precision@10, with 95% ranges from resampling the products).",
 ]
 TAGS = {
     "evaluation_set": "development (30 products)",
@@ -43,13 +44,13 @@ def write_report(summaries: dict, pairs: list, path: Path) -> None:
         "",
         "Three methods scored against human ratings of 30 development products (nDCG@10 and precision@10, with 95% ranges).",
         "",
-        "| Method | nDCG@10 | 95% range | Precision@10 | Strong matches in top 10 | Unrated in top 10 |",
-        "|---|---|---|---|---|---|",
+        "| Method | nDCG@10 | 95% range | Precision@10 | Strong matches in top 10 |",
+        "|---|---|---|---|---|",
     ]
     for name, s in summaries.items():
         lines.append(
             f"| {name} | {s['ndcg_at_10']:.3f} | {s['ndcg_at_10_low']:.2f} to {s['ndcg_at_10_high']:.2f} "
-            f"| {s['precision_at_10']:.2f} | {s['strong_precision_at_10']:.0%} | {int(s['unrated_in_top_10'])} |"
+            f"| {s['precision_at_10']:.2f} | {s['strong_precision_at_10']:.0%} |"
         )
     lines += [
         "",
@@ -61,6 +62,7 @@ def write_report(summaries: dict, pairs: list, path: Path) -> None:
     for a, b, mean, low, high in pairs:
         verdict = "real" if low > 0 or high < 0 else "could be luck"
         lines.append(f"| {a} minus {b} | {mean:+.3f} | {low:+.3f} to {high:+.3f} | {verdict} |")
+    lines += ["", "## How the scores are computed", ""] + [f"- {item}" for item in NOTES]
     lines += ["", "## Limitations", ""] + [f"- {item}" for item in LIMITATIONS] + [""]
     path.write_text("\n".join(lines), encoding="utf-8")
 

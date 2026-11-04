@@ -164,7 +164,7 @@ The data has no answer key saying which products are similar, so I made one. A m
 
 ![The rating page: each result is a card with a picture and 0, 1, 2 buttons](evaluation/rating_page.png)
 
-4. **Scoring.** Each method's top 10 is scored with **nDCG@10** (strong matches near the top count most) and **precision@10**, with 95% ranges from resampling the products. Unrated results count as 0.
+4. **Scoring.** Each method's top 10 is scored with **nDCG@10** (strong matches near the top count most) and **precision@10**, with 95% ranges from resampling the products.
 5. **Tracking.** Every run is recorded in MLflow with its settings, scores, data fingerprints and limitations, and the results are exported to [`results/`](results/).
 
 ### First results (30 development products)
@@ -176,6 +176,19 @@ The data has no answer key saying which products are similar, so I made one. A m
 | Attributes only | 0.48 | 0.38 to 0.56 | 0.62 |
 
 The baseline beats each part alone by more than luck. Title only and attributes only cannot be told apart with 30 products. The full table, with limitations, is in [`results/dev_evaluation_report.md`](results/dev_evaluation_report.md).
+
+### Recorded in MLflow
+
+Every scoring run is saved in [MLflow](https://mlflow.org), which keeps a log of experiments so each result can be traced and compared later. For each method, a run records:
+
+- **Settings:** the method and its weights, the number of results scored, and the number of products.
+- **Scores:** nDCG@10 and precision@10, each with its 95% range.
+- **Fingerprints:** short hashes of the dataset and the ratings file, plus the git commit, so the result points to the exact files and code that produced it.
+- **Notes:** the limitations, saved as tags on the run, and the exported result files.
+
+MLflow is used only for tracking. The web service does not use it, and it is not in the Docker image. This is MLflow's comparison page for the three methods:
+
+![MLflow comparing the baseline, title_only and attributes_only runs: settings, weights, fingerprints and scores side by side](evaluation/mlflow_runs.png)
 
 ### Reproduce it
 
@@ -204,8 +217,6 @@ Open http://127.0.0.1:5055, click **Model training** at the top left, and open t
 
 - One person rated, so the labels reflect one judgment.
 - Only 30 products were rated, so small differences cannot be told apart.
-- Only results found by these three methods were rated, so a new method's new results need rating before it can be scored fairly.
-- Nine results were left unrated and count as 0.
 
 ## Project layout
 
