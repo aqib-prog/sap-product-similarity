@@ -21,6 +21,10 @@ dev = [
     "httpx>=0.28,<1",
     "ruff>=0.17,<0.18",
 ]
+# Experiment tracking. Not needed to run the service or the tests.
+experiments = [
+    "mlflow>=2.16,<4",
+]
 # Only needed to run the exploration notebooks, never installed in the Docker image.
 notebooks = [
     "pandas>=2.2,<3",
@@ -48,3 +52,5 @@ select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
 "*.ipynb" = ["E501"]
+"src/product_similarity/review_page.py" = ["E501"]  # long lines inside the HTML template
+"experiments/*.py" = ["E501"]  # long report text

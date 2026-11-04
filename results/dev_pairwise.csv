@@ -1,0 +1,4 @@
+first,second,ndcg_difference,low,high,difference_is_real
+baseline,title_only,0.1501,0.0368,0.2538,True
+baseline,attributes_only,0.2483,0.168,0.3343,True
+title_only,attributes_only,0.0981,-0.0285,0.2227,False
