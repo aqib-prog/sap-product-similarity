@@ -204,6 +204,29 @@ class SimilarityEngine:
     def find_similar(self, product_id: str, num_similar: int) -> list[str]:
         return [uid for uid, _ in self.find_similar_with_scores(product_id, num_similar)]
 
+    @staticmethod
+    def _summary(product: Product) -> dict:
+        """The fields worth showing for a product."""
+        return {
+            "id": product.uniq_id,
+            "title": product.title,
+            "brand": product.brand,
+            "category": product.category,
+            "audience": product.audience,
+            "price": product.price,
+            "rating": product.rating,
+            "image_url": product.image_url,
+        }
+
+    def describe(self, product_id: str, num_similar: int) -> dict:
+        """The query product and its best matches with readable details and scores."""
+        ranked = self.find_similar_with_scores(product_id, num_similar)
+        query = self.products[self.resolve(product_id)]
+        results = []
+        for uid, score in ranked:
+            results.append({**self._summary(self.products[self._row[uid]]), "score": score})
+        return {"query": self._summary(query), "results": results}
+
     def explain(self, product_id: str, other_id: str) -> dict:
         """Why `other_id` scores as it does for `product_id`, attribute by attribute.
 

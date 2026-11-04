@@ -58,7 +58,82 @@ PYTHONPATH=src uvicorn app:app --port 8000
 curl "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
 ```
 
-The response is a JSON list of product IDs. An unknown ID returns 404, invalid input returns 422, and `/live` and `/ready` report service health.
+The response is a JSON list of product IDs. An unknown ID returns 404, invalid input returns 422, and `/live` and `/ready` report service health. `/find_similar_products/details` returns the same search with titles, prices, scores and timing.
+
+## Example
+
+The required endpoint returns a plain JSON list of product IDs:
+
+```bash
+curl "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3"
+```
+
+```json
+["46b2e244b4fd48e0a66f74a6031b10a4", "ec83e50a5c1e1b4f4a669e07266cdc3c", "2572b4aa6bf45ad494f75556d597e4cb"]
+```
+
+For display, `/find_similar_products/details` returns the same results with the question asked, readable product details, scores and the response time:
+
+```bash
+curl "http://localhost:8000/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3"
+```
+
+```json
+{
+  "question": {
+    "product_id": "26d41bdc1495de290bc8e6062d927729",
+    "num_similar": 3
+  },
+  "query": {
+    "id": "26d41bdc1495de290bc8e6062d927729",
+    "title": "LA' Facon Cotton Kalamkari Handblock Saree Blouse Fabric 100 cms Black Base Dancers (Cotton)",
+    "brand": "LA' Facon",
+    "category": "WomensKurtasKurtis",
+    "audience": "women",
+    "price": 200.0,
+    "rating": 5.0,
+    "image_url": "https://images-na.ssl-images-amazon.com/images/I/51Wj2WownyL.jpg"
+  },
+  "results": [
+    {
+      "id": "46b2e244b4fd48e0a66f74a6031b10a4",
+      "title": "Janasya Women's Black Cotton Anarkali Printed Kurta",
+      "brand": null,
+      "category": "WomensKurtasKurtis",
+      "audience": "women",
+      "price": null,
+      "rating": 5.0,
+      "image_url": "https://images-na.ssl-images-amazon.com/images/I/415FAR7SieL.jpg",
+      "score": 0.571378
+    },
+    {
+      "id": "ec83e50a5c1e1b4f4a669e07266cdc3c",
+      "title": "Janasya Women's Black Cotton A-Line Printed Kurta",
+      "brand": null,
+      "category": "WomensKurtasKurtis",
+      "audience": "women",
+      "price": 339.0,
+      "rating": 3.0,
+      "image_url": "https://images-na.ssl-images-amazon.com/images/I/41eWb3tffyL.jpg",
+      "score": 0.567306
+    },
+    {
+      "id": "2572b4aa6bf45ad494f75556d597e4cb",
+      "title": "Janasya Women's Black Pure Cotton Kurta",
+      "brand": null,
+      "category": "WomensKurtasKurtis",
+      "audience": "women",
+      "price": 549.0,
+      "rating": 4.4,
+      "image_url": "https://images-na.ssl-images-amazon.com/images/I/410E0-LxWAL.jpg",
+      "score": 0.562516
+    }
+  ],
+  "response_time_ms": 8.47
+}
+```
+
+The query is a saree blouse fabric that the dataset files under the kurta category, so every result is a kurta. Category-based matching carries over that label. The response time varies by machine.
 
 With Docker:
 

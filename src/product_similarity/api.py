@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 
@@ -49,6 +50,30 @@ def create_app(load_engine: Callable[[], SimilarityEngine] = default_engine) -> 
             return engine.find_similar(product_id, num_similar)
         except ProductNotFoundError:
             raise HTTPException(status_code=404, detail="Product not found") from None
+
+    @app.get("/find_similar_products/details")
+    def find_similar_products_details(
+        request: Request,
+        product_id: str = Query(..., pattern=ID_PATTERN),
+        num_similar: int = Query(..., ge=1),
+    ) -> dict:
+        """The same search as `/find_similar_products`, with details for display.
+
+        Returns the question that was asked, the query product, each result with its
+        title, price and score, and how long the search took in milliseconds.
+        """
+        engine = get_engine(request)
+        started = time.perf_counter()
+        try:
+            found = engine.describe(product_id, num_similar)
+        except ProductNotFoundError:
+            raise HTTPException(status_code=404, detail="Product not found") from None
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        return {
+            "question": {"product_id": product_id, "num_similar": num_similar},
+            **found,
+            "response_time_ms": round(elapsed_ms, 2),
+        }
 
     @app.get("/live")
     def live() -> dict:

@@ -39,3 +39,13 @@ def test_unknown_real_id_gives_404(client):
         "/find_similar_products", params={"product_id": "0" * 32, "num_similar": 5}
     )
     assert response.status_code == 404
+
+
+def test_real_details_view_has_titles(client):
+    response = client.get(
+        "/find_similar_products/details", params={"product_id": FIRST_ID, "num_similar": 3}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["query"]["id"] == FIRST_ID
+    assert len(body["results"]) == 3 and all(r["title"] for r in body["results"])

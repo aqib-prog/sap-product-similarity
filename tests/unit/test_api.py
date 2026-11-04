@@ -109,3 +109,41 @@ def test_unexpected_errors_are_hidden_from_the_caller(engine):
     assert response.status_code == 500
     assert response.json() == {"detail": "Internal server error"}
     assert "secret" not in response.text
+
+
+def test_details_view_matches_the_plain_list_and_adds_readable_fields(client):
+    plain = get(client).json()
+    response = client.get(
+        "/find_similar_products/details", params={"product_id": A, "num_similar": 2}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["question"] == {"product_id": A, "num_similar": 2}
+    assert body["query"]["id"] == A
+    assert isinstance(body["response_time_ms"], float) and body["response_time_ms"] >= 0
+    assert [r["id"] for r in body["results"]] == plain
+    first = body["results"][0]
+    assert {"title", "brand", "category", "price", "image_url", "score"} <= set(first)
+    assert first["title"] == "Blue Cotton Mens T-Shirt Round Neck"
+
+
+def test_details_view_has_the_same_errors(client):
+    params = {"num_similar": 2}
+    assert (
+        client.get(
+            "/find_similar_products/details", params={"product_id": UNKNOWN, **params}
+        ).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            "/find_similar_products/details", params={"product_id": "abc", **params}
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get(
+            "/find_similar_products/details", params={"product_id": A, "num_similar": 0}
+        ).status_code
+        == 422
+    )
