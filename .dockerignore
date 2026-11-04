@@ -1,0 +1,17 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+data/
+notebooks/
+experiments/
+benchmarks/
+evaluation/
+results/
+artifacts/
+mlruns/
+docs/
+tests/
