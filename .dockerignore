@@ -1,0 +1,19 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+# Only the dataset archive is needed inside the image
+data/*
+!data/archive.zip
+notebooks/
+experiments/
+benchmarks/
+evaluation/
+results/
+artifacts/
+mlruns/
+docs/
+tests/
