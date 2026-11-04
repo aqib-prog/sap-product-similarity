@@ -16,7 +16,7 @@ The project is built for the SAP technical exercise. The original task descripti
 | Baseline similarity function `find_similar_products` (title and attributes, untuned weights) | Done, tested |
 | Image-aware similarity | Planned (the engine already has a slot for image features) |
 | FastAPI service | Done, tested |
-| Docker image | Dockerfile and a CI build-and-test job written; the image has not been verified yet |
+| Docker image | Done: built and tested in CI (starts, answers requests, runs as a non-root user) |
 | Vector search benchmarks (FAISS Flat and HNSW, Annoy) | Planned |
 | Kubernetes manifests, CI/CD, monitoring | Planned |
 
@@ -141,6 +141,16 @@ With Docker:
 docker build -t product-similarity .
 docker run -p 8000:8000 product-similarity
 ```
+
+## Analysis notebooks
+
+| Notebook | What it does | Main findings |
+|---|---|---|
+| `01_data_exploration` | Loads the 30,000 products, checks the file is the original, and charts each attribute. It recomputes 24 figures to confirm them | Name, category and image are almost always present, and brand and price mostly. Weight is mostly a placeholder, colour is a list of options, and ratings often have no reviews. About a third of products share a title, and 471 rows are repeats |
+| `02_preprocessing` | Cleans the data step by step with before-and-after charts: repeated products, weight, brands, categories, colours, audience, reviews and price | One record per product, with every ID still valid. Missing categories are filled from the products on the same shelf (about 97% matched in a hide-and-guess check). Guessing brands from titles is built but switched off |
+| `03_baseline_examples` | Runs the first `find_similar_products` on five real queries, explains each score, times it, and compares it with simpler methods | Results come back in about 6 ms. Title similarity (TF-IDF) and attribute similarity give very different lists. Two weaknesses are noted: near-copies in the results, and products with little data scoring too high |
+
+Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
 
 ## Project layout
 
