@@ -14,6 +14,7 @@ The project is built for the SAP technical exercise. The original task descripti
 | Exploratory data analysis notebook (6 explained charts, 24 reproduced figures) | Done |
 | Preprocessing pipeline (cleaning, repeated products, derived fields) | Done, tested |
 | Baseline similarity function `find_similar_products` (title and attributes, untuned weights) | Done, tested |
+| Evaluation: 50 test products, blind rating page, scoring, MLflow tracking | Done for the 30 development products; the 20 final products stay locked |
 | Image-aware similarity | Planned (the engine already has a slot for image features) |
 | FastAPI service | Done, tested |
 | Docker image | Done: built and tested in CI (starts, answers requests, runs as a non-root user) |
@@ -149,8 +150,62 @@ docker run -p 8000:8000 product-similarity
 | `01_data_exploration` | Loads the 30,000 products, checks the file is the original, and charts each attribute. It recomputes 24 figures to confirm them | Name, category and image are almost always present, and brand and price mostly. Weight is mostly a placeholder, colour is a list of options, and ratings often have no reviews. About a third of products share a title, and 471 rows are repeats |
 | `02_preprocessing` | Cleans the data step by step with before-and-after charts: repeated products, weight, brands, categories, colours, audience, reviews and price | One record per product, with every ID still valid. Missing categories are filled from the products on the same shelf (about 97% matched in a hide-and-guess check). Guessing brands from titles is built but switched off |
 | `03_baseline_examples` | Runs the first `find_similar_products` on five real queries, explains each score, times it, and compares it with simpler methods | Results come back in about 6 ms. Title similarity (TF-IDF) and attribute similarity give very different lists. Two weaknesses are noted: near-copies in the results, and products with little data scoring too high |
+| `04_evaluation_baseline` | Scores the three methods against the ratings with nDCG@10 and precision@10, with 95% ranges | The title plus attributes beats either alone, and both gaps are larger than luck. Title only versus attributes only cannot be told apart with 30 products |
 
 Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
+
+## How the results were evaluated
+
+The data has no answer key saying which products are similar, so I made one. A method is judged by how well its top 10 results match my ratings.
+
+1. **Test products.** 50 products chosen with a fixed seed from seven groups (common and rare categories, sparse and complete data, repeated titles, low and high prices). 30 are for development, and 20 are **locked** and rated only once at the end.
+2. **Blind pooling.** For each development product, the top 10 results of three methods (baseline, title only, attributes only) were mixed into one shuffled list. The page never says which method found a result.
+3. **Rating.** Each result gets 0 (not a match), 1 (acceptable) or 2 (strong match), judged as a shopper looking for a substitute. The rules and worked examples are in [`evaluation/rubric.md`](evaluation/rubric.md). The 729 results were rated in a browser page that shows the picture, title, brand, category and price:
+
+![The rating page: each result is a card with a picture and 0, 1, 2 buttons](evaluation/rating_page.png)
+
+4. **Scoring.** Each method's top 10 is scored with **nDCG@10** (strong matches near the top count most) and **precision@10**, with 95% ranges from resampling the products. Unrated results count as 0.
+5. **Tracking.** Every run is recorded in MLflow with its settings, scores, data fingerprints and limitations, and the results are exported to [`results/`](results/).
+
+### First results (30 development products)
+
+| Method | nDCG@10 | 95% range | Precision@10 |
+|---|---|---|---|
+| **Baseline** (title and attributes) | **0.72** | 0.64 to 0.81 | 0.74 |
+| Title only | 0.57 | 0.48 to 0.67 | 0.55 |
+| Attributes only | 0.48 | 0.38 to 0.56 | 0.62 |
+
+The baseline beats each part alone by more than luck. Title only and attributes only cannot be told apart with 30 products. The full table, with limitations, is in [`results/dev_evaluation_report.md`](results/dev_evaluation_report.md).
+
+### Reproduce it
+
+Rate again (this replaces the rating page, so keep your downloaded ratings file):
+
+```bash
+PYTHONPATH=src python -m product_similarity.judging
+```
+
+Open `evaluation/judgments/dev_review.html` in a browser, rate the cards, press **Download my ratings (CSV)**, and save the file as `evaluation/judgments/dev_grades.csv`. Then score and record the run:
+
+```bash
+pip install -e ".[experiments]"
+python experiments/run_evaluation.py
+```
+
+View the recorded runs in MLflow:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5055
+```
+
+Open http://127.0.0.1:5055, click **Model training** at the top left, and open the `dev-ratings` experiment.
+
+### Limits
+
+- One person rated, so the labels reflect one judgment.
+- Only 30 products were rated, so small differences cannot be told apart.
+- Only results found by these three methods were rated, so a new method's new results need rating before it can be scored fairly.
+- Nine results were left unrated and count as 0.
 
 ## Project layout
 
@@ -164,7 +219,14 @@ src/product_similarity/   Python package
   ranking.py              Fixed ordering of results
   service.py              The public find_similar_products function
   api.py                  Web routes (FastAPI)
+  judging.py              Chooses the test products and builds the blind rating sheet
+  review_page.py          The browser page used to rate results
+  evaluation.py           nDCG, precision and confidence ranges
+  tracking.py             Optional MLflow logging (the service never uses it)
   settings.py             File locations, overridable with environment variables
+experiments/              Scripts that score methods and record runs
+evaluation/               Rating rules, test products and ratings
+results/                  Exported scores and the evaluation report
 tests/                    Unit and integration tests
 notebooks/                Analysis notebooks (import logic from the package)
 data/archive.zip          Dataset supplied with the exercise

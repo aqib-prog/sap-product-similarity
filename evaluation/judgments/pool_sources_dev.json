@@ -1,0 +1,2420 @@
+{
+  "Q01": {
+    "01": [
+      "attributes_only"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "attributes_only"
+    ],
+    "05": [
+      "title_only"
+    ],
+    "06": [
+      "attributes_only"
+    ],
+    "07": [
+      "baseline",
+      "attributes_only"
+    ],
+    "08": [
+      "baseline",
+      "title_only"
+    ],
+    "09": [
+      "baseline"
+    ],
+    "10": [
+      "baseline"
+    ],
+    "11": [
+      "attributes_only"
+    ],
+    "12": [
+      "baseline",
+      "title_only"
+    ],
+    "13": [
+      "baseline"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "baseline",
+      "title_only"
+    ],
+    "16": [
+      "attributes_only"
+    ],
+    "17": [
+      "baseline",
+      "title_only"
+    ],
+    "18": [
+      "baseline"
+    ],
+    "19": [
+      "attributes_only"
+    ],
+    "20": [
+      "attributes_only"
+    ],
+    "21": [
+      "title_only"
+    ],
+    "22": [
+      "attributes_only"
+    ],
+    "23": [
+      "title_only"
+    ],
+    "24": [
+      "title_only"
+    ],
+    "25": [
+      "baseline"
+    ]
+  },
+  "Q02": {
+    "01": [
+      "baseline",
+      "title_only"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "attributes_only"
+    ],
+    "05": [
+      "baseline"
+    ],
+    "06": [
+      "title_only"
+    ],
+    "07": [
+      "baseline"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "baseline"
+    ],
+    "10": [
+      "baseline",
+      "attributes_only"
+    ],
+    "11": [
+      "attributes_only"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "attributes_only"
+    ],
+    "14": [
+      "title_only"
+    ],
+    "15": [
+      "baseline",
+      "attributes_only"
+    ],
+    "16": [
+      "baseline",
+      "attributes_only"
+    ],
+    "17": [
+      "baseline",
+      "title_only"
+    ],
+    "18": [
+      "attributes_only"
+    ],
+    "19": [
+      "attributes_only"
+    ],
+    "20": [
+      "title_only"
+    ],
+    "21": [
+      "title_only"
+    ],
+    "22": [
+      "attributes_only"
+    ],
+    "23": [
+      "baseline"
+    ],
+    "24": [
+      "baseline",
+      "attributes_only"
+    ]
+  },
+  "Q04": {
+    "01": [
+      "baseline"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "attributes_only"
+    ],
+    "04": [
+      "baseline",
+      "title_only"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "baseline",
+      "title_only"
+    ],
+    "07": [
+      "baseline",
+      "title_only"
+    ],
+    "08": [
+      "baseline",
+      "title_only"
+    ],
+    "09": [
+      "baseline",
+      "title_only"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "baseline",
+      "title_only"
+    ],
+    "12": [
+      "attributes_only"
+    ],
+    "13": [
+      "attributes_only"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "attributes_only"
+    ],
+    "16": [
+      "baseline",
+      "title_only"
+    ],
+    "17": [
+      "attributes_only"
+    ],
+    "18": [
+      "attributes_only"
+    ],
+    "19": [
+      "baseline",
+      "title_only"
+    ],
+    "20": [
+      "attributes_only"
+    ],
+    "21": [
+      "title_only"
+    ],
+    "22": [
+      "baseline"
+    ]
+  },
+  "Q06": {
+    "01": [
+      "baseline",
+      "title_only"
+    ],
+    "02": [
+      "baseline",
+      "title_only"
+    ],
+    "03": [
+      "baseline"
+    ],
+    "04": [
+      "attributes_only"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "title_only"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "attributes_only"
+    ],
+    "09": [
+      "baseline",
+      "title_only"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "attributes_only"
+    ],
+    "12": [
+      "baseline",
+      "title_only"
+    ],
+    "13": [
+      "attributes_only"
+    ],
+    "14": [
+      "baseline",
+      "title_only"
+    ],
+    "15": [
+      "attributes_only"
+    ],
+    "16": [
+      "title_only"
+    ],
+    "17": [
+      "baseline"
+    ],
+    "18": [
+      "title_only"
+    ],
+    "19": [
+      "attributes_only"
+    ],
+    "20": [
+      "baseline"
+    ],
+    "21": [
+      "title_only"
+    ],
+    "22": [
+      "attributes_only"
+    ],
+    "23": [
+      "baseline",
+      "title_only"
+    ],
+    "24": [
+      "baseline"
+    ]
+  },
+  "Q07": {
+    "01": [
+      "title_only"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "attributes_only"
+    ],
+    "04": [
+      "baseline"
+    ],
+    "05": [
+      "title_only"
+    ],
+    "06": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "baseline"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "baseline"
+    ],
+    "12": [
+      "attributes_only"
+    ],
+    "13": [
+      "title_only"
+    ],
+    "14": [
+      "title_only"
+    ],
+    "15": [
+      "title_only"
+    ],
+    "16": [
+      "attributes_only"
+    ],
+    "17": [
+      "attributes_only"
+    ],
+    "18": [
+      "baseline"
+    ],
+    "19": [
+      "attributes_only"
+    ],
+    "20": [
+      "baseline"
+    ],
+    "21": [
+      "baseline"
+    ],
+    "22": [
+      "baseline"
+    ],
+    "23": [
+      "baseline"
+    ],
+    "24": [
+      "baseline"
+    ],
+    "25": [
+      "title_only"
+    ],
+    "26": [
+      "attributes_only"
+    ],
+    "27": [
+      "title_only"
+    ],
+    "28": [
+      "attributes_only"
+    ]
+  },
+  "Q09": {
+    "01": [
+      "baseline"
+    ],
+    "02": [
+      "baseline",
+      "title_only"
+    ],
+    "03": [
+      "attributes_only"
+    ],
+    "04": [
+      "title_only"
+    ],
+    "05": [
+      "baseline",
+      "attributes_only"
+    ],
+    "06": [
+      "title_only"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "attributes_only"
+    ],
+    "10": [
+      "baseline"
+    ],
+    "11": [
+      "title_only"
+    ],
+    "12": [
+      "baseline"
+    ],
+    "13": [
+      "baseline"
+    ],
+    "14": [
+      "title_only"
+    ],
+    "15": [
+      "title_only"
+    ],
+    "16": [
+      "attributes_only"
+    ],
+    "17": [
+      "baseline",
+      "title_only"
+    ],
+    "18": [
+      "attributes_only"
+    ],
+    "19": [
+      "title_only"
+    ],
+    "20": [
+      "title_only"
+    ],
+    "21": [
+      "baseline"
+    ],
+    "22": [
+      "attributes_only"
+    ],
+    "23": [
+      "attributes_only"
+    ],
+    "24": [
+      "attributes_only"
+    ],
+    "25": [
+      "baseline"
+    ],
+    "26": [
+      "attributes_only"
+    ],
+    "27": [
+      "baseline"
+    ]
+  },
+  "Q11": {
+    "01": [
+      "baseline",
+      "attributes_only"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "baseline"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "title_only"
+    ],
+    "07": [
+      "title_only"
+    ],
+    "08": [
+      "baseline"
+    ],
+    "09": [
+      "title_only"
+    ],
+    "10": [
+      "title_only"
+    ],
+    "11": [
+      "attributes_only"
+    ],
+    "12": [
+      "baseline",
+      "attributes_only"
+    ],
+    "13": [
+      "baseline"
+    ],
+    "14": [
+      "baseline"
+    ],
+    "15": [
+      "attributes_only"
+    ],
+    "16": [
+      "baseline",
+      "attributes_only"
+    ],
+    "17": [
+      "baseline"
+    ],
+    "18": [
+      "title_only"
+    ],
+    "19": [
+      "baseline",
+      "attributes_only"
+    ],
+    "20": [
+      "title_only"
+    ],
+    "21": [
+      "baseline",
+      "attributes_only"
+    ],
+    "22": [
+      "title_only"
+    ],
+    "23": [
+      "attributes_only"
+    ],
+    "24": [
+      "title_only"
+    ],
+    "25": [
+      "attributes_only"
+    ]
+  },
+  "Q12": {
+    "01": [
+      "title_only"
+    ],
+    "02": [
+      "baseline",
+      "title_only"
+    ],
+    "03": [
+      "attributes_only"
+    ],
+    "04": [
+      "attributes_only"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "baseline"
+    ],
+    "07": [
+      "title_only"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "attributes_only"
+    ],
+    "10": [
+      "baseline"
+    ],
+    "11": [
+      "baseline",
+      "attributes_only"
+    ],
+    "12": [
+      "baseline"
+    ],
+    "13": [
+      "baseline",
+      "attributes_only"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "title_only"
+    ],
+    "16": [
+      "baseline"
+    ],
+    "17": [
+      "title_only"
+    ],
+    "18": [
+      "title_only"
+    ],
+    "19": [
+      "baseline",
+      "attributes_only"
+    ],
+    "20": [
+      "baseline"
+    ],
+    "21": [
+      "title_only"
+    ],
+    "22": [
+      "title_only"
+    ],
+    "23": [
+      "title_only"
+    ],
+    "24": [
+      "baseline"
+    ],
+    "25": [
+      "attributes_only"
+    ],
+    "26": [
+      "attributes_only"
+    ]
+  },
+  "Q14": {
+    "01": [
+      "baseline"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "attributes_only"
+    ],
+    "05": [
+      "baseline",
+      "attributes_only"
+    ],
+    "06": [
+      "title_only"
+    ],
+    "07": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "baseline",
+      "attributes_only"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "baseline",
+      "attributes_only"
+    ],
+    "12": [
+      "baseline"
+    ],
+    "13": [
+      "attributes_only"
+    ],
+    "14": [
+      "title_only"
+    ],
+    "15": [
+      "title_only"
+    ],
+    "16": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "17": [
+      "baseline"
+    ],
+    "18": [
+      "baseline",
+      "attributes_only"
+    ],
+    "19": [
+      "title_only"
+    ],
+    "20": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ]
+  },
+  "Q16": {
+    "01": [
+      "attributes_only"
+    ],
+    "02": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "03": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "04": [
+      "title_only"
+    ],
+    "05": [
+      "title_only"
+    ],
+    "06": [
+      "attributes_only"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "baseline",
+      "title_only"
+    ],
+    "09": [
+      "baseline",
+      "attributes_only"
+    ],
+    "10": [
+      "baseline",
+      "title_only"
+    ],
+    "11": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "baseline",
+      "attributes_only"
+    ],
+    "14": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "15": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "16": [
+      "baseline"
+    ]
+  },
+  "Q17": {
+    "01": [
+      "baseline",
+      "title_only"
+    ],
+    "02": [
+      "baseline",
+      "title_only"
+    ],
+    "03": [
+      "baseline",
+      "title_only"
+    ],
+    "04": [
+      "baseline",
+      "title_only"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "baseline",
+      "title_only"
+    ],
+    "07": [
+      "title_only"
+    ],
+    "08": [
+      "attributes_only"
+    ],
+    "09": [
+      "attributes_only"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "baseline",
+      "attributes_only"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "baseline"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "baseline",
+      "title_only"
+    ],
+    "16": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "17": [
+      "attributes_only"
+    ],
+    "18": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "19": [
+      "attributes_only"
+    ]
+  },
+  "Q19": {
+    "01": [
+      "title_only"
+    ],
+    "02": [
+      "attributes_only"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "baseline"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "attributes_only"
+    ],
+    "07": [
+      "title_only"
+    ],
+    "08": [
+      "baseline"
+    ],
+    "09": [
+      "title_only"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "title_only"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "baseline"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "title_only"
+    ],
+    "16": [
+      "baseline"
+    ],
+    "17": [
+      "baseline"
+    ],
+    "18": [
+      "attributes_only"
+    ],
+    "19": [
+      "attributes_only"
+    ],
+    "20": [
+      "attributes_only"
+    ],
+    "21": [
+      "baseline"
+    ],
+    "22": [
+      "baseline",
+      "attributes_only"
+    ],
+    "23": [
+      "baseline",
+      "title_only"
+    ],
+    "24": [
+      "baseline"
+    ],
+    "25": [
+      "title_only"
+    ],
+    "26": [
+      "title_only"
+    ],
+    "27": [
+      "baseline",
+      "attributes_only"
+    ]
+  },
+  "Q21": {
+    "01": [
+      "attributes_only"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "baseline",
+      "attributes_only"
+    ],
+    "04": [
+      "baseline"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "baseline"
+    ],
+    "07": [
+      "baseline"
+    ],
+    "08": [
+      "attributes_only"
+    ],
+    "09": [
+      "title_only"
+    ],
+    "10": [
+      "title_only"
+    ],
+    "11": [
+      "title_only"
+    ],
+    "12": [
+      "baseline",
+      "title_only"
+    ],
+    "13": [
+      "baseline"
+    ],
+    "14": [
+      "title_only"
+    ],
+    "15": [
+      "baseline",
+      "attributes_only"
+    ],
+    "16": [
+      "baseline",
+      "attributes_only"
+    ],
+    "17": [
+      "attributes_only"
+    ],
+    "18": [
+      "title_only"
+    ],
+    "19": [
+      "title_only"
+    ],
+    "20": [
+      "title_only"
+    ],
+    "21": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "22": [
+      "attributes_only"
+    ],
+    "23": [
+      "baseline",
+      "attributes_only"
+    ]
+  },
+  "Q22": {
+    "01": [
+      "attributes_only"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "baseline",
+      "title_only"
+    ],
+    "04": [
+      "baseline"
+    ],
+    "05": [
+      "baseline",
+      "title_only"
+    ],
+    "06": [
+      "attributes_only"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "attributes_only"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "title_only"
+    ],
+    "12": [
+      "attributes_only"
+    ],
+    "13": [
+      "baseline",
+      "title_only"
+    ],
+    "14": [
+      "baseline"
+    ],
+    "15": [
+      "attributes_only"
+    ],
+    "16": [
+      "baseline",
+      "title_only"
+    ],
+    "17": [
+      "baseline",
+      "title_only"
+    ],
+    "18": [
+      "title_only"
+    ],
+    "19": [
+      "baseline",
+      "title_only"
+    ],
+    "20": [
+      "attributes_only"
+    ],
+    "21": [
+      "baseline",
+      "attributes_only"
+    ],
+    "22": [
+      "attributes_only"
+    ],
+    "23": [
+      "baseline"
+    ]
+  },
+  "Q24": {
+    "01": [
+      "baseline"
+    ],
+    "02": [
+      "attributes_only"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "title_only"
+    ],
+    "05": [
+      "title_only"
+    ],
+    "06": [
+      "attributes_only"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "title_only"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "attributes_only"
+    ],
+    "12": [
+      "attributes_only"
+    ],
+    "13": [
+      "baseline"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "baseline"
+    ],
+    "16": [
+      "baseline"
+    ],
+    "17": [
+      "baseline",
+      "title_only"
+    ],
+    "18": [
+      "title_only"
+    ],
+    "19": [
+      "baseline"
+    ],
+    "20": [
+      "attributes_only"
+    ],
+    "21": [
+      "attributes_only"
+    ],
+    "22": [
+      "title_only"
+    ],
+    "23": [
+      "baseline"
+    ],
+    "24": [
+      "baseline"
+    ],
+    "25": [
+      "baseline"
+    ],
+    "26": [
+      "title_only"
+    ],
+    "27": [
+      "attributes_only"
+    ],
+    "28": [
+      "baseline"
+    ],
+    "29": [
+      "title_only"
+    ]
+  },
+  "Q26": {
+    "01": [
+      "title_only"
+    ],
+    "02": [
+      "baseline",
+      "attributes_only"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "title_only"
+    ],
+    "05": [
+      "baseline"
+    ],
+    "06": [
+      "baseline"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "attributes_only"
+    ],
+    "09": [
+      "baseline"
+    ],
+    "10": [
+      "baseline"
+    ],
+    "11": [
+      "baseline",
+      "attributes_only"
+    ],
+    "12": [
+      "attributes_only"
+    ],
+    "13": [
+      "baseline",
+      "title_only"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "attributes_only"
+    ],
+    "16": [
+      "title_only"
+    ],
+    "17": [
+      "baseline",
+      "attributes_only"
+    ],
+    "18": [
+      "title_only"
+    ],
+    "19": [
+      "title_only"
+    ],
+    "20": [
+      "baseline"
+    ],
+    "21": [
+      "attributes_only"
+    ],
+    "22": [
+      "title_only"
+    ],
+    "23": [
+      "attributes_only"
+    ],
+    "24": [
+      "title_only"
+    ],
+    "25": [
+      "baseline"
+    ],
+    "26": [
+      "title_only"
+    ]
+  },
+  "Q27": {
+    "01": [
+      "attributes_only"
+    ],
+    "02": [
+      "baseline",
+      "attributes_only"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "baseline",
+      "title_only"
+    ],
+    "05": [
+      "title_only"
+    ],
+    "06": [
+      "title_only"
+    ],
+    "07": [
+      "baseline"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "baseline",
+      "attributes_only"
+    ],
+    "10": [
+      "title_only"
+    ],
+    "11": [
+      "attributes_only"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "title_only"
+    ],
+    "14": [
+      "title_only"
+    ],
+    "15": [
+      "baseline"
+    ],
+    "16": [
+      "baseline",
+      "attributes_only"
+    ],
+    "17": [
+      "attributes_only"
+    ],
+    "18": [
+      "baseline",
+      "attributes_only"
+    ],
+    "19": [
+      "baseline"
+    ],
+    "20": [
+      "attributes_only"
+    ],
+    "21": [
+      "attributes_only"
+    ],
+    "22": [
+      "baseline"
+    ],
+    "23": [
+      "title_only"
+    ],
+    "24": [
+      "baseline"
+    ],
+    "25": [
+      "attributes_only"
+    ]
+  },
+  "Q29": {
+    "01": [
+      "title_only"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "attributes_only"
+    ],
+    "04": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "05": [
+      "baseline",
+      "attributes_only"
+    ],
+    "06": [
+      "baseline"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "attributes_only"
+    ],
+    "09": [
+      "title_only"
+    ],
+    "10": [
+      "title_only"
+    ],
+    "11": [
+      "baseline",
+      "attributes_only"
+    ],
+    "12": [
+      "baseline"
+    ],
+    "13": [
+      "baseline"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "title_only"
+    ],
+    "16": [
+      "baseline",
+      "title_only"
+    ],
+    "17": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "18": [
+      "baseline",
+      "attributes_only"
+    ],
+    "19": [
+      "title_only"
+    ],
+    "20": [
+      "title_only"
+    ],
+    "21": [
+      "baseline",
+      "attributes_only"
+    ]
+  },
+  "Q31": {
+    "01": [
+      "title_only"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "attributes_only"
+    ],
+    "05": [
+      "title_only"
+    ],
+    "06": [
+      "attributes_only"
+    ],
+    "07": [
+      "baseline"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "baseline"
+    ],
+    "10": [
+      "baseline",
+      "attributes_only"
+    ],
+    "11": [
+      "baseline",
+      "attributes_only"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "title_only"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "baseline",
+      "attributes_only"
+    ],
+    "16": [
+      "title_only"
+    ],
+    "17": [
+      "baseline"
+    ],
+    "18": [
+      "baseline",
+      "attributes_only"
+    ],
+    "19": [
+      "baseline",
+      "attributes_only"
+    ],
+    "20": [
+      "baseline",
+      "title_only"
+    ],
+    "21": [
+      "baseline",
+      "attributes_only"
+    ],
+    "22": [
+      "title_only"
+    ],
+    "23": [
+      "attributes_only"
+    ]
+  },
+  "Q32": {
+    "01": [
+      "title_only"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "baseline"
+    ],
+    "04": [
+      "title_only"
+    ],
+    "05": [
+      "baseline",
+      "attributes_only"
+    ],
+    "06": [
+      "baseline"
+    ],
+    "07": [
+      "title_only"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "baseline",
+      "attributes_only"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "baseline"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "attributes_only"
+    ],
+    "14": [
+      "baseline"
+    ],
+    "15": [
+      "attributes_only"
+    ],
+    "16": [
+      "attributes_only"
+    ],
+    "17": [
+      "attributes_only"
+    ],
+    "18": [
+      "baseline"
+    ],
+    "19": [
+      "baseline"
+    ],
+    "20": [
+      "attributes_only"
+    ],
+    "21": [
+      "title_only"
+    ],
+    "22": [
+      "title_only"
+    ],
+    "23": [
+      "attributes_only"
+    ],
+    "24": [
+      "baseline"
+    ],
+    "25": [
+      "title_only"
+    ],
+    "26": [
+      "baseline",
+      "attributes_only"
+    ],
+    "27": [
+      "title_only"
+    ]
+  },
+  "Q34": {
+    "01": [
+      "baseline"
+    ],
+    "02": [
+      "baseline",
+      "title_only"
+    ],
+    "03": [
+      "attributes_only"
+    ],
+    "04": [
+      "baseline",
+      "title_only"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "baseline",
+      "title_only"
+    ],
+    "07": [
+      "baseline"
+    ],
+    "08": [
+      "attributes_only"
+    ],
+    "09": [
+      "attributes_only"
+    ],
+    "10": [
+      "baseline",
+      "title_only"
+    ],
+    "11": [
+      "attributes_only"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "title_only"
+    ],
+    "14": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "15": [
+      "attributes_only"
+    ],
+    "16": [
+      "baseline",
+      "title_only"
+    ],
+    "17": [
+      "baseline",
+      "title_only"
+    ],
+    "18": [
+      "attributes_only"
+    ],
+    "19": [
+      "title_only"
+    ],
+    "20": [
+      "attributes_only"
+    ],
+    "21": [
+      "attributes_only"
+    ],
+    "22": [
+      "baseline"
+    ]
+  },
+  "Q36": {
+    "01": [
+      "title_only"
+    ],
+    "02": [
+      "attributes_only"
+    ],
+    "03": [
+      "baseline"
+    ],
+    "04": [
+      "title_only"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "baseline",
+      "title_only"
+    ],
+    "07": [
+      "baseline"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "attributes_only"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "attributes_only"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "title_only"
+    ],
+    "14": [
+      "baseline"
+    ],
+    "15": [
+      "attributes_only"
+    ],
+    "16": [
+      "baseline"
+    ],
+    "17": [
+      "attributes_only"
+    ],
+    "18": [
+      "title_only"
+    ],
+    "19": [
+      "baseline"
+    ],
+    "20": [
+      "baseline"
+    ],
+    "21": [
+      "baseline"
+    ],
+    "22": [
+      "attributes_only"
+    ],
+    "23": [
+      "baseline"
+    ],
+    "24": [
+      "title_only"
+    ],
+    "25": [
+      "title_only"
+    ],
+    "26": [
+      "attributes_only"
+    ],
+    "27": [
+      "baseline"
+    ],
+    "28": [
+      "attributes_only"
+    ],
+    "29": [
+      "title_only"
+    ]
+  },
+  "Q37": {
+    "01": [
+      "title_only"
+    ],
+    "02": [
+      "baseline"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "baseline"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "baseline"
+    ],
+    "07": [
+      "baseline"
+    ],
+    "08": [
+      "attributes_only"
+    ],
+    "09": [
+      "baseline",
+      "title_only"
+    ],
+    "10": [
+      "title_only"
+    ],
+    "11": [
+      "baseline",
+      "title_only"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "title_only"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "attributes_only"
+    ],
+    "16": [
+      "baseline"
+    ],
+    "17": [
+      "attributes_only"
+    ],
+    "18": [
+      "baseline"
+    ],
+    "19": [
+      "baseline",
+      "title_only"
+    ],
+    "20": [
+      "attributes_only"
+    ],
+    "21": [
+      "title_only"
+    ],
+    "22": [
+      "attributes_only"
+    ],
+    "23": [
+      "title_only"
+    ],
+    "24": [
+      "baseline",
+      "attributes_only"
+    ],
+    "25": [
+      "attributes_only"
+    ],
+    "26": [
+      "attributes_only"
+    ]
+  },
+  "Q39": {
+    "01": [
+      "baseline",
+      "title_only"
+    ],
+    "02": [
+      "attributes_only"
+    ],
+    "03": [
+      "baseline",
+      "title_only"
+    ],
+    "04": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "baseline"
+    ],
+    "07": [
+      "baseline"
+    ],
+    "08": [
+      "baseline"
+    ],
+    "09": [
+      "title_only"
+    ],
+    "10": [
+      "title_only"
+    ],
+    "11": [
+      "attributes_only"
+    ],
+    "12": [
+      "attributes_only"
+    ],
+    "13": [
+      "baseline",
+      "title_only"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "16": [
+      "attributes_only"
+    ],
+    "17": [
+      "attributes_only"
+    ],
+    "18": [
+      "baseline",
+      "title_only"
+    ],
+    "19": [
+      "baseline",
+      "title_only"
+    ],
+    "20": [
+      "title_only"
+    ],
+    "21": [
+      "attributes_only"
+    ]
+  },
+  "Q41": {
+    "01": [
+      "baseline",
+      "title_only"
+    ],
+    "02": [
+      "baseline",
+      "title_only"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "baseline"
+    ],
+    "05": [
+      "baseline"
+    ],
+    "06": [
+      "attributes_only"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "attributes_only"
+    ],
+    "10": [
+      "baseline"
+    ],
+    "11": [
+      "attributes_only"
+    ],
+    "12": [
+      "baseline"
+    ],
+    "13": [
+      "baseline",
+      "title_only"
+    ],
+    "14": [
+      "title_only"
+    ],
+    "15": [
+      "baseline"
+    ],
+    "16": [
+      "attributes_only"
+    ],
+    "17": [
+      "baseline"
+    ],
+    "18": [
+      "baseline",
+      "title_only"
+    ],
+    "19": [
+      "attributes_only"
+    ],
+    "20": [
+      "attributes_only"
+    ],
+    "21": [
+      "title_only"
+    ],
+    "22": [
+      "title_only"
+    ],
+    "23": [
+      "title_only"
+    ],
+    "24": [
+      "attributes_only"
+    ],
+    "25": [
+      "attributes_only"
+    ],
+    "26": [
+      "attributes_only"
+    ]
+  },
+  "Q42": {
+    "01": [
+      "baseline"
+    ],
+    "02": [
+      "attributes_only"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "attributes_only"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "baseline",
+      "title_only"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "attributes_only"
+    ],
+    "09": [
+      "baseline"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "baseline",
+      "title_only"
+    ],
+    "12": [
+      "attributes_only"
+    ],
+    "13": [
+      "title_only"
+    ],
+    "14": [
+      "title_only"
+    ],
+    "15": [
+      "title_only"
+    ],
+    "16": [
+      "title_only"
+    ],
+    "17": [
+      "title_only"
+    ],
+    "18": [
+      "attributes_only"
+    ],
+    "19": [
+      "attributes_only"
+    ],
+    "20": [
+      "baseline",
+      "title_only"
+    ],
+    "21": [
+      "baseline"
+    ],
+    "22": [
+      "baseline"
+    ],
+    "23": [
+      "baseline",
+      "title_only"
+    ],
+    "24": [
+      "baseline"
+    ],
+    "25": [
+      "attributes_only"
+    ],
+    "26": [
+      "baseline"
+    ]
+  },
+  "Q44": {
+    "01": [
+      "attributes_only"
+    ],
+    "02": [
+      "baseline"
+    ],
+    "03": [
+      "title_only"
+    ],
+    "04": [
+      "title_only"
+    ],
+    "05": [
+      "attributes_only"
+    ],
+    "06": [
+      "title_only"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "title_only"
+    ],
+    "09": [
+      "baseline"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "baseline",
+      "title_only"
+    ],
+    "12": [
+      "attributes_only"
+    ],
+    "13": [
+      "attributes_only"
+    ],
+    "14": [
+      "title_only"
+    ],
+    "15": [
+      "baseline",
+      "title_only"
+    ],
+    "16": [
+      "baseline"
+    ],
+    "17": [
+      "baseline",
+      "title_only"
+    ],
+    "18": [
+      "baseline"
+    ],
+    "19": [
+      "attributes_only"
+    ],
+    "20": [
+      "title_only"
+    ],
+    "21": [
+      "baseline"
+    ],
+    "22": [
+      "title_only"
+    ],
+    "23": [
+      "baseline",
+      "attributes_only"
+    ],
+    "24": [
+      "baseline",
+      "attributes_only"
+    ],
+    "25": [
+      "attributes_only"
+    ]
+  },
+  "Q46": {
+    "01": [
+      "title_only"
+    ],
+    "02": [
+      "baseline",
+      "attributes_only"
+    ],
+    "03": [
+      "baseline",
+      "title_only"
+    ],
+    "04": [
+      "title_only"
+    ],
+    "05": [
+      "title_only"
+    ],
+    "06": [
+      "baseline"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "attributes_only"
+    ],
+    "09": [
+      "baseline"
+    ],
+    "10": [
+      "attributes_only"
+    ],
+    "11": [
+      "baseline"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "baseline",
+      "attributes_only"
+    ],
+    "14": [
+      "baseline",
+      "attributes_only"
+    ],
+    "15": [
+      "title_only"
+    ],
+    "16": [
+      "title_only"
+    ],
+    "17": [
+      "baseline"
+    ],
+    "18": [
+      "attributes_only"
+    ],
+    "19": [
+      "title_only"
+    ],
+    "20": [
+      "baseline",
+      "attributes_only"
+    ],
+    "21": [
+      "baseline"
+    ],
+    "22": [
+      "title_only"
+    ],
+    "23": [
+      "attributes_only"
+    ],
+    "24": [
+      "title_only"
+    ],
+    "25": [
+      "attributes_only"
+    ]
+  },
+  "Q47": {
+    "01": [
+      "baseline",
+      "attributes_only"
+    ],
+    "02": [
+      "baseline"
+    ],
+    "03": [
+      "attributes_only"
+    ],
+    "04": [
+      "title_only"
+    ],
+    "05": [
+      "baseline",
+      "title_only",
+      "attributes_only"
+    ],
+    "06": [
+      "baseline",
+      "title_only"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "baseline"
+    ],
+    "09": [
+      "title_only"
+    ],
+    "10": [
+      "baseline",
+      "attributes_only"
+    ],
+    "11": [
+      "title_only"
+    ],
+    "12": [
+      "baseline",
+      "attributes_only"
+    ],
+    "13": [
+      "title_only"
+    ],
+    "14": [
+      "title_only"
+    ],
+    "15": [
+      "title_only"
+    ],
+    "16": [
+      "baseline"
+    ],
+    "17": [
+      "attributes_only"
+    ],
+    "18": [
+      "title_only"
+    ],
+    "19": [
+      "title_only"
+    ],
+    "20": [
+      "baseline",
+      "attributes_only"
+    ],
+    "21": [
+      "baseline",
+      "attributes_only"
+    ],
+    "22": [
+      "attributes_only"
+    ]
+  },
+  "Q49": {
+    "01": [
+      "title_only"
+    ],
+    "02": [
+      "title_only"
+    ],
+    "03": [
+      "baseline"
+    ],
+    "04": [
+      "attributes_only"
+    ],
+    "05": [
+      "baseline",
+      "attributes_only"
+    ],
+    "06": [
+      "attributes_only"
+    ],
+    "07": [
+      "attributes_only"
+    ],
+    "08": [
+      "baseline"
+    ],
+    "09": [
+      "title_only"
+    ],
+    "10": [
+      "title_only"
+    ],
+    "11": [
+      "baseline"
+    ],
+    "12": [
+      "title_only"
+    ],
+    "13": [
+      "title_only"
+    ],
+    "14": [
+      "attributes_only"
+    ],
+    "15": [
+      "baseline"
+    ],
+    "16": [
+      "baseline"
+    ],
+    "17": [
+      "title_only"
+    ],
+    "18": [
+      "title_only"
+    ],
+    "19": [
+      "attributes_only"
+    ],
+    "20": [
+      "baseline",
+      "attributes_only"
+    ],
+    "21": [
+      "title_only"
+    ],
+    "22": [
+      "title_only"
+    ],
+    "23": [
+      "baseline"
+    ],
+    "24": [
+      "baseline"
+    ],
+    "25": [
+      "attributes_only"
+    ],
+    "26": [
+      "attributes_only"
+    ],
+    "27": [
+      "baseline",
+      "attributes_only"
+    ]
+  }
+}

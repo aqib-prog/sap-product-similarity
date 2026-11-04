@@ -1,0 +1,352 @@
+[
+  {
+    "query_no": "Q01",
+    "id": "4a19cb1bd8b79740f2a4a0f14775e0aa",
+    "title": "OM SAI LATEST CREATION Women's Cotton a-line Kurta",
+    "group": "common category",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q02",
+    "id": "c063efea9fd98cd1adc8250e8ece4c82",
+    "title": "S Kiran's Women's Assamese Art Silk Weaving Contrast Mekhela Semi Modal Chanderi Chador Heavy Brocket Blouse Piece (Multicolour)",
+    "group": "common category",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q03",
+    "id": "b88fdf3a17a22ab468695dd9bdce00f1",
+    "title": "Parx Men's Checkered Slim Fit Casual Shirt",
+    "group": "common category",
+    "split": "final"
+  },
+  {
+    "query_no": "Q04",
+    "id": "c5d302d14d80e6a58760ebeded2e9553",
+    "title": "Madwares Men's Polyester Alan Walker Round Casual Wear T-Shirt",
+    "group": "common category",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q05",
+    "id": "9a67536ea1441fd3b4c94d25d3c272ae",
+    "title": "Elements by Peter England Men's Slim fit T-Shirt",
+    "group": "common category",
+    "split": "final"
+  },
+  {
+    "query_no": "Q06",
+    "id": "af15ad6b13ee859ce2fead6ed24aebd5",
+    "title": "Si Rosa by Hopscotch Girls Polycotton Adorable Bow Applique Party Dress in Pink Color",
+    "group": "common category",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q07",
+    "id": "e29fd93ca27749b6e138d6288b5b2eea",
+    "title": "Monte Carlo Boy's Regular fit T-Shirt",
+    "group": "common category",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q08",
+    "id": "42e4312c4317db3eb50fb88b6869e6cb",
+    "title": "HANIYA Women's Cotton Chikan Embroidered Tunic Top Short Kurta",
+    "group": "common category",
+    "split": "final"
+  },
+  {
+    "query_no": "Q09",
+    "id": "266b54b024993f68377fe82452098db8",
+    "title": "Running Belt, Fully Adjustable Fastener, Fitness Waist Belt, Key Clip. Fits iPhone 6,7,8 Plus, X. Unisex. Suitable for Gym Workouts, Exercise, Cycling, Walking, Jogging, Sport, Travel, Outdoors",
+    "group": "common category",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q10",
+    "id": "bf06eb7ae0fd8f8c34fe7274f36e859b",
+    "title": "Miraan Women's Dress Material",
+    "group": "common category",
+    "split": "final"
+  },
+  {
+    "query_no": "Q11",
+    "id": "64ac84df7170fcb1e6d31031249f296e",
+    "title": "Imagica Girl's Round Neck Tricolour Tree Tshirt",
+    "group": "common category",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q12",
+    "id": "5836fb8eeb46d18458b0da2dcd887d4f",
+    "title": "Health Care Hospital Patient Std. Gait Belt 72\" Long Plastic Buckle by Essential Medical Supply",
+    "group": "common category",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q13",
+    "id": "9aeda0957259c83f1595ed2015f7850b",
+    "title": "YouGotPlanB Fly High - Boy Boxer Shorts",
+    "group": "rare category",
+    "split": "final"
+  },
+  {
+    "query_no": "Q14",
+    "id": "f0900590f852354863b0654f9fe5cd0b",
+    "title": "NeskaModa Women's Suspender Stockings (PantyHoseBL-1_Black_Free Size)",
+    "group": "rare category",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q15",
+    "id": "4e937d7abbb42f8119e2e55e340a945a",
+    "title": "NAVAKSHA Men's Elastic Y-Back Suspender with Convertible Clip and Button End",
+    "group": "rare category",
+    "split": "final"
+  },
+  {
+    "query_no": "Q16",
+    "id": "d8239dade060b3a88d8a5f3d0ae36b4d",
+    "title": "Hawaii Luau Party Artificial Fabric Single Large Hibiscus Hair Clips Pink",
+    "group": "rare category",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q17",
+    "id": "385b064ea44bcd0bdcc6a0e6c0c2e866",
+    "title": "BASIICS by La Intimo Men's Power Brief Underwear (Pack of 2)",
+    "group": "rare category",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q18",
+    "id": "ac24403c0e3831e03180c4657a513bd2",
+    "title": "Rupa Thermocot Women's Plain/Solid Synthetic Thermal Top",
+    "group": "rare category",
+    "split": "final"
+  },
+  {
+    "query_no": "Q19",
+    "id": "8490f530f6fea6d559e1c686fea90b33",
+    "title": "U.S. Polo Assn. Men's Slim Fit Solid Short Sleeve Pique Polo Shirt",
+    "group": "sparse data",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q20",
+    "id": "1aae67240cd8985b69bea6e9495b8260",
+    "title": "Scott International Men's T-Shirt",
+    "group": "sparse data",
+    "split": "final"
+  },
+  {
+    "query_no": "Q21",
+    "id": "d01073c100a4d80554d0bf7e5cdfece4",
+    "title": "Disney Minnie Mouse Girls Rain Slicker Raincoat Going Dotty (large 6/7)",
+    "group": "sparse data",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q22",
+    "id": "caa890201c05c1e3998d76f5614fa902",
+    "title": "Mothercare Sleepsuit (Pack of 3)",
+    "group": "sparse data",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q23",
+    "id": "298294e13a358e6da651edefe18ff384",
+    "title": "Bellazaara Navy Blue Chiffon Flower with Crystal Headband",
+    "group": "sparse data",
+    "split": "final"
+  },
+  {
+    "query_no": "Q24",
+    "id": "8fe29efc3daf1d366603c42cc9409ccd",
+    "title": "Star Wars Star Wars Holiday Knit Beanie Hat",
+    "group": "sparse data",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q25",
+    "id": "bdaca7834a11ce47bf545d7fc69d9b77",
+    "title": "Arrow Men's Solid Slim Fit Formal Shirt",
+    "group": "sparse data",
+    "split": "final"
+  },
+  {
+    "query_no": "Q26",
+    "id": "9c2a9f393ddc6f5bb877727970ec4b9f",
+    "title": "Tommy Hilfiger Men's Core Neat I Tie",
+    "group": "sparse data",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q27",
+    "id": "a4a1922a9a3484775693696a2e001500",
+    "title": "TILISM Girls Crop top lehanga Choli Dress Sequence Belt",
+    "group": "complete data",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q28",
+    "id": "0e924771a58b025686796bf72bdfbf0e",
+    "title": "club fashion Rayon Fabric Orange Color Kurta",
+    "group": "complete data",
+    "split": "final"
+  },
+  {
+    "query_no": "Q29",
+    "id": "9a8d727a5e335dcbdc6a4979ef5b81fc",
+    "title": "XTRIM - AEGIS - Purple (S/M/L) - Women Gym Workout Gloves Purple",
+    "group": "complete data",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q30",
+    "id": "1187d4298300675705949611ca55a0bf",
+    "title": "Excalibur by Unlimited Men's Relaxed Fit Formal Trousers",
+    "group": "complete data",
+    "split": "final"
+  },
+  {
+    "query_no": "Q31",
+    "id": "78525717e34f31f62764b3123928171e",
+    "title": "Samudra Collection Silk Saree (Dhamal_1_Blue_)",
+    "group": "complete data",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q32",
+    "id": "4bf64431f3fa28ddd60c9ad4061c6c20",
+    "title": "Zombom Women's Regular Fit Top",
+    "group": "complete data",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q33",
+    "id": "2a9003991edbd941934b0fb70bdc85a0",
+    "title": "OSWAL Navy Blue School Uniform Sweater for Boys and Girls | MAHAMAYA Uniforms",
+    "group": "complete data",
+    "split": "final"
+  },
+  {
+    "query_no": "Q34",
+    "id": "b7c60c2c67d0804c0a9f3cf7d63794ad",
+    "title": "1 Stop Fashion Women's Crepe Straight Kurta (Pack of 6)",
+    "group": "complete data",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q35",
+    "id": "c82cad8c67885b2c56e3a3bf81bf5b8f",
+    "title": "Pepe Jeans Men's Printed Slim fit T-Shirt",
+    "group": "repeated title",
+    "split": "final"
+  },
+  {
+    "query_no": "Q36",
+    "id": "1ab74d9bac3413006265070995ea3f7c",
+    "title": "BIBA Women's Straight Kurta",
+    "group": "repeated title",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q37",
+    "id": "b15e2dc1e8b34d6038121044d74c86f7",
+    "title": "Karigari by Unlimited Women's A-Line Kurta",
+    "group": "repeated title",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q38",
+    "id": "4b5434be5f0d96ff13b6a0e3e7a24f28",
+    "title": "Raymond Men's Plain Slim Fit Formal Shirt",
+    "group": "repeated title",
+    "split": "final"
+  },
+  {
+    "query_no": "Q39",
+    "id": "da9e7531d64d63fde05444cfe7ab4e03",
+    "title": "Cherokee by Unlimited Girls' Plain Regular Fit T-Shirt",
+    "group": "repeated title",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q40",
+    "id": "2d0611d27c4b6613dea746235cb33362",
+    "title": "Threadless By Free Authority Men's Printed Regular Fit T-Shirt",
+    "group": "repeated title",
+    "split": "final"
+  },
+  {
+    "query_no": "Q41",
+    "id": "0716d9a59127f3c3e96cd89a62a26465",
+    "title": "US Polo Assn. Girls' T-Shirt",
+    "group": "repeated title",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q42",
+    "id": "b9a2fae15158fd4fea3c99f26ec54236",
+    "title": "BIBA Women's cotton straight Kurta",
+    "group": "repeated title",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q43",
+    "id": "94dc5f87cf01af54c97947421cde1592",
+    "title": "Pepe Jeans Boy's Polo",
+    "group": "low price",
+    "split": "final"
+  },
+  {
+    "query_no": "Q44",
+    "id": "e27353f3cad99b0b26049d0c9b6ae1e2",
+    "title": "Lee Cooper Girl's Regular fit T-Shirt",
+    "group": "low price",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q45",
+    "id": "75fb2fbd66dfe577ed9bc37fd0a2f417",
+    "title": "Max Women's Regular fit Top",
+    "group": "low price",
+    "split": "final"
+  },
+  {
+    "query_no": "Q46",
+    "id": "97a9973f9fdb020423434b254c82579e",
+    "title": "N G Products Handkerchief for Women, Girls, Kids Soft Towel with Love, Flowers Multicolor (Pack of 10)",
+    "group": "low price",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q47",
+    "id": "ff03c6fede62374e50c68f0c738a2337",
+    "title": "Kiara Sky Dip Dipping Powder D480 Let's Get Rediculous 1 Oz",
+    "group": "high price",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q48",
+    "id": "e5f36cab588ff86e649372d530a10007",
+    "title": "Nomad Skull Cap Biker Style Headwraps Doo Rags - Black",
+    "group": "high price",
+    "split": "final"
+  },
+  {
+    "query_no": "Q49",
+    "id": "7b3b452f2b20ca5e1f183921be7a7d88",
+    "title": "TrailHeads Micro Fleece Neck Warmer | Contoured Winter Neck Gaiter - Black",
+    "group": "high price",
+    "split": "dev"
+  },
+  {
+    "query_no": "Q50",
+    "id": "15700be892ae71228922d2062cb0c838",
+    "title": "Wigwam Men's Alcatraz Hat",
+    "group": "high price",
+    "split": "final"
+  }
+]

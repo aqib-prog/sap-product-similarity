@@ -1,0 +1,4 @@
+method,ndcg_at_10,ndcg_at_10_low,ndcg_at_10_high,precision_at_10,precision_at_10_low,precision_at_10_high,strong_precision_at_10,strong_precision_at_10_low,strong_precision_at_10_high,products_scored,unrated_in_top_10
+baseline,0.7235,0.6375,0.8083,0.74,0.63,0.84,0.5367,0.4133,0.66,30,2
+title_only,0.5733,0.4791,0.6701,0.55,0.4333,0.67,0.4167,0.31,0.5333,30,2
+attributes_only,0.4752,0.3837,0.5609,0.62,0.51,0.7267,0.32,0.2133,0.4267,30,6
