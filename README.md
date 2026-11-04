@@ -12,10 +12,11 @@ The project is built for the SAP technical exercise. The original task descripti
 |---|---|
 | Data loading and validation (reads the archive in place, integrity check) | Done, tested |
 | Exploratory data analysis notebook (6 explained charts, 24 reproduced figures) | Done |
-| Preprocessing pipeline | In progress |
-| Similarity function `find_similar_products` | Planned |
-| Image-aware similarity | Planned |
-| FastAPI service and Docker image | Planned |
+| Preprocessing pipeline (cleaning, repeated products, derived fields) | Done, tested |
+| Baseline similarity function `find_similar_products` (title and attributes, untuned weights) | Done, tested |
+| Image-aware similarity | Planned (the engine already has a slot for image features) |
+| FastAPI service | Done, tested |
+| Docker image | Dockerfile and a CI build-and-test job written; the image has not been verified yet |
 | Vector search benchmarks (FAISS Flat and HNSW, Annoy) | Planned |
 | Kubernetes manifests, CI/CD, monitoring | Planned |
 
@@ -41,20 +42,45 @@ make test
 make lint
 ```
 
-To open the exploration notebook:
+To open the notebooks:
 
 ```bash
-jupyter lab notebooks/01_data_exploration.ipynb
+jupyter lab notebooks/
+```
+
+## Run the service
+
+```bash
+PYTHONPATH=src uvicorn app:app --port 8000
+```
+
+```bash
+curl "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
+```
+
+The response is a JSON list of product IDs. An unknown ID returns 404, invalid input returns 422, and `/live` and `/ready` report service health.
+
+With Docker:
+
+```bash
+docker build -t product-similarity .
+docker run -p 8000:8000 product-similarity
 ```
 
 ## Project layout
 
 ```text
+app.py                    Entry point for uvicorn
 src/product_similarity/   Python package
-  data.py                 Reads the archive, checks its hash, converts numbers
+  data.py                 Reads the archive, checks its hash, keeps one record per product
   validation.py           Reports data problems without changing the data
+  preprocessing.py        Cleaning and derived fields
+  scoring.py              Per-attribute similarity scores and the weighted mix
+  ranking.py              Fixed ordering of results
+  service.py              The public find_similar_products function
+  api.py                  Web routes (FastAPI)
   settings.py             File locations, overridable with environment variables
-tests/unit/               Unit tests
+tests/                    Unit and integration tests
 notebooks/                Analysis notebooks (import logic from the package)
 data/archive.zip          Dataset supplied with the exercise
 .github/workflows/        Continuous integration

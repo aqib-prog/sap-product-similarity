@@ -5,7 +5,9 @@ __pycache__
 *.pyc
 .pytest_cache
 .ruff_cache
-data/
+# Only the dataset archive is needed inside the image
+data/*
+!data/archive.zip
 notebooks/
 experiments/
 benchmarks/
