@@ -49,18 +49,15 @@ jobs:
         run: |
           curl -fsS "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5" \
             | python3 -c "import json, sys; ids = json.load(sys.stdin); assert len(ids) == 5 and len(set(ids)) == 5, ids; print(ids)"
-      - name: Show a readable example
+      - name: Show the full JSON response
         run: |
-          curl -fsS "http://localhost:8000/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5" \
-            | python3 -c "
-          import json, sys
-          r = json.load(sys.stdin)
-          q = r['query']
-          print('Question: similar to', q['title'][:70], '|', q['category'], '|', q['price'])
-          for x in r['results']:
-              print(f\"  {x['score']:.3f}  {x['title'][:60]}  [{x['category']}, {x['price']}]\")
-          print('Response time:', r['response_time_ms'], 'ms')
+          curl -fsS "http://localhost:8000/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5" > response.json
+          python3 -m json.tool response.json
+          python3 -c "
+          import json
+          r = json.load(open('response.json'))
           assert len(r['results']) == 5 and all(x['title'] for x in r['results'])
+          assert r['question']['num_similar'] == 5 and r['response_time_ms'] >= 0
           "
       - name: Unknown product returns 404
         run: |
