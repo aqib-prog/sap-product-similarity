@@ -60,3 +60,12 @@ def test_page_is_written_as_utf8(tmp_path):
     rows[0]["candidate_title"] = "Kurta \u20b9 caf\u00e9"
     write_review_page(rows, tmp_path / "page.html")
     assert "caf\u00e9" in (tmp_path / "page.html").read_text(encoding="utf-8")
+
+
+def test_page_can_use_its_own_save_key_and_file_name():
+    from product_similarity.review_page import render_review_page
+
+    page = render_review_page([], key="ratings-images-v1", filename="dev_grades_images.csv")
+    assert 'const KEY = "ratings-images-v1"' in page
+    assert 'a.download = "dev_grades_images.csv"' in page
+    assert "__KEY__" not in page and "__FILE__" not in page

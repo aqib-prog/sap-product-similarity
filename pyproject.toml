@@ -26,6 +26,12 @@ dev = [
 experiments = [
     "mlflow>=2.16,<4",
 ]
+# Pretrained image models (ResNet, CLIP). Offline experiments only, never in the Docker image.
+images = [
+    "torch>=2.2,<3",
+    "torchvision>=0.17,<1",
+    "transformers>=4.40,<5",
+]
 # Only needed to run the exploration notebooks, never installed in the Docker image.
 notebooks = [
     "pandas>=2.2,<3",
