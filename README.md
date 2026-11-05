@@ -15,6 +15,7 @@ The project is built for the SAP technical exercise. The original task descripti
 | Preprocessing pipeline (cleaning, repeated products, derived fields) | Done, tested |
 | Baseline similarity function `find_similar_products` (title and attributes, untuned weights) | Done, tested |
 | Evaluation: 50 test products, blind rating page, scoring, MLflow tracking | Done for the 30 development products; the 20 final products stay locked |
+| Image sample check (100 images) | Done: 99 of 100 downloaded; the full download has not been started |
 | Image-aware similarity | Planned (the engine already has a slot for image features) |
 | FastAPI service | Done, tested |
 | Docker image | Done: built and tested in CI (starts, answers requests, runs as a non-root user) |
@@ -218,6 +219,17 @@ Open http://127.0.0.1:5055, click **Model training** at the top left, and open t
 - One person rated, so the labels reflect one judgment.
 - Only 30 products were rated, so small differences cannot be told apart.
 
+## Image sample check
+
+Before downloading any images in bulk, I checked a sample of 100 (kept on my computer only and never committed). The full report is in [`results/image_sample_report.md`](results/image_sample_report.md).
+
+- **99 of 100 downloaded.** The one failure was a link that no longer exists (HTTP 404).
+- **First images are good.** Every first image I viewed was a clean product picture on a white background.
+- **Shared pictures are mostly size charts.** Of 15 pictures that many products share, 11 were size charts. The automatic quality checks missed them, so shared pictures must be filtered out. They sit almost only in later image positions, so using the **first image only** avoids them (just 11 of about 29,500 products have a shared first image).
+- **Full download estimate:** about 29,000 pictures, roughly 860 MB, about 4 hours at a polite pace. It needs a separate decision.
+
+Downloads used one request at a time (at most 4 per second), https only, one allowed host, a size limit and no redirects.
+
 ## Project layout
 
 ```text
@@ -233,9 +245,10 @@ src/product_similarity/   Python package
   judging.py              Chooses the test products and builds the blind rating sheet
   review_page.py          The browser page used to rate results
   evaluation.py           nDCG, precision and confidence ranges
+  images.py               Safe image download, quality checks and sample selection
   tracking.py             Optional MLflow logging (the service never uses it)
   settings.py             File locations, overridable with environment variables
-experiments/              Scripts that score methods and record runs
+experiments/              Scripts that score methods, record runs and check images
 evaluation/               Rating rules, test products and ratings
 results/                  Exported scores and the evaluation report
 tests/                    Unit and integration tests

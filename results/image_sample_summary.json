@@ -1,0 +1,51 @@
+{
+  "requested": 100,
+  "downloaded": 99,
+  "failed": {
+    "http_404": 1
+  },
+  "flags": {
+    "download_failed": 1,
+    "low_resolution": 5,
+    "extreme_shape": 1,
+    "mostly_blank": 1
+  },
+  "wall_seconds": 47.6,
+  "bytes_min_median_mean_max": [
+    6648,
+    24743,
+    29257,
+    65708
+  ],
+  "dims": [
+    [
+      "500x500",
+      20
+    ],
+    [
+      "385x500",
+      14
+    ],
+    [
+      "375x500",
+      7
+    ],
+    [
+      "333x500",
+      7
+    ],
+    [
+      "387x500",
+      3
+    ],
+    [
+      "500x483",
+      1
+    ]
+  ],
+  "distinct_first_images": 29261,
+  "per_request_seconds": 0.48,
+  "full_download_mb": 856,
+  "full_download_minutes": 232,
+  "prep_ms": 3.0
+}

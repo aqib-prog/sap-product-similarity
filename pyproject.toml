@@ -20,6 +20,7 @@ dev = [
     "pytest>=8.4,<9",
     "httpx>=0.28,<1",
     "ruff>=0.17,<0.18",
+    "Pillow>=10,<13",
 ]
 # Experiment tracking. Not needed to run the service or the tests.
 experiments = [
