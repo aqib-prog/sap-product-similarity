@@ -221,14 +221,11 @@ Open http://127.0.0.1:5055, click **Model training** at the top left, and open t
 
 ## Image sample check
 
-Before downloading any images in bulk, I checked a sample of 100 (kept on my computer only and never committed). The full report is in [`results/image_sample_report.md`](results/image_sample_report.md).
+Before downloading images in bulk, I checked a sample of 100 (kept locally, never committed). Details are in [`results/image_sample_report.md`](results/image_sample_report.md).
 
-- **99 of 100 downloaded.** The one failure was a link that no longer exists (HTTP 404).
-- **First images are good.** Every first image I viewed was a clean product picture on a white background.
-- **Shared pictures are mostly size charts.** Of 15 pictures that many products share, 11 were size charts. The automatic quality checks missed them, so shared pictures must be filtered out. They sit almost only in later image positions, so using the **first image only** avoids them (just 11 of about 29,500 products have a shared first image).
-- **Full download estimate:** about 29,000 pictures, roughly 860 MB, about 4 hours at a polite pace. It needs a separate decision.
-
-Downloads used one request at a time (at most 4 per second), https only, one allowed host, a size limit and no redirects.
+- **First images are good product photos.** 99 of 100 downloaded.
+- **Pictures shared by many products are mostly size charts**, which would make unrelated products look alike. So the plan is to use the **first image only** and filter out shared pictures.
+- **Full download:** about 29,000 pictures, roughly 860 MB. Not started.
 
 ## Project layout
 
