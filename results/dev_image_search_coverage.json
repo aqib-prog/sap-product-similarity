@@ -1,0 +1,28 @@
+{
+  "models": {
+    "resnet50": {
+      "queries_searched": 30,
+      "queries_without_picture": [],
+      "results_total": 300,
+      "already_rated": 122,
+      "unrated": 178,
+      "share_rated": 0.407,
+      "rated_0": 11,
+      "rated_1": 23,
+      "rated_2": 88
+    },
+    "clip": {
+      "queries_searched": 30,
+      "queries_without_picture": [],
+      "results_total": 300,
+      "already_rated": 150,
+      "unrated": 150,
+      "share_rated": 0.5,
+      "rated_0": 17,
+      "rated_1": 21,
+      "rated_2": 112
+    }
+  },
+  "new_results_to_rate": 296,
+  "products_with_new_results": 29
+}

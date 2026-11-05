@@ -84,7 +84,7 @@ PAGE_TEMPLATE = """<!doctype html>
 <main id="main"></main>
 <script>
 const DATA = __DATA__;
-const KEY = "ratings-v1";
+const KEY = "__KEY__";
 let ratings = {};
 try { ratings = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { ratings = {}; }
 
@@ -165,7 +165,7 @@ document.getElementById("download").onclick = () => {
     lines.push([q.query_no, c.no, c.id, g === undefined ? "" : g].join(","));
   }));
   const blob = new Blob([lines.join("\\n") + "\\n"], { type: "text/csv" });
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "dev_grades.csv";
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "__FILE__";
   document.body.appendChild(a); a.click(); a.remove();
 };
 document.getElementById("load").onchange = ev => {
@@ -191,8 +191,14 @@ render();
 """
 
 
-def render_review_page(rows: Sequence[dict]) -> str:
-    """Build the rating page from the sheet rows (no method information is used)."""
+def render_review_page(
+    rows: Sequence[dict], key: str = "ratings-v1", filename: str = "dev_grades.csv"
+) -> str:
+    """Build the rating page from the sheet rows (no method information is used).
+
+    `key` names the saved progress in the browser and `filename` the downloaded file,
+    so two sheets can be rated without mixing up their ratings.
+    """
     queries: list[dict] = []
     index: dict[str, dict] = {}
     for row in rows:
@@ -219,9 +225,15 @@ def render_review_page(rows: Sequence[dict]) -> str:
             }
         )
     data = json.dumps(queries, ensure_ascii=False).replace("</", "<\\/")
-    return PAGE_TEMPLATE.replace("__DATA__", data)
+    page = PAGE_TEMPLATE.replace("__KEY__", key).replace("__FILE__", filename)
+    return page.replace("__DATA__", data)
 
 
-def write_review_page(rows: Sequence[dict], path: Path) -> None:
+def write_review_page(
+    rows: Sequence[dict],
+    path: Path,
+    key: str = "ratings-v1",
+    filename: str = "dev_grades.csv",
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_review_page(rows), encoding="utf-8")
+    path.write_text(render_review_page(rows, key, filename), encoding="utf-8")

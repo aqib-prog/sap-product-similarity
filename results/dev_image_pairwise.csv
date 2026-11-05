@@ -1,0 +1,11 @@
+first,second,ndcg_difference,low,high,difference_is_real
+baseline,title_only,0.1363,0.0296,0.2368,True
+baseline,attributes_only,0.2362,0.1605,0.3168,True
+baseline,image_resnet,0.1121,0.0161,0.2152,True
+baseline,image_clip,-0.0137,-0.1071,0.0845,False
+title_only,attributes_only,0.0998,-0.0187,0.2188,False
+title_only,image_resnet,-0.0242,-0.1357,0.0908,False
+title_only,image_clip,-0.15,-0.2535,-0.0499,True
+attributes_only,image_resnet,-0.124,-0.2326,-0.0148,True
+attributes_only,image_clip,-0.2498,-0.3618,-0.1312,True
+image_resnet,image_clip,-0.1258,-0.2052,-0.0519,True

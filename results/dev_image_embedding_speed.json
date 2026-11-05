@@ -1,0 +1,17 @@
+{
+  "pictures": 708,
+  "resnet50": {
+    "images": 708,
+    "seconds_total": 77.08,
+    "ms_per_image": 108.9,
+    "dimensions": 2048,
+    "failed_to_open": 0
+  },
+  "clip": {
+    "images": 708,
+    "seconds_total": 10.9,
+    "ms_per_image": 15.4,
+    "dimensions": 512,
+    "failed_to_open": 0
+  }
+}
