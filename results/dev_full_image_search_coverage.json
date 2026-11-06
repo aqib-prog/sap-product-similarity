@@ -1,0 +1,17 @@
+{
+  "pictures_searched": 29366,
+  "products_searched": 29370,
+  "excluded_not_product_photos": 2,
+  "same_item_threshold": 0.97,
+  "dev_products": 30,
+  "results_total": 300,
+  "already_rated": 44,
+  "unrated": 256,
+  "rated_0": 4,
+  "rated_1": 2,
+  "rated_2": 38,
+  "dropped_copy_of_query": 2,
+  "dropped_copy_of_result": 13,
+  "new_results_to_rate": 256,
+  "products_with_new_results": 30
+}

@@ -1,0 +1,6 @@
+method,ndcg_at_10,ndcg_at_10_low,ndcg_at_10_high,precision_at_10,precision_at_10_low,precision_at_10_high,strong_precision_at_10,strong_precision_at_10_low,strong_precision_at_10_high,products_scored,unrated_in_top_10,ndcg_without_one_copy_rule
+baseline,0.643571,0.545566,0.741447,0.736667,0.63,0.833333,0.533333,0.41,0.656667,30,3,0.645692
+title_only,0.506718,0.409852,0.608187,0.543333,0.433333,0.66,0.41,0.31,0.523333,30,4,0.511048
+attributes_only,0.427468,0.336347,0.519814,0.616667,0.503333,0.723333,0.316667,0.21,0.423333,30,7,0.430628
+image_clip_all,0.756554,0.663905,0.841229,0.85,0.746667,0.933333,0.656667,0.543333,0.766667,30,0,
+image_clip_708,0.648318,0.568536,0.730895,0.74,0.636667,0.833333,0.52,0.423333,0.63,30,1,

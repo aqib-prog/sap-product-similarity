@@ -72,7 +72,7 @@ The picture link for this product no longer exists. A 404 is not retried. The li
 
 ## Access and terms
 
-- `robots.txt` on the image host restricts only two named crawlers and has no blanket rule. The requests used a different, descriptive user agent.
+- `robots.txt` on the image host names four crawlers and has no blanket rule for others. Baiduspider and Googlebot-Image have a few path limits, and GPTBot and CCBot (AI training crawlers) are blocked completely. The requests used a different, descriptive user agent, and the pictures are only turned into vectors by pretrained models (no training), kept locally and never republished.
 - I could not read Amazon's conditions of use (the page returned an error), so **I cannot say what they allow.** Amazon's terms generally restrict automated access to its services, so a large download should be a deliberate decision. Nothing here is legal advice.
 - What was done: 100 images, slow and one at a time, kept private and never committed.
 

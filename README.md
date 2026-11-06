@@ -16,7 +16,8 @@ The project is built for the SAP technical exercise. The original task descripti
 | Baseline similarity function `find_similar_products` (title and attributes, untuned weights) | Done, tested |
 | Evaluation: 50 test products, blind rating page, scoring, MLflow tracking | Done for the 30 development products; the 20 final products stay locked |
 | Image sample check (100 images) | Done: 99 of 100 downloaded |
-| Image similarity with ResNet and CLIP vectors | Tested on 708 development pictures (CLIP ties the text baseline); the full test on all 30,000 pictures is next |
+| Picture download for the whole catalogue | Done: 29,107 pictures (134 broken links) |
+| Image similarity with CLIP vectors | Done on the whole catalogue: CLIP scores highest on the 30 development products; combining it with text is next |
 | FastAPI service | Done, tested |
 | Docker image | Done: built and tested in CI (starts, answers requests, runs as a non-root user) |
 | CI: lint, tests, Docker build and smoke test on every push | Done, passing |
@@ -33,7 +34,8 @@ I work in small steps. After each step I check the result, and I write down what
 4. **Made a fair way to measure it.** There is no answer key, so I made one from my own ratings, and I record every run in MLflow. ([notebook 04](notebooks/04_evaluation_baseline.ipynb))
 5. **Checked the pictures.** I tested 100 sample images before any bulk download.
 6. **Tried pictures for similarity.** I turned pictures into vectors with ResNet and CLIP and scored them with the same ratings. ([notebook 05](notebooks/05_image_similarity.ipynb))
-7. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
+7. **Tested pictures on the whole catalogue.** I downloaded about 29,000 pictures, turned them into CLIP vectors, rated the new results and scored them next to the text methods. ([notebook 06](notebooks/06_clip_whole_catalogue.ipynb))
+8. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
 
 The sections below explain each step: what I did, why, and what I found.
 
@@ -242,6 +244,7 @@ docker run -p 8000:8000 product-similarity
 | `03_baseline_examples` | Runs the first `find_similar_products` on five real queries, explains each score, times it, and compares it with simpler methods | Results come back in about 6 ms. Title similarity (TF-IDF) and attribute similarity give very different lists. Two weaknesses are noted: near-copies in the results, and products with little data scoring too high |
 | `04_evaluation_baseline` | Scores the three methods against the ratings with nDCG@10 and precision@10, with 95% ranges | The title plus attributes beats either alone, and both gaps are larger than luck. Title only versus attributes only cannot be told apart with 30 products |
 | `05_image_similarity` | Turns pictures into vectors with ResNet and CLIP, searches among the 708 development pictures, and scores the results with the same ratings as the text methods | CLIP ties the text baseline (nDCG@10 0.695 against 0.681), and ResNet is clearly lower (0.569). Image search only looked at pictures the text methods had already picked, so the full test comes next |
+| `06_clip_whole_catalogue` | Downloads the first picture of almost every product, turns them all into CLIP vectors, searches the whole catalogue, and scores the results with all my ratings next to the text methods | CLIP over the whole catalogue scores highest (nDCG@10 0.757). It is clearly better than title only and attributes only, and ahead of the text baseline (0.644) by a gap too small to be sure about with 30 products |
 
 Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
 
@@ -314,9 +317,9 @@ Open http://127.0.0.1:5055, click **Model training** at the top left, and open t
 Before downloading images in bulk, I checked a sample of 100 (kept locally, never committed). Details are in [`results/image_sample_report.md`](results/image_sample_report.md).
 
 - **First images are good product photos.** 99 of 100 downloaded, and the one failure is a link that no longer exists (error 404).
-- **Pictures shared by many products are mostly size charts**, which would make unrelated products look alike. So the plan is to use the **first image only** and filter out shared pictures.
+- **Pictures shared by several products** could have been size charts, which would make unrelated products look alike. The check on the whole catalogue (below) found almost none.
 - **Polite downloading.** One request at a time, at most 4 per second, https only, one allowed host, a time limit and a size limit, and no redirects followed.
-- **Full download:** about 29,000 pictures, roughly 860 MB. Not started.
+- **Full download:** done, see the section on the whole catalogue below.
 
 ## Image similarity (small test)
 
@@ -356,11 +359,72 @@ Open `evaluation/judgments/dev_review_images.html`, rate the cards, press **Down
 python experiments/run_image_evaluation.py
 ```
 
+## Image similarity over the whole catalogue
+
+In the small test I only looked at 708 products. Here I downloaded the first picture of almost every product, turned them all into CLIP vectors, and searched the whole catalogue.
+
+- **Download.** 29,107 pictures (763 MB), one request at a time and at most 4 per second. 134 links no longer exist (error 404). None of the 20 locked products were downloaded. The pictures stay on my computer.
+- **Shared pictures.** 231 pictures are used by two or more products. I looked at all of them. 229 are normal product photos of the same item listed more than once, for example in other sizes or colours. 2 are not product photos (a shop logo and a sewing-pattern drawing), so I left them out. I found no size charts.
+- **One copy per item.** Results that use the same picture, or a nearly identical one, count as the same item, and I show only one of them. Copies of the searched product are not shown. Every method gets the same rule, so the comparison stays fair.
+- **Vectors.** CLIP turned all 29,107 pictures into 512 numbers each in under 8 minutes.
+- **Rating.** For each of the 30 test products, CLIP found the 10 closest items. 44 of the 300 results already had my rating, and I rated the other 256 without seeing which method found them.
+
+### Conclusion
+
+**What I wanted to know:** do product pictures help me find similar products? This time I searched the whole catalogue.
+
+**What I did.** I took about 29,000 product pictures and turned each one into a list of numbers with CLIP. Pictures that look alike get numbers that are close together. For my 30 test products I found the 10 most similar items. I rated the new results myself, without knowing which method found them. I used one set of my ratings to check every method, so the comparison is fair, and I show only one copy of each item.
+
+| Method | nDCG@10 | Precision@10 |
+|---|---|---|
+| CLIP, whole catalogue (pictures) | 0.757 | 0.85 |
+| Text and attributes (my baseline) | 0.644 | 0.74 |
+| CLIP, first 708 pictures only | 0.648 | 0.74 |
+| Title only | 0.507 | 0.54 |
+| Attributes only | 0.427 | 0.62 |
+
+Precision@10 is how many of the top 10 I rated 1 or 2.
+
+**What I found**
+
+- CLIP beats title only and attributes only. The gap is real.
+- CLIP is ahead of my text baseline too, but with only 30 products I can't be sure it is really better.
+- When CLIP searched the whole catalogue, it did better than when it searched only 708 pictures.
+- Pictures and text both find good matches on their own, so I want to try using them together.
+
+**What I can't say yet**
+
+- I tested only 30 products, and I was the only person rating.
+- I haven't touched my 20 final test products.
+
+**What I do next.** I will mix text, CLIP and attributes into one hybrid search, then make it fast with an index.
+
+The five runs are saved in MLflow. This is its comparison page:
+
+![MLflow comparing the five methods: nDCG@10 and precision@10 side by side](evaluation/mlflow_full_image_runs.png)
+
+The full table is in [`results/dev_full_image_evaluation_report.md`](results/dev_full_image_evaluation_report.md), and the walk-through is in [notebook 06](notebooks/06_clip_whole_catalogue.ipynb).
+
+### Reproduce it
+
+```bash
+pip install -e ".[dev,experiments,images]"
+python experiments/download_images.py             # about 29,000 pictures, one request at a time
+python experiments/extract_all_image_features.py  # CLIP vectors for all pictures
+python experiments/run_full_image_search.py       # finds results, writes the rating page
+```
+
+Open `evaluation/judgments/dev_review_full_images.html`, rate the cards, press **Download my ratings (CSV)**, and save the file as `evaluation/judgments/dev_grades_full_images.csv`. Then score everything together:
+
+```bash
+python experiments/run_full_image_evaluation.py
+```
+
 ## Tests and CI/CD
 
 ### Tests
 
-There are 137 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
+There are 139 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
 
 ### CI/CD with GitHub Actions
 
@@ -375,14 +439,13 @@ The second job only starts if the first one passes. I merge into `main` through 
 
 - One person rated the results, so the labels reflect one judgment.
 - Only 30 development products have been used, so small differences cannot be told apart.
-- Image search was only tested on 708 pictures that the text methods had already picked. That helps it, so the full test comes next.
+- Text and pictures have not been combined yet, so I do not know how much a mix would add.
 - The 20 locked final products have not been rated or used. They are kept for the final test.
 - The attribute weights are untuned starting values.
 
 ## What is next
 
-- Download all the pictures (about 29,000) and test CLIP on the whole catalogue.
-- Combine text and picture vectors, and check whether the mix beats each part.
+- Combine text, CLIP and attributes into one hybrid search, and check whether the mix beats each part.
 - Compare fast search methods (FAISS, HNSW, Annoy) and test reducing the vector size with PCA.
 - Add caching, Kubernetes files and automatic deployment.
 - Rate the 20 locked products once, at the end, for the final result.
@@ -410,6 +473,7 @@ src/product_similarity/     Python package
   tracking.py               Optional MLflow logging (the service never uses it)
   images.py                 Safe image download, quality checks and sample selection
   image_features.py         Turns pictures into vectors with ResNet and CLIP (offline only)
+  dedupe.py                 Shows one copy of each item in a result list
 experiments/                Scripts that I run by hand (nothing here is used by the service)
   run_evaluation.py         Scores the text methods against my ratings and records the runs
   check_images.py           Downloads and checks the 100-image sample
@@ -418,16 +482,20 @@ experiments/                Scripts that I run by hand (nothing here is used by 
   extract_image_features.py Turns those pictures into ResNet and CLIP vectors
   run_image_search.py       Finds similar pictures and writes the rating page for new results
   run_image_evaluation.py   Scores text and image methods together and records the runs
+  download_images.py        Downloads the first picture of every product (not the locked ones)
+  extract_all_image_features.py  Turns all pictures into CLIP vectors
+  run_full_image_search.py  CLIP search over the whole catalogue, writes the rating page
+  run_full_image_evaluation.py  Scores text and CLIP search together and records the runs
 evaluation/                 Test products, rating rules, rating pages and my ratings
   queries.json              The 50 test products (30 development, 20 locked)
   rubric.md                 The rules for rating 0, 1 or 2
   judgments/                Rating sheets, rating pages and my ratings (CSV)
   *.png                     Screenshots of the rating page and MLflow
 results/                    Exported scores, reports and image check numbers
-tests/                      137 tests
+tests/                      139 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
-notebooks/                  Five analysis notebooks (they import logic from the package)
+notebooks/                  Six analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
 .github/workflows/ci.yml    Continuous integration (lint, tests, Docker smoke test)
 ```
