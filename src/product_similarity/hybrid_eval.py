@@ -65,14 +65,25 @@ class HybridEvaluator:
             allowed[row] = False
             self._values[no], self._known[no], self._allowed[no] = values, known, allowed
 
-    def top_ids(self, weights: Mapping[str, float], query_no: str) -> list[str]:
+    def top_ids(
+        self,
+        weights: Mapping[str, float],
+        query_no: str,
+        candidates: Sequence[int] | None = None,
+    ) -> list[str]:
+        """Top 10 for a query. With `candidates` (product rows), only those can be returned."""
         w = np.array([weights.get(part, 0.0) for part in PARTS], dtype=np.float32)
         total = w @ self._values[query_no]
         weight_sum = w @ self._known[query_no]
         has_score = (weight_sum > 0) & self._allowed[query_no]
+        if candidates is not None:
+            only = np.zeros_like(has_score)
+            only[np.asarray(candidates, dtype=np.int64)] = True
+            has_score &= only
         scores = np.where(has_score, total / np.where(weight_sum > 0, weight_sum, 1.0), -np.inf)
         rounded = np.round(scores.astype(np.float64), 6)
-        top = np.argpartition(-rounded, self.depth)[: self.depth]
+        depth = min(self.depth, len(rounded) - 1)
+        top = np.argpartition(-rounded, depth)[:depth]
         order = top[np.lexsort((self.engine._id_rank[top], -rounded[top]))]
         kept, _ = pick_distinct(
             order.tolist(),

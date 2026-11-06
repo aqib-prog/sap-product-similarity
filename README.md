@@ -17,6 +17,7 @@ The project is built for the SAP technical exercise. The original task descripti
 | Evaluation: 50 test products, blind rating page, scoring, MLflow tracking | Done for the 30 development products; the 20 final products stay locked |
 | Image sample check (100 images) | Done: 99 of 100 downloaded |
 | Picture download for the whole catalogue | Done: 29,107 pictures (134 broken links) |
+| Fast vector search (FAISS HNSW and IVF, Annoy) | Done: HNSW is about 60 times faster than the exact search with 97% recall@10; the exact search is already fast at this size |
 | Hybrid search (weights tuned by coordinate ascent, 5-fold cross-validation) | Done: the 4-weight hybrid scores highest (nDCG@10 0.806); the final test on the locked products is still to do |
 | Sentence vectors on titles | Done: clearly better than TF-IDF on titles, about the same as my baseline; combining everything is next |
 | Image similarity with CLIP vectors | Done on the whole catalogue: CLIP scores highest on the 30 development products; combining it with text is next |
@@ -39,7 +40,8 @@ I work in small steps. After each step I check the result, and I write down what
 7. **Tested pictures on the whole catalogue.** I downloaded about 29,000 pictures, turned them into CLIP vectors, rated the new results and scored them next to the text methods. ([notebook 06](notebooks/06_clip_whole_catalogue.ipynb))
 8. **Tried a sentence model on the titles.** I turned all titles into vectors with a ready-made sentence model and scored it with my ratings next to TF-IDF and CLIP. ([notebook 07](notebooks/07_sentence_vectors_on_titles.ipynb))
 9. **Mixed everything into one hybrid search.** I combined the title (TF-IDF and sentence vectors), the CLIP picture and the attributes into one score, tuned the weights with coordinate ascent and checked them with 5-fold cross-validation. ([notebook 08](notebooks/08_hybrid_search.ipynb))
-10. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
+10. **Made the search faster.** I timed the exact search, compared FAISS HNSW and IVF and Annoy with it, and used the fast index inside the hybrid. ([notebook 09](notebooks/09_fast_vector_search.ipynb))
+11. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
 
 The sections below explain each step: what I did, why, and what I found.
 
@@ -251,6 +253,7 @@ docker run -p 8000:8000 product-similarity
 | `06_clip_whole_catalogue` | Downloads the first picture of almost every product, turns them all into CLIP vectors, searches the whole catalogue, and scores the results with all my ratings next to the text methods | CLIP over the whole catalogue scores highest (nDCG@10 0.757). It is clearly better than title only and attributes only, and ahead of the text baseline (0.644) by a gap too small to be sure about with 30 products |
 | `07_sentence_vectors_on_titles` | Turns every title into a vector with a ready-made sentence model, searches, and scores the results with all my ratings next to TF-IDF, attributes and CLIP | Sentence vectors (nDCG@10 0.662) are clearly better than TF-IDF on titles (0.500) and about the same as my baseline (0.637). CLIP is still highest (0.751), but its gap over sentence vectors could be luck |
 | `08_hybrid_search` | Mixes the title (TF-IDF and sentence vectors), CLIP and the attributes into one score, tunes the weights with coordinate ascent, checks them with 5-fold cross-validation, and scores the result next to every single method | The 4-weight hybrid scores highest (nDCG@10 0.806, against 0.750 for CLIP and 0.637 for the baseline). Sentence vectors and pictures carry most of the weight. The gap over CLIP alone could be luck with 30 products |
+| `09_fast_vector_search` | Times the exact search, compares FAISS HNSW and IVF and Annoy with it (time, memory, recall@10) and uses a fast index inside the hybrid | HNSW is about 60 times faster than the exact search and finds 97% of the exact top 10. The exact search is already about 1 ms at this size, so the gain matters for a bigger catalogue |
 
 Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
 
@@ -579,11 +582,100 @@ python experiments/tune_hybrid_weights.py
 python experiments/run_hybrid_evaluation.py
 ```
 
+## Fast vector search
+
+To find similar products I compare one product with all the others. That is fine for 29,500 products, but a bigger catalogue needs a faster way. Here I time the exact search first, then compare fast **approximate nearest-neighbour** indexes with it.
+
+- **One rule for every method.** 1,000 random products, picked with seed 2020, never a locked product and never one of my 30 development products. Each product is searched 5 times and the fastest run is kept. The time is the median of the 1,000. Recall@10 is the average over the same 1,000 products. One thread, one query at a time.
+- **Recall@10.** How many of the exact top 10 a fast method also finds. The exact top 10 comes from the brute-force search by cosine similarity. A different member of a tie is not counted as a miss. Recall@10 does not use my ratings. My ratings are used for nDCG@10.
+- **The baseline.** The exact search takes about 0.85 ms for the sentence vectors and 1.5 ms for the picture vectors, among about 29,500 products. The record is [`results/ann_exact_baseline.json`](results/ann_exact_baseline.json).
+- **The fast methods** (all settings are in [`results/ann_benchmark.json`](results/ann_benchmark.json)): FAISS Flat (exact), FAISS HNSW (a graph search, Malkov and Yashunin, 2018), FAISS IVF (a search over groups) and Annoy (random trees, from Spotify).
+- **Inside the hybrid.** A fast index picks 200 candidates from the combined sentence and picture vectors, and the hybrid with 4 weights picks the final 10. The record is [`results/ann_hybrid_check.json`](results/ann_hybrid_check.json).
+
+### Conclusion
+
+**What I wanted to know:** can I make the similarity search faster without losing much quality, and does it matter at my size?
+
+**What I did.** I used one rule for every method. I took 1,000 random products, picked with seed 2020 and never a locked product. For each product I ran the search 5 times and kept the fastest run, and I report the median time of the 1,000. Recall@10 is the average over the same 1,000 products. I counted how many of the exact top 10 each fast method found. The exact top 10 comes from the brute-force search, which compares a product with all the others by cosine similarity. I tried FAISS HNSW, FAISS IVF and Annoy on the picture vectors (CLIP) and on the sentence vectors. I recorded every setting in MLflow, one run for each. Then I used the fast index inside my hybrid search: the index picks 200 candidates, and the hybrid with 4 weights picks the final 10.
+
+| Method (sentence vectors, 384 numbers) | Time per query | Memory | Recall@10 |
+|---|---|---|---|
+| Exact search (brute force) | 0.85 ms | 45.3 MB | 100% |
+| FAISS HNSW | 0.014 ms | 49.6 MB | 97% |
+| FAISS IVF | 0.11 ms | 45.8 MB | 98% |
+| Annoy | 1.7 ms | 67.1 MB | 97% |
+
+| Method (picture vectors, 512 numbers) | Time per query | Memory | Recall@10 |
+|---|---|---|---|
+| Exact search (brute force) | 1.5 ms | 60.1 MB | 100% |
+| FAISS HNSW | 0.018 ms | 64.4 MB | 97% |
+| FAISS IVF | 0.12 ms | 60.7 MB | 99% |
+| Annoy | 1.4 ms | 104.9 MB | 97% |
+
+For each fast method I show its fastest setting that still finds at least 95% of the exact top 10.
+
+| Hybrid with the fast index | nDCG@10 | Top 10 shared with the exact hybrid |
+|---|---|---|
+| Exact hybrid (scores all products, 6.3 ms) | 0.808 | 100% |
+| HNSW picks 200 candidates, then the hybrid (0.07 ms for the candidates) | 0.784 | 94% |
+| Exact search picks 200 candidates, then the hybrid | 0.807 | 97% |
+
+**What I found**
+
+- The exact search is already fast at my size: about 1 ms for one product among 29,500, with 45 to 60 MB of memory.
+- HNSW is about 60 times faster than the exact search and still finds 97% of the exact top 10. It needs about 10% more memory and 6 to 7 seconds to build. IVF is about 8 times faster with almost no extra memory. Annoy was not faster than the exact search at this size and needs more memory.
+- Inside the hybrid, the fast index costs a little quality: nDCG@10 goes from 0.808 to 0.784 with HNSW. The cost comes from the candidates it misses, because exact candidates lose almost nothing (0.807).
+- I chose HNSW (Malkov and Yashunin, 2018) because it gave the best speed for the recall.
+
+**What I can't say yet**
+
+- I tested only about 29,500 products. At this size the exact search is already fast, so the gain from a fast index will matter more for a much larger catalogue. I did not test that.
+- The timings are from one laptop, one thread, one query at a time. I did not time the final reranking of the 200 candidates with the hybrid.
+
+**What I do next.** I will test whether shrinking the vectors with PCA helps, for the exact search and for every fast method, and draw a t-SNE picture of the vectors.
+
+### Recorded in MLflow
+
+Every setting of every method is one run in the experiment `ann-benchmark` (50 runs). The ten runs tagged `headline` are the exact search and the fastest setting of each method that finds at least 95% of the exact top 10:
+
+![MLflow comparing the exact search and the fast methods on the sentence and picture vectors](evaluation/mlflow_ann_benchmark_runs.png)
+
+The fast index inside the hybrid is the experiment `ann-hybrid-check`:
+
+![MLflow comparing the exact hybrid with the fast pipelines](evaluation/mlflow_ann_hybrid_runs.png)
+
+The walk-through, with every table and chart, is in [notebook 09](notebooks/09_fast_vector_search.ipynb).
+
+References: Malkov and Yashunin, [Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs](https://arxiv.org/abs/1603.09320) (HNSW); Johnson, Douze and Jégou, [Billion-scale similarity search with GPUs](https://arxiv.org/abs/1702.08734) (FAISS); [Annoy](https://github.com/spotify/annoy).
+
+### Reproduce it
+
+```bash
+pip install -e ".[dev,experiments,images,text,ann,notebooks]"
+python experiments/ann_exact_baseline.py     # times the exact search, saves its answers
+python experiments/ann_benchmark.py          # FAISS Flat, HNSW, IVF and Annoy
+python experiments/ann_hybrid_check.py       # the fast index inside the hybrid
+python experiments/log_ann_benchmark.py      # records the runs in MLflow
+```
+
+## Where the numbers come from
+
+Every result in this page can be traced to a notebook, a results file and an MLflow experiment. The MLflow databases stay on my computer (they are not in Git), so the screenshots in `evaluation/` show the runs.
+
+| Result | Notebook | Results files | MLflow experiment |
+|---|---|---|---|
+| The first text methods (TF-IDF, attributes) | [04](notebooks/04_evaluation_baseline.ipynb) | [`dev_scoreboard.csv`](results/dev_scoreboard.csv), [`dev_evaluation_report.md`](results/dev_evaluation_report.md) | `dev-ratings` |
+| Pictures, small test (ResNet, CLIP) | [05](notebooks/05_image_similarity.ipynb) | [`dev_image_scoreboard.csv`](results/dev_image_scoreboard.csv), [`dev_image_evaluation_report.md`](results/dev_image_evaluation_report.md) | `dev-images`, `dev-ratings-with-images` |
+| CLIP over the whole catalogue | [06](notebooks/06_clip_whole_catalogue.ipynb) | [`dev_full_image_scoreboard.csv`](results/dev_full_image_scoreboard.csv), [`dev_full_image_evaluation_report.md`](results/dev_full_image_evaluation_report.md) | `dev-ratings-full-images` |
+| Sentence vectors on titles | [07](notebooks/07_sentence_vectors_on_titles.ipynb) | [`dev_text_vector_scoreboard.csv`](results/dev_text_vector_scoreboard.csv), [`dev_text_vector_evaluation_report.md`](results/dev_text_vector_evaluation_report.md) | `dev-ratings-text-vectors` |
+| Hybrid search and its weights | [08](notebooks/08_hybrid_search.ipynb) | [`dev_hybrid_scoreboard.csv`](results/dev_hybrid_scoreboard.csv), [`hybrid_tuning.json`](results/hybrid_tuning.json), [`hybrid_tuning_first_round.json`](results/hybrid_tuning_first_round.json) | `dev-hybrid-tuning`, `dev-ratings-hybrid` |
+| Speed of the exact and the fast search | [09](notebooks/09_fast_vector_search.ipynb) | [`ann_exact_baseline.json`](results/ann_exact_baseline.json), [`ann_benchmark.json`](results/ann_benchmark.json), [`ann_hybrid_check.json`](results/ann_hybrid_check.json) | `ann-benchmark`, `ann-hybrid-check` |
+
 ## Tests and CI/CD
 
 ### Tests
 
-There are 151 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
+There are 156 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
 
 ### CI/CD with GitHub Actions
 
@@ -605,9 +697,10 @@ The second job only starts if the first one passes. I merge into `main` through 
 
 ## What is next
 
-- Make the search fast with an approximate nearest-neighbour index (FAISS, HNSW, Annoy) and test shrinking the vectors with PCA.
+- Make the service stronger: checks on the input and proper error codes.
+- Add caching, Kubernetes files and automatic deployment.
 - A page where people set each weight with sliders, with the tuned weights as the best setting.
-- Compare fast search methods (FAISS, HNSW, Annoy) and test reducing the vector size with PCA.
+- Test shortening the vectors with PCA for the exact search and every fast method, and draw a t-SNE picture of the vectors.
 - Add caching, Kubernetes files and automatic deployment.
 - Rate the 20 locked products once, at the end, for the final result.
 
@@ -617,7 +710,7 @@ The second job only starts if the first one passes. I merge into `main` through 
 app.py                      Entry point for uvicorn
 Dockerfile                  Builds the service image (serving packages only, non-root user)
 requirements.txt            Pinned packages used by the service and the Docker image
-pyproject.toml              Package settings and the optional extras (dev, notebooks, experiments, images, text)
+pyproject.toml              Package settings and the optional extras (dev, notebooks, experiments, images, text, ann)
 Makefile                    Shortcuts: make install, lint, format, test
 src/product_similarity/     Python package
   data.py                   Reads the archive, checks its hash, keeps one record per product
@@ -637,6 +730,7 @@ src/product_similarity/     Python package
   dedupe.py                 Shows one copy of each item in a result list
   text_features.py          Turns titles into vectors with a sentence model (offline only)
   tuning.py                 Coordinate ascent, cross-validation and part importance for the weights
+  vector_search.py          Exact (brute-force) vector search and recall, the reference for fast indexes
   hybrid_eval.py            Scores a set of hybrid weights against my ratings quickly
 experiments/                Scripts that I run by hand (nothing here is used by the service)
   run_evaluation.py         Scores the text methods against my ratings and records the runs
@@ -658,16 +752,21 @@ experiments/                Scripts that I run by hand (nothing here is used by 
   run_hybrid_search.py      Finds hybrid results without a rating and writes the rating page
   run_hybrid_evaluation.py  Scores the hybrid next to the single methods and records the runs
   log_hybrid_tuning.py      Records the tuning runs in MLflow
+  ann_data.py               Shared set-up for the fast-search scripts (vectors and test products)
+  ann_exact_baseline.py     Times the exact search and saves its answers
+  ann_benchmark.py          Compares FAISS Flat, HNSW, IVF and Annoy with the exact search
+  ann_hybrid_check.py       Uses a fast index to pick candidates for the hybrid
+  log_ann_benchmark.py      Records the fast-search runs in MLflow
 evaluation/                 Test products, rating rules, rating pages and my ratings
   queries.json              The 50 test products (30 development, 20 locked)
   rubric.md                 The rules for rating 0, 1 or 2
   judgments/                Rating sheets, rating pages and my ratings (CSV)
   *.png                     Screenshots of the rating page and MLflow
 results/                    Exported scores, reports and image check numbers
-tests/                      151 tests
+tests/                      156 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
-notebooks/                  Eight analysis notebooks (they import logic from the package)
+notebooks/                  Nine analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
 .github/workflows/ci.yml    Continuous integration (lint, tests, Docker smoke test)
 ```

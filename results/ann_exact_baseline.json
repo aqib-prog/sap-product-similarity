@@ -1,0 +1,45 @@
+{
+  "k": 10,
+  "machine": "macOS-26.2-arm64-arm-64bit",
+  "numpy": "2.0.2",
+  "spaces": {
+    "sentence": {
+      "products": 29509,
+      "dimensions": 384,
+      "memory_mb": 45.3,
+      "queries": {
+        "dev30": {
+          "queries": 30,
+          "one_query_median_ms": 0.85,
+          "one_query_p95_ms": 0.93,
+          "batch_ms_per_query": 0.34
+        },
+        "random1000": {
+          "queries": 1000,
+          "one_query_median_ms": 0.85,
+          "one_query_p95_ms": 0.93,
+          "batch_ms_per_query": 0.27
+        }
+      }
+    },
+    "picture": {
+      "products": 29366,
+      "dimensions": 512,
+      "memory_mb": 60.1,
+      "queries": {
+        "dev30": {
+          "queries": 30,
+          "one_query_median_ms": 1.47,
+          "one_query_p95_ms": 1.59,
+          "batch_ms_per_query": 0.33
+        },
+        "random1000": {
+          "queries": 1000,
+          "one_query_median_ms": 1.5,
+          "one_query_p95_ms": 1.61,
+          "batch_ms_per_query": 0.24
+        }
+      }
+    }
+  }
+}

@@ -37,6 +37,11 @@ text = [
     "torch>=2.2,<3",
     "sentence-transformers>=3,<6",
 ]
+# Fast approximate nearest-neighbour search (FAISS, Annoy). Offline experiments only, never in the Docker image.
+ann = [
+    "faiss-cpu>=1.8,<2",
+    "annoy==1.17.1",  # 1.17.2 and 1.17.3 returned only one neighbour on Apple silicon (macOS 26)
+]
 # Only needed to run the exploration notebooks, never installed in the Docker image.
 notebooks = [
     "pandas>=2.2,<3",
