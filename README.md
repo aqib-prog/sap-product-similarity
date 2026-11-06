@@ -17,6 +17,7 @@ The project is built for the SAP technical exercise. The original task descripti
 | Evaluation: 50 test products, blind rating page, scoring, MLflow tracking | Done for the 30 development products; the 20 final products stay locked |
 | Image sample check (100 images) | Done: 99 of 100 downloaded |
 | Picture download for the whole catalogue | Done: 29,107 pictures (134 broken links) |
+| Sentence vectors on titles | Done: clearly better than TF-IDF on titles, about the same as my baseline; combining everything is next |
 | Image similarity with CLIP vectors | Done on the whole catalogue: CLIP scores highest on the 30 development products; combining it with text is next |
 | FastAPI service | Done, tested |
 | Docker image | Done: built and tested in CI (starts, answers requests, runs as a non-root user) |
@@ -35,7 +36,8 @@ I work in small steps. After each step I check the result, and I write down what
 5. **Checked the pictures.** I tested 100 sample images before any bulk download.
 6. **Tried pictures for similarity.** I turned pictures into vectors with ResNet and CLIP and scored them with the same ratings. ([notebook 05](notebooks/05_image_similarity.ipynb))
 7. **Tested pictures on the whole catalogue.** I downloaded about 29,000 pictures, turned them into CLIP vectors, rated the new results and scored them next to the text methods. ([notebook 06](notebooks/06_clip_whole_catalogue.ipynb))
-8. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
+8. **Tried a sentence model on the titles.** I turned all titles into vectors with a ready-made sentence model and scored it with my ratings next to TF-IDF and CLIP. ([notebook 07](notebooks/07_sentence_vectors_on_titles.ipynb))
+9. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
 
 The sections below explain each step: what I did, why, and what I found.
 
@@ -245,6 +247,7 @@ docker run -p 8000:8000 product-similarity
 | `04_evaluation_baseline` | Scores the three methods against the ratings with nDCG@10 and precision@10, with 95% ranges | The title plus attributes beats either alone, and both gaps are larger than luck. Title only versus attributes only cannot be told apart with 30 products |
 | `05_image_similarity` | Turns pictures into vectors with ResNet and CLIP, searches among the 708 development pictures, and scores the results with the same ratings as the text methods | CLIP ties the text baseline (nDCG@10 0.695 against 0.681), and ResNet is clearly lower (0.569). Image search only looked at pictures the text methods had already picked, so the full test comes next |
 | `06_clip_whole_catalogue` | Downloads the first picture of almost every product, turns them all into CLIP vectors, searches the whole catalogue, and scores the results with all my ratings next to the text methods | CLIP over the whole catalogue scores highest (nDCG@10 0.757). It is clearly better than title only and attributes only, and ahead of the text baseline (0.644) by a gap too small to be sure about with 30 products |
+| `07_sentence_vectors_on_titles` | Turns every title into a vector with a ready-made sentence model, searches, and scores the results with all my ratings next to TF-IDF, attributes and CLIP | Sentence vectors (nDCG@10 0.662) are clearly better than TF-IDF on titles (0.500) and about the same as my baseline (0.637). CLIP is still highest (0.751), but its gap over sentence vectors could be luck |
 
 Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
 
@@ -420,11 +423,70 @@ Open `evaluation/judgments/dev_review_full_images.html`, rate the cards, press *
 python experiments/run_full_image_evaluation.py
 ```
 
+## Sentence vectors on titles
+
+TF-IDF only matches words. Here I tried a model that understands the meaning of a title, so that "kurta" and "kurti" count as similar.
+
+- **Model.** `all-MiniLM-L6-v2` from Hugging Face. It is small (about 90 MB), free to use (Apache-2.0 licence) and turns a sentence into 384 numbers. Its authors trained it on over a billion sentence pairs, such as questions with answers, so that pairs which belong together get close vectors. It is meant for search and finding similar sentences, and it cuts text longer than 256 word pieces. My titles are much shorter. It was not trained on shopping titles, so it may be weaker on brand names and size words. I used it as it is, with no training.
+- **Vectors.** All 29,529 titles became vectors in 31.5 seconds, with no failures.
+- **Search.** For each of the 30 test products the model found the 10 closest titles. The 20 locked products can never be returned. 153 of the 300 results already had my rating, and I rated the other 147 without seeing which method found them.
+
+### Conclusion
+
+**What I wanted to know:** does a model that understands the meaning of titles find better matches than TF-IDF, which only matches words?
+
+**What I did.** I took a ready-made sentence model, `all-MiniLM-L6-v2`, and turned all 29,529 product titles into lists of numbers. Titles with similar meaning get numbers that are close together. I used the model as it is, with no training. For my 30 test products I found the 10 closest titles. I rated the new results myself, without knowing which method found them. I used one set of my ratings to check every method, so the comparison is fair, and I show only one copy of each item.
+
+| Method | nDCG@10 | Precision@10 |
+|---|---|---|
+| CLIP, whole catalogue (pictures) | 0.751 | 0.85 |
+| Sentence vectors (titles) | 0.662 | 0.76 |
+| Title (TF-IDF) and attributes (my baseline) | 0.637 | 0.74 |
+| TF-IDF, title only | 0.500 | 0.55 |
+| Attributes only | 0.422 | 0.62 |
+
+Precision@10 is how many of the top 10 I rated 1 or 2.
+
+**What I found**
+
+- Sentence vectors are clearly better than TF-IDF on titles. Understanding meaning helps more than matching words.
+- Sentence vectors and my baseline score about the same. With only 30 products I can't say which is better.
+- CLIP is still the highest, but its gap over sentence vectors is small enough to be luck.
+- Pictures and titles each find good matches on their own, so I want to try using them together.
+
+**What I can't say yet**
+
+- I tested only 30 products, and I was the only person rating.
+- The model was trained on questions, answers and captions, not on shopping titles, so it may miss brand names and size words.
+- I haven't touched my 20 final test products.
+
+**What I do next.** I will mix text, CLIP and attributes into one hybrid search, and tune the weights using my ratings.
+
+The five runs are saved in MLflow. This is its comparison page:
+
+![MLflow comparing the five methods: nDCG@10 and precision@10 side by side](evaluation/mlflow_text_vector_runs.png)
+
+The full table is in [`results/dev_text_vector_evaluation_report.md`](results/dev_text_vector_evaluation_report.md), and the walk-through is in [notebook 07](notebooks/07_sentence_vectors_on_titles.ipynb).
+
+### Reproduce it
+
+```bash
+pip install -e ".[dev,experiments,images,text]"
+python experiments/extract_text_features.py     # downloads the model once, makes the title vectors
+python experiments/run_text_vector_search.py    # finds results, writes the rating page
+```
+
+Open `evaluation/judgments/dev_review_text_vectors.html`, rate the cards, press **Download my ratings (CSV)**, and save the file as `evaluation/judgments/dev_grades_text_vectors.csv`. Then score everything together:
+
+```bash
+python experiments/run_text_vector_evaluation.py
+```
+
 ## Tests and CI/CD
 
 ### Tests
 
-There are 139 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
+There are 141 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
 
 ### CI/CD with GitHub Actions
 
@@ -440,12 +502,13 @@ The second job only starts if the first one passes. I merge into `main` through 
 - One person rated the results, so the labels reflect one judgment.
 - Only 30 development products have been used, so small differences cannot be told apart.
 - Text and pictures have not been combined yet, so I do not know how much a mix would add.
+- The sentence model was not trained on shopping titles, so it may be weaker on brand names and size words.
 - The 20 locked final products have not been rated or used. They are kept for the final test.
 - The attribute weights are untuned starting values.
 
 ## What is next
 
-- Combine text, CLIP and attributes into one hybrid search, and check whether the mix beats each part.
+- Combine sentence vectors, CLIP and attributes into one hybrid search, tune the weights with my ratings, and check whether the mix beats each part.
 - Compare fast search methods (FAISS, HNSW, Annoy) and test reducing the vector size with PCA.
 - Add caching, Kubernetes files and automatic deployment.
 - Rate the 20 locked products once, at the end, for the final result.
@@ -456,7 +519,7 @@ The second job only starts if the first one passes. I merge into `main` through 
 app.py                      Entry point for uvicorn
 Dockerfile                  Builds the service image (serving packages only, non-root user)
 requirements.txt            Pinned packages used by the service and the Docker image
-pyproject.toml              Package settings and the optional extras (dev, notebooks, experiments, images)
+pyproject.toml              Package settings and the optional extras (dev, notebooks, experiments, images, text)
 Makefile                    Shortcuts: make install, lint, format, test
 src/product_similarity/     Python package
   data.py                   Reads the archive, checks its hash, keeps one record per product
@@ -474,6 +537,7 @@ src/product_similarity/     Python package
   images.py                 Safe image download, quality checks and sample selection
   image_features.py         Turns pictures into vectors with ResNet and CLIP (offline only)
   dedupe.py                 Shows one copy of each item in a result list
+  text_features.py          Turns titles into vectors with a sentence model (offline only)
 experiments/                Scripts that I run by hand (nothing here is used by the service)
   run_evaluation.py         Scores the text methods against my ratings and records the runs
   check_images.py           Downloads and checks the 100-image sample
@@ -486,16 +550,19 @@ experiments/                Scripts that I run by hand (nothing here is used by 
   extract_all_image_features.py  Turns all pictures into CLIP vectors
   run_full_image_search.py  CLIP search over the whole catalogue, writes the rating page
   run_full_image_evaluation.py  Scores text and CLIP search together and records the runs
+  extract_text_features.py  Turns all titles into sentence vectors
+  run_text_vector_search.py Finds similar titles and writes the rating page for new results
+  run_text_vector_evaluation.py  Scores TF-IDF, sentence vectors and CLIP together and records the runs
 evaluation/                 Test products, rating rules, rating pages and my ratings
   queries.json              The 50 test products (30 development, 20 locked)
   rubric.md                 The rules for rating 0, 1 or 2
   judgments/                Rating sheets, rating pages and my ratings (CSV)
   *.png                     Screenshots of the rating page and MLflow
 results/                    Exported scores, reports and image check numbers
-tests/                      139 tests
+tests/                      141 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
-notebooks/                  Six analysis notebooks (they import logic from the package)
+notebooks/                  Seven analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
 .github/workflows/ci.yml    Continuous integration (lint, tests, Docker smoke test)
 ```

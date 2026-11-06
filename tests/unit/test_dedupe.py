@@ -23,3 +23,17 @@ def test_stops_at_k():
     vectors = np.eye(4)
     kept, _ = pick_distinct([0, 1, 2, 3], vectors, ["a", "b", "c", "d"], query=0, k=2)
     assert kept == [1, 2]
+
+
+def test_picture_table_gives_products_without_pictures_their_own_link():
+    from types import SimpleNamespace
+
+    from product_similarity.dedupe import picture_table
+
+    products = [
+        SimpleNamespace(uniq_id="a", image_url="u1"),
+        SimpleNamespace(uniq_id="b", image_url=None),
+    ]
+    matrix, links = picture_table(products, {"u1": 0}, np.array([[1.0, 0.0]]))
+    assert links == ["u1", "no-picture-b"]
+    assert matrix[1].tolist() == [0.0, 0.0]

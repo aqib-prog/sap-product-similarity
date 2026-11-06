@@ -1,0 +1,940 @@
+{
+  "Q01": {
+    "01": {
+      "id": "9dff2169997949d05b6640d84f03f623",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "38c9b50b008715d97353d33b85d3c628",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "b8244160431d64e0a93c9f2ac3d3bfd4",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "1c67d2060812110d9d710ef4ed99a56b",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "8d73b5088a0b7b88393801fe87d4ac68",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "7027f8ffb2a9f53f2040751bd1f50987",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "7206817384f1fae6827f78da84f1b3c3",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "08": {
+      "id": "3ce7143791df3e9564b379183a680492",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "09": {
+      "id": "f99fdebeb2b054067fb8d29c3a37ecb2",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "10": {
+      "id": "7ae2a07facc75f84e61675c0e90153ff",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q02": {
+    "01": {
+      "id": "22b776698817903ac9470e5d59e73449",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "23dd7eb598f8c241db4015cb4de603c4",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "429ea2849eeaa6c03adb49a2d4b0b096",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "f4c2c077075ff6a1027a6b7693c0e553",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "af1923dac8da0f8f8aabdfa8ae2d7f77",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "a8a885c213f9f6aa972f7e405420a67a",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "87d39180a2e2725588833b7e76b1bd72",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "08": {
+      "id": "77af966d50c2c4f3f8a6dbfa9e98dce4",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q04": {
+    "01": {
+      "id": "6a37be0a2d52fe93743b25ff0ba95418",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "9894dd10f654458588140ad075725721",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "ebfef400f980a74c4ec5f2f575777564",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q06": {
+    "01": {
+      "id": "59fd0f1e190acd789d0b4da96ce064d7",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "0ddaec080b70e31ea789f176107719d5",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q07": {
+    "01": {
+      "id": "e15a522be37cd4df8fba5394d3225a8d",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "20906984b916b701c1713bf054062a1b",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "68b89ccb54cb0637485333ecac799d39",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q09": {
+    "01": {
+      "id": "35ae16249d77c4a181c07c8cbaeb8b12",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "cc9274497e09eeb11c5172675378788a",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "e9e420c52d75f1b212491c217ba92abd",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "5e6f48957dd86b51d83eb84af428ebbd",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "5cb9001773e456ec6e5cf9bcc74bd1f3",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q11": {
+    "01": {
+      "id": "2597456a98005e7076738a2e34e66ec3",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "6b0b56826a1e97c462a4696ab8bf728a",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "158a5f9d8f89e929ec8b0f641eb1b208",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "265005f6691ff1fdf33ddfff75c825b2",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "1c0bedec6b704b3d47c1ae9b8678896b",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "c2c632467d1435a59cb88081757bc0a1",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "da38d45aec0b0245f37712476cb785ef",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "08": {
+      "id": "47e7cb82794e24b3dbd8189c9998a870",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "09": {
+      "id": "716056fc32b91c62e2cc0f0c29893077",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q12": {
+    "01": {
+      "id": "8550c34bbaf71df8992fd193bbd68850",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "503af3fc9c732af171eab50b19dfa5f5",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "246b8d1b3656045239596afccae1f78a",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "9a330d7af73259c7d1117f15c7c15e2c",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "083f51844ed457dba559997e19b7f916",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "151b5615607a2d75359784a5d74e4475",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "ca128730efa2e64e86548a24700c83ee",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "08": {
+      "id": "b625298ec24fc9f19e6abc0988ab4f83",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q14": {
+    "01": {
+      "id": "96520b5f0551e514cbb67c486456b272",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "0b666fbf267c5e70939dd55407327202",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "e012750267af32f807b3f09fb7fadddc",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q16": {
+    "01": {
+      "id": "50a3b5ae2b60073d174bffac8d1351d6",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "8323ebddbb43fd1510c836cb92f834fa",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "3d6d826a947daac71849d89536e7d879",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q17": {
+    "01": {
+      "id": "60876a10ceaecdf16eb1d294c42f784e",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q19": {
+    "01": {
+      "id": "8d4ac7b89ed119bf85c0f6c5e73d2554",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "ddf450c283919b69d179c723be1a145e",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "14e149941bbdfc22ae8bec3a72d7c9a2",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "baa9df409d068dc61058df9b1dd1b634",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "ef632a87e0be0a194838fb889ec36eeb",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "945b9b27ad353b96ae8c95c7a6ce1c1b",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "db70a636125efec304e5b6daa45ddc9c",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q21": {
+    "01": {
+      "id": "37ba3c6392e93d0fd074ab0d9d9f270d",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "abce06ba8e9cbe6722ace93f22d6d4c5",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "fb5543efd7af1dd2381681ffb3629f81",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q22": {
+    "01": {
+      "id": "c8333c592122781e48291efea1358288",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q24": {
+    "01": {
+      "id": "bf15a4abdcb688fd9c9298653d775640",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "2b708e37afe2ec2043f760fa994f23fb",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "c59f73fdf3bce3c70cddc94473bf8830",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "f64a7373f1aa6be6689626544f05f358",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "0ccb072d4f279c4d99e3751f45219fc9",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "ad5d27dac176e6baddb4f824acb12a25",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "224ac0a8f5da624752a6ea3b1567c1ed",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q26": {
+    "01": {
+      "id": "71ca59b15e06adb9480ef52926097007",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "10227d5007b0d6be2634a592aaeea818",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "952b9e93843d66eaef3703ba9f1c5a58",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "1c58643f87fde5fd664872bbf0db450c",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q27": {
+    "01": {
+      "id": "3aa98f5bba4b1fe8d2f6660eb04da2a0",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "cefb7353e72b59852e9d0182d0f1e9cf",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "7c1133ee446ff09c97b45a7582d5deae",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "2eb0223001bd8da9dc149df50568a565",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "33bc9f2f6f70aa49aafd7d9fbd2ccfb4",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "132033a8d7e1976879a7e362e018675e",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "0c33394407d3058043e079370a980298",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "08": {
+      "id": "6687fc2c140679610e64d88271705c71",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q29": {
+    "01": {
+      "id": "a27eba82b4d8f712c525ed4284adcb99",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "2629f90aaa4564bc1f010bff59398c62",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "1ac4ff2a9a7d2bf75fa6dd4997938002",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "eb7ef014015fc0cdce066373561150da",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "89106f80c644407dc85990b4264513a5",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "500bc5db756450e662bf68c2eb547659",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q31": {
+    "01": {
+      "id": "e2ae21e510ab64bae35a385546aaf369",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "e8c6443d45e566bdd62314f946770bab",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "dcfb24bc25edd053282c15fdc96b7f38",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "642561f3aa46740f638289bbece7f79b",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "fa54b9e155cbca149a51dc21a02f77e2",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "10fad81ad9ae77ca6afe048eb97dc63c",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "da2bc40c68d2ca72db12b64b8025a29c",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "08": {
+      "id": "75a89a77430d49c31e41e4adafb31d9c",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q32": {
+    "01": {
+      "id": "c8d9ef1bea1f3faf79c9bfaeea451cb9",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "89a1fa2a45ae2886cd1bbb43d35b1f7f",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "3de9284dccb1fa1ff3cbd609f072ea5c",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "0f69e3e5c65ad2cc79e2d89b61302410",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "b8f8626c2bdf39562d1ab68d47dfe0fb",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "ea50af75f01d884963df4964ab92302d",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "bedc072fb366f399ba2bd5b6c5ba0659",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q34": {
+    "01": {
+      "id": "c864aab8e39a0d00a7bce22ca9ac7834",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q36": {
+    "01": {
+      "id": "8a443239368b8d98cfb9343829bdb3ab",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "9a29d04897323bd76eafe653cb83957e",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "a331944fe480b6eca0e0ae6c479b949d",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "eb391e9510338c99d6b8044a8b61fc51",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "8e2c4e8569177c4ba7e1facc34e47527",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q37": {
+    "01": {
+      "id": "9e40b5a989a9765f84c67e4f848c93bf",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "b8f6d748359864fd0079498523964d01",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q41": {
+    "01": {
+      "id": "b2b47381227972d33e3a469e6b6eca1f",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "53e8f08a0f4e5c05de2d25b807ff4021",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "00797a11f1b8c4e7b412ab7a6f92e8ac",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "132ed9050d17980153234ce81cc7ee17",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "019ee3f5e52082a7b120ab47778d1e86",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "2d90acf57916893232061485e630bfd5",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q42": {
+    "01": {
+      "id": "744c70e0600707384e6989b2ad7e4537",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "fa5dae28c3754625004a7e5948f0a236",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "f936c62d15484187a92e76ac540fcb5c",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "853e8bbf5c38ab8b04b204f7bfa8a518",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "9c0f2318e7b432afdb76f8823aec4733",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q46": {
+    "01": {
+      "id": "cfe01ce82c78f1d1fe2e634384755e14",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "5b4fc131c2adaf6e57752259db19f4df",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "ffd925af9330f98bada81982e3563db5",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "bbbce112416f20126d0d56d187df2d39",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "87609573766d7a104037b2e3c0374ade",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "b8811d05bcd90883914a6e33b64c3728",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "78992d51113676b18614be63f8c09eda",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q47": {
+    "01": {
+      "id": "085171ce4fed670f87d801408127092e",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "bb969d8c8aa0043628065d8147fb04fc",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "a9619c4786e7f25777e57ebeb7375799",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "76d531bbe10df9998ea455af1f4e21b2",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "4dad5bf3fa6cf0b14391ae72756ef453",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "fe9fb1f729ad0702068e8c9d7fbe18e4",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "f47fcdb64aacc3e6522ee94ae0299907",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  },
+  "Q49": {
+    "01": {
+      "id": "4707027d4048c6fe76e1e6bd6a9e3333",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "02": {
+      "id": "9f169fe49678c7d700c41a0041569104",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "03": {
+      "id": "ef959669cf0a9ffafe6962d929db0cc6",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "04": {
+      "id": "47fc9afd6fd775641ce4d4b276b10f8e",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "05": {
+      "id": "142aeefc200f6add7b617a59f18ad168",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "06": {
+      "id": "8ee6c053ade7a18d37127b6315a53981",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "07": {
+      "id": "d9418b8a6d4c1e19ef9a37135045a357",
+      "methods": [
+        "text_vectors"
+      ]
+    },
+    "08": {
+      "id": "73a47934f6ff72c80649e237e116ab7b",
+      "methods": [
+        "text_vectors"
+      ]
+    }
+  }
+}

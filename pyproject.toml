@@ -32,6 +32,11 @@ images = [
     "torchvision>=0.17,<1",
     "transformers>=4.40,<5",
 ]
+# Pretrained sentence model for title vectors. Offline experiments only, never in the Docker image.
+text = [
+    "torch>=2.2,<3",
+    "sentence-transformers>=3,<6",
+]
 # Only needed to run the exploration notebooks, never installed in the Docker image.
 notebooks = [
     "pandas>=2.2,<3",

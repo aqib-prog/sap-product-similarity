@@ -1,0 +1,10 @@
+{
+  "titles": 29529,
+  "dimensions": 384,
+  "seconds": 31.5,
+  "ms_per_title": 1.066,
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "sentence_transformers": "5.1.2",
+  "empty_titles": 0,
+  "longest_title_words": 93
+}
