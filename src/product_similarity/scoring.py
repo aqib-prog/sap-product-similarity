@@ -30,9 +30,13 @@ DEFAULT_WEIGHTS = {
     "colour": 0.05,
     "weight": 0.05,
     "rating": 0.05,
-    # Switched on by giving the engine image embeddings and a weight above 0.
+    # Switched on by giving the engine embeddings and a weight above 0.
     "image": 0.0,
+    "text_vectors": 0.0,
 }
+
+# Parts that compare vectors, and the argument that carries each part's vectors.
+VECTOR_PARTS = ("image", "text_vectors")
 
 # How far apart two values can be before their score reaches 0.
 PRICE_SPAN = 1.0  # in log10 units, so a 10x price difference scores 0
@@ -70,6 +74,8 @@ class SimilarityEngine:
         id_map: dict[str, str] | None = None,
         weights: dict[str, float] | None = None,
         image_embeddings: np.ndarray | None = None,
+        text_embeddings: np.ndarray | None = None,
+        embedding_floors: dict[str, float] | None = None,
     ) -> None:
         if not products:
             raise ValueError("at least one product is needed")
@@ -100,6 +106,14 @@ class SimilarityEngine:
         self._rating = _array(p.rating for p in self.products)
         self._colours, self._colour_sizes = self._colour_matrix()
         self._image = self._check_images(image_embeddings)
+        self._text_vectors = self._check_images(text_embeddings)
+        # A cosine at or below its floor scores 0 and a cosine of 1 scores 1. Without a
+        # floor the cosine is used as it is (clipped to 0..1).
+        self._floors = {name: 0.0 for name in VECTOR_PARTS}
+        for name, floor in (embedding_floors or {}).items():
+            if name not in VECTOR_PARTS or not 0.0 <= floor < 1.0:
+                raise ValueError(f"bad embedding floor for {name!r}: {floor}")
+            self._floors[name] = float(floor)
 
     # ---- setup helpers ----
 
@@ -152,12 +166,15 @@ class SimilarityEngine:
                 self._colour_sizes > 0, shared / np.maximum(union, 1.0), np.nan
             )
 
-        if self._image is not None:
-            query = self._image[i]
+        for name, matrix in (("image", self._image), ("text_vectors", self._text_vectors)):
+            if matrix is None:
+                continue
+            query = matrix[i]
             if np.isnan(query).any():
-                sims["image"] = unknown.copy()
+                sims[name] = unknown.copy()
             else:
-                sims["image"] = np.clip(self._image @ query, 0.0, 1.0)
+                floor = self._floors[name]
+                sims[name] = np.clip((matrix @ query - floor) / (1.0 - floor), 0.0, 1.0)
         return sims
 
     def combine(self, sims: dict[str, np.ndarray]) -> np.ndarray:

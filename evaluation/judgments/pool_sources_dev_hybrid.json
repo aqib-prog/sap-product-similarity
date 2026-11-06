@@ -1,0 +1,716 @@
+{
+  "Q01": {
+    "01": {
+      "id": "ee6c177ead0d91b33932ae364f3652aa",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "02": {
+      "id": "3b64cb9db14823790e50c2fffd8064e0",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "03": {
+      "id": "ee5a10f4dce0cc7cc26226eeea4eb52e",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q02": {
+    "01": {
+      "id": "bc3f41af997a4e14a8c887dece374b40",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "02": {
+      "id": "a6aef41154e83911b235689d8da3669f",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "03": {
+      "id": "93cd478894783cd1c3549b7f24e431d9",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "04": {
+      "id": "12c1e7b8572344b2eb7496260a04d741",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "05": {
+      "id": "9392f8b0e2701fa6e4b94b609e113883",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "06": {
+      "id": "dd62d69daa8279056d2ec5d740370924",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "07": {
+      "id": "e724319dbb02960b26e6f4d6bf1d785f",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    }
+  },
+  "Q04": {
+    "01": {
+      "id": "7c6d062b9c037b411a334ab40b5bd362",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "02": {
+      "id": "c2d089f09fbe2d8bf9d1223250dcb5bb",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "03": {
+      "id": "3c44480469a98f7278a63a882e923dd2",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q06": {
+    "01": {
+      "id": "65a869e62dd0e2d22cf00dc4ff10ea54",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "02": {
+      "id": "d518d9ad57a325773e4c6192ea5317b9",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "03": {
+      "id": "99799d3031ff3617e7f0ea3e34936295",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "04": {
+      "id": "5724a89fd5819c9037dc3c0fb7154b2d",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    }
+  },
+  "Q07": {
+    "01": {
+      "id": "68b574c7d996bda9dc28dc0cda68e8bf",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "02": {
+      "id": "da1c8a76555243c14eb4b133bee5cceb",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "03": {
+      "id": "4654bf5d9b1711dc6a6444fc8faa73bb",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "04": {
+      "id": "ae73df96e0cad22525cfce7cefd0af82",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "05": {
+      "id": "97d9a612286b3bd266ab2e50745c9649",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "06": {
+      "id": "0752f7721c8e3d75e73b3d9654122a25",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "07": {
+      "id": "16e6d8dcb31194e65c5d9d69eb70e79b",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "08": {
+      "id": "80fb04c56af4a2621b3fa038b4ec4a45",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "09": {
+      "id": "eac5ffe5b7c42500326dba85885edf3e",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q11": {
+    "01": {
+      "id": "34fb6ba89b3dbd0af9abbaf3fd19f7a4",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "02": {
+      "id": "7bb26823e6c77775f622ff2525e7dbdf",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "03": {
+      "id": "00055aac8b19a84005ec5fbb3d990085",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "04": {
+      "id": "ec14459d0c776a7a6bf91ed5928af9fd",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "05": {
+      "id": "0de9ceaf4a8764d17d31808fe26cdf30",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "06": {
+      "id": "a926758ee93a28cb97b30e1f168dbb84",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "07": {
+      "id": "4f1f2403735c751bc8d2da39db368166",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q12": {
+    "01": {
+      "id": "f5ee7282927a00232dddcb0fa894cc05",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "02": {
+      "id": "971b6fa2b490393404d1114aabe081c0",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "03": {
+      "id": "01d384b91d2aeb9e5357a7ea5af3c5e3",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "04": {
+      "id": "d53db28839faef0d8f2b64d30d3f6dcd",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "05": {
+      "id": "88857d120d71ee355e410011d6b78a3c",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "06": {
+      "id": "e07402e8b76fd09d7e44b5ee4e0cc978",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    }
+  },
+  "Q16": {
+    "01": {
+      "id": "5f26b45fe1873993d2cad01b7dbaff73",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "02": {
+      "id": "ad6679507080def3b6715c4afb687547",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    }
+  },
+  "Q19": {
+    "01": {
+      "id": "060ca7d719a2bb9b248621a3de7d6954",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "02": {
+      "id": "16ab6ebf4bbfd9170c484ea09f3f517f",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "03": {
+      "id": "d5a4284dc00d702d287a38ab39572016",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "04": {
+      "id": "be130a615c5f108e713420339ca0390f",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q21": {
+    "01": {
+      "id": "33482e93ee25c8e6e96b500378fe38d9",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "02": {
+      "id": "7955873154f1787958f9c6a718b0f14b",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q24": {
+    "01": {
+      "id": "8e702df3434a51b4b3d8e9f39fc04abc",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "02": {
+      "id": "d0b4fd1ac8059047a1a4331d737ef0ef",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "03": {
+      "id": "5c930a615c428d4364ad1939675264a6",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "04": {
+      "id": "67ee791643505b288148bb2097be2cca",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "05": {
+      "id": "e74bf0828357583c54fa5bf36c425fd1",
+      "methods": [
+        "untuned"
+      ]
+    },
+    "06": {
+      "id": "6efa6a8a078c60c9bde6827fd22c6b88",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "07": {
+      "id": "6510d7bad125a8bcc767272c5ffb936b",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q26": {
+    "01": {
+      "id": "f892e2bbe794bca49308e4e988ac4c43",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "02": {
+      "id": "358318d6e0089d164c3e6e75a4fade7c",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "03": {
+      "id": "fb625aa37ca72276c7862dc6428e93c3",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "04": {
+      "id": "d5987d4767d7cc4baff08dbd06df5e1e",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "05": {
+      "id": "7f8f082ff1e8ed503047620b88aca19b",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "06": {
+      "id": "6b2ecbd0e8c6df018be69299182ba2d8",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "07": {
+      "id": "45f7fa6371b88e567e6616e851c26d6b",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q27": {
+    "01": {
+      "id": "096f0b6b0fdeec06b894522d0690c1ee",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "02": {
+      "id": "e2855d6d5c2caf057f1a60b6b0fb08d0",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "03": {
+      "id": "af297cdd7e369b8285bf6f0e94fb9073",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "04": {
+      "id": "4c4bbbdb3423790802cb1212b9fbbd1b",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "05": {
+      "id": "23a6d2c6191286d531058e8d9d7698d3",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "06": {
+      "id": "90aa5064c1b064a4d2e0bf28743c68cc",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "07": {
+      "id": "90a226003b82fe29c1a9c25d9e106df1",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "08": {
+      "id": "84a09f028f58ca71de6dc67a82784cde",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "09": {
+      "id": "d26396885d177b73b95b6c3a6ae5210f",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "10": {
+      "id": "991ad70ddfac45f5ffa9eeb876f6ce84",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q29": {
+    "01": {
+      "id": "0f5142c1224f59ba1e36e63705df0b76",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q31": {
+    "01": {
+      "id": "73be47c365e962a0850a3335855ec964",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "02": {
+      "id": "27d259ad4c8c0062b177c5f5dbeb86a2",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "03": {
+      "id": "19affc990227faa8560d13b57aad7582",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q32": {
+    "01": {
+      "id": "464bdd8f3703fb457aadfccb0b96b7fe",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "02": {
+      "id": "0b1c3dd1ba2cc9e33de2548c8ee66568",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "03": {
+      "id": "67b150e919f54884c40a31a26d2a52e6",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "04": {
+      "id": "69df5eefa6515f464f22e1a83fc1a8e1",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q36": {
+    "01": {
+      "id": "b1c5c1c431f79932613ae5e508b0ca93",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "02": {
+      "id": "c53b2e4dfa4b9ff95c19eb02601737f3",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q39": {
+    "01": {
+      "id": "b80f1219362cae5331aa03eccb4b1ab2",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "02": {
+      "id": "c0b46599fe9848f8779ede1ee1709a10",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q41": {
+    "01": {
+      "id": "599618c46d27d85846926df01f96f19a",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    }
+  },
+  "Q44": {
+    "01": {
+      "id": "a294644e5b3be3b0d59a29a88e0dd2da",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    }
+  },
+  "Q46": {
+    "01": {
+      "id": "a567d61306660157979ba472b98f5746",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q47": {
+    "01": {
+      "id": "876ea2e18e2d63d9fc0f3193b701a609",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "02": {
+      "id": "074e23e699a3e623aa22496a395bc4c2",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "03": {
+      "id": "34020c7bc8f65abe19d6fdf0ca5fc978",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "04": {
+      "id": "abe51fa34cf48d824b5079c8e8c54fb5",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "05": {
+      "id": "f9d5de804a0d4e101757f04b67fa7f6f",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "06": {
+      "id": "fccf27b06269b0f989192807a5910e5a",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "07": {
+      "id": "f48d4fc0f5980cf34e8fe0d9419ef239",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    },
+    "08": {
+      "id": "1fec8f7b0ee544d77a355f6c6fbe09da",
+      "methods": [
+        "tuned_10_weights",
+        "tuned_4_weights"
+      ]
+    }
+  },
+  "Q49": {
+    "01": {
+      "id": "2182062f1d5b0843b279aa73932a06bc",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "02": {
+      "id": "ce5289018a95782c8961342f1b9fd8fc",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "03": {
+      "id": "42d07e87158df1e96877d7421aee2a21",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "04": {
+      "id": "30f934cac30db8c2928ea053b7959ad7",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "05": {
+      "id": "aa205a9a87ee36cfc3a50e392ad8f1dd",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "06": {
+      "id": "65cb9d0925191088c50322fc665f18c9",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "07": {
+      "id": "4d2d225734bba249daa9fe0f5127b4ab",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    },
+    "08": {
+      "id": "42e48ebe87b606dabd47725a2bd5b15c",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "09": {
+      "id": "8d1d379efa883e052f04e99e11edc320",
+      "methods": [
+        "untuned"
+      ]
+    },
+    "10": {
+      "id": "7f283898da7d09e63c956140d5f337f9",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "11": {
+      "id": "edf15fce3bde5b134e7dc6fe6ae8aca6",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "12": {
+      "id": "1d1833d3a2fd2146ff41240abaf1d2be",
+      "methods": [
+        "tuned_10_weights"
+      ]
+    },
+    "13": {
+      "id": "81ce67d121e0eb2206d77c1899655026",
+      "methods": [
+        "tuned_4_weights"
+      ]
+    }
+  }
+}

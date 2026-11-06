@@ -1,0 +1,300 @@
+{
+  "parts": [
+    "title",
+    "text_vectors",
+    "image",
+    "category",
+    "brand",
+    "audience",
+    "price",
+    "colour",
+    "weight",
+    "rating"
+  ],
+  "embedding_floors": {
+    "image": 0.6652193069458008,
+    "text_vectors": 0.3160325586795807
+  },
+  "untuned_weights": {
+    "title": 0.35,
+    "text_vectors": 0.0,
+    "image": 0.0,
+    "category": 0.2,
+    "brand": 0.1,
+    "audience": 0.1,
+    "price": 0.1,
+    "colour": 0.05,
+    "weight": 0.05,
+    "rating": 0.05
+  },
+  "untuned_ndcg_at_10": 0.6372554122656372,
+  "tuned_weights": {
+    "title": 0.0625,
+    "text_vectors": 0.37499999999999994,
+    "image": 0.3125,
+    "category": 0.0625,
+    "brand": 0.03125,
+    "audience": 0.03125,
+    "price": 0.03125,
+    "colour": 0.015625,
+    "weight": 0.04687499999999999,
+    "rating": 0.03125
+  },
+  "tuned_ndcg_at_10": 0.8027760424364111,
+  "tuning_tries": 2767,
+  "tuned_precision_at_10": 0.8533333333333334,
+  "unrated_in_top_10": 8,
+  "cross_validation": {
+    "folds": [
+      {
+        "fold": 1,
+        "train_products": 24,
+        "test_products": 6,
+        "train_score": 0.801137171515113,
+        "test_score": 0.731017576401907,
+        "reference_test_score": 0.7157970595271924,
+        "weights": {
+          "title": 0.18181818181818185,
+          "text_vectors": 0.27272727272727276,
+          "image": 0.27272727272727276,
+          "category": 0.09090909090909093,
+          "brand": 0.034090909090909095,
+          "audience": 0.04545454545454546,
+          "price": 0.02272727272727273,
+          "colour": 0.06818181818181819,
+          "weight": 0.0,
+          "rating": 0.011363636363636366
+        }
+      },
+      {
+        "fold": 2,
+        "train_products": 24,
+        "test_products": 6,
+        "train_score": 0.8131047821419615,
+        "test_score": 0.7855086148754173,
+        "reference_test_score": 0.6739764242268823,
+        "weights": {
+          "title": 0.05454545454545455,
+          "text_vectors": 0.4363636363636364,
+          "image": 0.29090909090909095,
+          "category": 0.05454545454545455,
+          "brand": 0.03636363636363637,
+          "audience": 0.03636363636363637,
+          "price": 0.03636363636363637,
+          "colour": 0.018181818181818184,
+          "weight": 0.018181818181818184,
+          "rating": 0.018181818181818184
+        }
+      },
+      {
+        "fold": 3,
+        "train_products": 24,
+        "test_products": 6,
+        "train_score": 0.7934702687981522,
+        "test_score": 0.8509589555893915,
+        "reference_test_score": 0.6629750690382362,
+        "weights": {
+          "title": 0.0392156862745098,
+          "text_vectors": 0.392156862745098,
+          "image": 0.3137254901960784,
+          "category": 0.0784313725490196,
+          "brand": 0.0392156862745098,
+          "audience": 0.0196078431372549,
+          "price": 0.0392156862745098,
+          "colour": 0.0392156862745098,
+          "weight": 0.0392156862745098,
+          "rating": 0.0
+        }
+      },
+      {
+        "fold": 4,
+        "train_products": 24,
+        "test_products": 6,
+        "train_score": 0.8307007004723418,
+        "test_score": 0.6464039967129407,
+        "reference_test_score": 0.3936122102270762,
+        "weights": {
+          "title": 0.08571428571428573,
+          "text_vectors": 0.3428571428571429,
+          "image": 0.2857142857142858,
+          "category": 0.08571428571428573,
+          "brand": 0.042857142857142864,
+          "audience": 0.01428571428571429,
+          "price": 0.042857142857142864,
+          "colour": 0.042857142857142864,
+          "weight": 0.042857142857142864,
+          "rating": 0.01428571428571429
+        }
+      },
+      {
+        "fold": 5,
+        "train_products": 24,
+        "test_products": 6,
+        "train_score": 0.7413080119869943,
+        "test_score": 0.8039136798554701,
+        "reference_test_score": 0.7399162983087995,
+        "weights": {
+          "title": 0.1388888888888889,
+          "text_vectors": 0.16666666666666666,
+          "image": 0.16666666666666666,
+          "category": 0.16666666666666666,
+          "brand": 0.06944444444444445,
+          "audience": 0.01388888888888889,
+          "price": 0.01388888888888889,
+          "colour": 0.16666666666666666,
+          "weight": 0.06944444444444445,
+          "rating": 0.02777777777777778
+        }
+      }
+    ],
+    "mean_train": 0.7959441869829125,
+    "mean_test": 0.7635605646870254,
+    "mean_untuned_test": 0.6372554122656373
+  },
+  "importance": [
+    {
+      "part": "text_vectors",
+      "weight": 0.37499999999999994,
+      "score_without": 0.6364428213639264,
+      "drop": 0.16633322107248472
+    },
+    {
+      "part": "image",
+      "weight": 0.3125,
+      "score_without": 0.6389288921636956,
+      "drop": 0.16384715027271546
+    },
+    {
+      "part": "category",
+      "weight": 0.0625,
+      "score_without": 0.7580600321390418,
+      "drop": 0.04471601029736927
+    },
+    {
+      "part": "audience",
+      "weight": 0.03125,
+      "score_without": 0.7795778998651073,
+      "drop": 0.023198142571303815
+    },
+    {
+      "part": "brand",
+      "weight": 0.03125,
+      "score_without": 0.7843749470473627,
+      "drop": 0.01840109538904844
+    },
+    {
+      "part": "title",
+      "weight": 0.0625,
+      "score_without": 0.7861833984161933,
+      "drop": 0.01659264402021776
+    },
+    {
+      "part": "price",
+      "weight": 0.03125,
+      "score_without": 0.787731612202977,
+      "drop": 0.015044430233434047
+    },
+    {
+      "part": "weight",
+      "weight": 0.04687499999999999,
+      "score_without": 0.7936882029772999,
+      "drop": 0.00908783945911118
+    },
+    {
+      "part": "rating",
+      "weight": 0.03125,
+      "score_without": 0.7969427854005503,
+      "drop": 0.005833257035860795
+    },
+    {
+      "part": "colour",
+      "weight": 0.015625,
+      "score_without": 0.8005176256366703,
+      "drop": 0.0022584167997408144
+    }
+  ],
+  "four_weights": {
+    "weights": {
+      "title": 0.028571428571428574,
+      "text_vectors": 0.4571428571428572,
+      "image": 0.2857142857142857,
+      "attributes": 0.2285714285714286
+    },
+    "ndcg_at_10": 0.8082743748823131,
+    "mean_train": 0.8081069584111218,
+    "mean_test": 0.8056252473502145,
+    "mean_untuned_test": 0.6372554122656373,
+    "folds": [
+      {
+        "fold": 1,
+        "train_products": 24,
+        "test_products": 6,
+        "train_score": 0.8213102780447378,
+        "test_score": 0.7478337786904548,
+        "reference_test_score": 0.7157970595271924,
+        "weights": {
+          "title": 0.05454545454545454,
+          "text_vectors": 0.43636363636363634,
+          "image": 0.29090909090909095,
+          "attributes": 0.21818181818181817
+        }
+      },
+      {
+        "fold": 2,
+        "train_products": 24,
+        "test_products": 6,
+        "train_score": 0.813107802004385,
+        "test_score": 0.7889406663940255,
+        "reference_test_score": 0.6739764242268823,
+        "weights": {
+          "title": 0.028571428571428574,
+          "text_vectors": 0.4571428571428572,
+          "image": 0.2857142857142857,
+          "attributes": 0.2285714285714286
+        }
+      },
+      {
+        "fold": 3,
+        "train_products": 24,
+        "test_products": 6,
+        "train_score": 0.7944267445636543,
+        "test_score": 0.855367912614788,
+        "reference_test_score": 0.6629750690382362,
+        "weights": {
+          "title": 0.05454545454545454,
+          "text_vectors": 0.43636363636363634,
+          "image": 0.29090909090909095,
+          "attributes": 0.21818181818181817
+        }
+      },
+      {
+        "fold": 4,
+        "train_products": 24,
+        "test_products": 6,
+        "train_score": 0.8335122555915532,
+        "test_score": 0.707322852045353,
+        "reference_test_score": 0.3936122102270762,
+        "weights": {
+          "title": 0.028571428571428574,
+          "text_vectors": 0.4571428571428572,
+          "image": 0.2857142857142857,
+          "attributes": 0.2285714285714286
+        }
+      },
+      {
+        "fold": 5,
+        "train_products": 24,
+        "test_products": 6,
+        "train_score": 0.7781777118512787,
+        "test_score": 0.9286610270064509,
+        "reference_test_score": 0.7399162983087995,
+        "weights": {
+          "title": 0.028571428571428574,
+          "text_vectors": 0.4571428571428572,
+          "image": 0.2857142857142857,
+          "attributes": 0.2285714285714286
+        }
+      }
+    ]
+  }
+}

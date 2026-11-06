@@ -97,3 +97,26 @@ def test_missing_image_is_skipped(make_engine, catalogue):
 def test_image_embeddings_need_one_row_per_product(make_engine, catalogue):
     with pytest.raises(ValueError):
         make_engine(catalogue, image_embeddings=np.ones((2, 3)))
+
+
+def test_text_vector_part_ranks_by_cosine_and_respects_the_floor(make_engine, catalogue):
+    n = len(catalogue)
+    vectors = np.zeros((n, 2))
+    vectors[:, 0] = 1.0
+    vectors[1] = [0.6, 0.8]  # cosine 0.6 with the others
+    plain = make_engine(catalogue, weights={"text_vectors": 1.0}, text_embeddings=vectors)
+    floored = make_engine(
+        catalogue,
+        weights={"text_vectors": 1.0},
+        text_embeddings=vectors,
+        embedding_floors={"text_vectors": 0.5},
+    )
+    assert plain.explain("a", "b")["attributes"]["text_vectors"]["similarity"] == pytest.approx(0.6)
+    assert floored.explain("a", "b")["attributes"]["text_vectors"]["similarity"] == pytest.approx(
+        0.2
+    )
+
+
+def test_bad_embedding_floor_is_rejected(make_engine, catalogue):
+    with pytest.raises(ValueError):
+        make_engine(catalogue, embedding_floors={"text_vectors": 1.0})

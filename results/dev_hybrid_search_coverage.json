@@ -1,0 +1,20 @@
+{
+  "results_per_mix": 300,
+  "coverage": {
+    "untuned": {
+      "rated": 298,
+      "unrated": 2
+    },
+    "tuned_10_weights": {
+      "rated": 236,
+      "unrated": 64
+    },
+    "tuned_4_weights": {
+      "rated": 233,
+      "unrated": 67
+    }
+  },
+  "new_results_to_rate": 107,
+  "products_with_new_results": 23,
+  "locked_returned": 0
+}

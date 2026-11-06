@@ -17,6 +17,7 @@ The project is built for the SAP technical exercise. The original task descripti
 | Evaluation: 50 test products, blind rating page, scoring, MLflow tracking | Done for the 30 development products; the 20 final products stay locked |
 | Image sample check (100 images) | Done: 99 of 100 downloaded |
 | Picture download for the whole catalogue | Done: 29,107 pictures (134 broken links) |
+| Hybrid search (weights tuned by coordinate ascent, 5-fold cross-validation) | Done: the 4-weight hybrid scores highest (nDCG@10 0.806); the final test on the locked products is still to do |
 | Sentence vectors on titles | Done: clearly better than TF-IDF on titles, about the same as my baseline; combining everything is next |
 | Image similarity with CLIP vectors | Done on the whole catalogue: CLIP scores highest on the 30 development products; combining it with text is next |
 | FastAPI service | Done, tested |
@@ -37,7 +38,8 @@ I work in small steps. After each step I check the result, and I write down what
 6. **Tried pictures for similarity.** I turned pictures into vectors with ResNet and CLIP and scored them with the same ratings. ([notebook 05](notebooks/05_image_similarity.ipynb))
 7. **Tested pictures on the whole catalogue.** I downloaded about 29,000 pictures, turned them into CLIP vectors, rated the new results and scored them next to the text methods. ([notebook 06](notebooks/06_clip_whole_catalogue.ipynb))
 8. **Tried a sentence model on the titles.** I turned all titles into vectors with a ready-made sentence model and scored it with my ratings next to TF-IDF and CLIP. ([notebook 07](notebooks/07_sentence_vectors_on_titles.ipynb))
-9. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
+9. **Mixed everything into one hybrid search.** I combined the title (TF-IDF and sentence vectors), the CLIP picture and the attributes into one score, tuned the weights with coordinate ascent and checked them with 5-fold cross-validation. ([notebook 08](notebooks/08_hybrid_search.ipynb))
+10. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
 
 The sections below explain each step: what I did, why, and what I found.
 
@@ -248,6 +250,7 @@ docker run -p 8000:8000 product-similarity
 | `05_image_similarity` | Turns pictures into vectors with ResNet and CLIP, searches among the 708 development pictures, and scores the results with the same ratings as the text methods | CLIP ties the text baseline (nDCG@10 0.695 against 0.681), and ResNet is clearly lower (0.569). Image search only looked at pictures the text methods had already picked, so the full test comes next |
 | `06_clip_whole_catalogue` | Downloads the first picture of almost every product, turns them all into CLIP vectors, searches the whole catalogue, and scores the results with all my ratings next to the text methods | CLIP over the whole catalogue scores highest (nDCG@10 0.757). It is clearly better than title only and attributes only, and ahead of the text baseline (0.644) by a gap too small to be sure about with 30 products |
 | `07_sentence_vectors_on_titles` | Turns every title into a vector with a ready-made sentence model, searches, and scores the results with all my ratings next to TF-IDF, attributes and CLIP | Sentence vectors (nDCG@10 0.662) are clearly better than TF-IDF on titles (0.500) and about the same as my baseline (0.637). CLIP is still highest (0.751), but its gap over sentence vectors could be luck |
+| `08_hybrid_search` | Mixes the title (TF-IDF and sentence vectors), CLIP and the attributes into one score, tunes the weights with coordinate ascent, checks them with 5-fold cross-validation, and scores the result next to every single method | The 4-weight hybrid scores highest (nDCG@10 0.806, against 0.750 for CLIP and 0.637 for the baseline). Sentence vectors and pictures carry most of the weight. The gap over CLIP alone could be luck with 30 products |
 
 Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
 
@@ -482,11 +485,105 @@ Open `evaluation/judgments/dev_review_text_vectors.html`, rate the cards, press 
 python experiments/run_text_vector_evaluation.py
 ```
 
+## Hybrid search
+
+So far I tested each part on its own. Here I mix them into one **hybrid search** and choose how much each part counts (its weight) from my ratings.
+
+- **The parts.** The TF-IDF title, the sentence-vector title, the CLIP picture, category, brand, audience, price, colour, weight and rating. Each gives a score from 0 to 1 for a pair of products, and a weighted sum of the scores is the final score (a weighted linear combination, as used for hybrid retrieval by Bruch et al., 2023). If a value is missing, that part is skipped and the other weights are scaled up. The sentence and picture scores are cosine similarities shifted so that 0 means "as similar as two random products".
+- **Choosing the weights: coordinate ascent.** It changes one weight at a time, keeps the value with the best nDCG@10 on my ratings, and repeats until a full round changes nothing (Metzler and Croft, 2007). I started it from five starting points and kept the best result.
+- **Checking for luck: 5-fold cross-validation.** I tuned on 24 of my 30 development products and scored the 6 left out, five times. So every hybrid score below comes from products the weights had not seen (an out-of-fold score).
+- **Two mixes.** One with 10 weights (one for each part), and one with 4 weights (TF-IDF title, sentence title, picture, and all attributes together).
+- **First try.** The tuned weights did not beat my untuned baseline on unseen products (0.614 for 10 weights and 0.635 for 4 weights, against 0.637). The hybrid had found 107 new results that were not in my ratings yet, which made the tuning unfair.
+- **Rating the new results.** I rated the 107 results myself on a blind page (shuffled for each product, no method names), and tuned again. The 20 locked products were never used.
+
+### Results
+
+| Method | nDCG@10 | Precision@10 |
+|---|---|---|
+| Hybrid, 4 weights | 0.806 | 0.87 |
+| Hybrid, 10 weights | 0.764 | 0.82 |
+| CLIP (pictures) | 0.750 | 0.85 |
+| Sentence vectors (titles) | 0.659 | 0.76 |
+| Title (TF-IDF) and attributes (my baseline) | 0.637 | 0.74 |
+| TF-IDF, title only | 0.498 | 0.55 |
+| Attributes only | 0.420 | 0.62 |
+
+**Final weights of the 4-weight mix:** sentence title 46%, picture 29%, attributes together 23%, TF-IDF title 3%. When I remove one part at a time from the 10-weight mix (an ablation), the sentence vectors and the picture cost the most (about 0.165 of nDCG@10 each), and category is the most useful attribute.
+
+### Conclusion
+
+**What I wanted to know:** if I mix all the parts into one search, is it better than each part on its own?
+
+**What I did.** I took ten parts: the TF-IDF title, the sentence title, the CLIP picture, category, brand, audience, price, colour, weight and rating. Each part scores a pair of products. I added the scores with weights (a weighted linear combination), and a weight says how much a part counts.
+
+To choose the weights, I used **coordinate ascent**. I change one weight at a time, keep the change if nDCG@10 goes up, and repeat until nothing improves. I started from several starting points and kept the best.
+
+To make sure the weights are not just lucky for my 30 products, I used **5-fold cross-validation**. I tuned the weights on 24 products and tested them on the 6 I had left out, five times. All the hybrid scores below come from products the weights had not seen.
+
+I tried two mixes: one with 10 weights, and one with only 4 weights (TF-IDF title, sentence title, picture, and all attributes together).
+
+My first try did not beat my baseline, because the hybrid found 107 new results that were not in my ratings yet. I rated those myself, without knowing which mix found them, and tuned again. I used one set of my ratings to check every method, so the comparison is fair, and I show only one copy of each item.
+
+| Method | nDCG@10 | Precision@10 |
+|---|---|---|
+| Hybrid, 4 weights | 0.806 | 0.87 |
+| Hybrid, 10 weights | 0.764 | 0.82 |
+| CLIP (pictures) | 0.750 | 0.85 |
+| Sentence vectors (titles) | 0.659 | 0.76 |
+| Title (TF-IDF) and attributes (my baseline) | 0.637 | 0.74 |
+| TF-IDF, title only | 0.498 | 0.55 |
+| Attributes only | 0.420 | 0.62 |
+
+Precision@10 is how many of the top 10 I rated 1 or 2.
+
+**What I found**
+
+- The 4-weight hybrid is clearly better than my baseline, the sentence vectors, TF-IDF and the attributes alone.
+- It is ahead of CLIP, but with only 30 products I can't be sure it is really better.
+- The mix with 4 weights did better than the one with 10, because fewer weights means less chance of fitting my 30 products by luck.
+- Sentence vectors and pictures matter most. If I remove either one, the score drops by about 0.165. Category is the most useful attribute.
+
+**What I can't say yet**
+
+- I tested only 30 products, and I was the only person rating.
+- I tuned the weights on these 30 products, so I will test them once on my 20 final products at the end.
+
+**What I do next.** I will make the search fast with an index (FAISS, HNSW, Annoy) and test making the vectors smaller with PCA.
+
+### Recorded in MLflow
+
+The check for luck from the first try (untuned, 10 weights, 4 weights, on all 30 products and on unseen products):
+
+![MLflow comparing the untuned, 10-weight and 4-weight mixes](evaluation/mlflow_hybrid_tuning_runs.png)
+
+All seven methods side by side:
+
+![MLflow comparing the seven methods: nDCG@10 and precision@10](evaluation/mlflow_hybrid_runs.png)
+
+The full table is in [`results/dev_hybrid_evaluation_report.md`](results/dev_hybrid_evaluation_report.md), the weights and the cross-validation folds are in [`results/hybrid_tuning.json`](results/hybrid_tuning.json), and the walk-through is in [notebook 08](notebooks/08_hybrid_search.ipynb).
+
+References: Metzler and Croft, [Linear feature-based models for information retrieval](https://link.springer.com/content/pdf/10.1007/s10791-006-9019-z.pdf) (2007); Bruch, Gai and Ingber, [An Analysis of Fusion Functions for Hybrid Retrieval](https://arxiv.org/abs/2210.11934) (2023).
+
+### Reproduce it
+
+```bash
+pip install -e ".[dev,experiments,images,text]"
+python experiments/tune_hybrid_weights.py     # coordinate ascent and 5-fold cross-validation
+python experiments/run_hybrid_search.py       # finds results that have no rating, writes the rating page
+```
+
+Open `evaluation/judgments/dev_review_hybrid.html`, rate the cards, press **Download my ratings (CSV)**, and save the file as `evaluation/judgments/dev_grades_hybrid.csv`. Then tune again and score everything together:
+
+```bash
+python experiments/tune_hybrid_weights.py
+python experiments/run_hybrid_evaluation.py
+```
+
 ## Tests and CI/CD
 
 ### Tests
 
-There are 141 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
+There are 151 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
 
 ### CI/CD with GitHub Actions
 
@@ -501,14 +598,15 @@ The second job only starts if the first one passes. I merge into `main` through 
 
 - One person rated the results, so the labels reflect one judgment.
 - Only 30 development products have been used, so small differences cannot be told apart.
-- Text and pictures have not been combined yet, so I do not know how much a mix would add.
+- The hybrid weights were tuned on the same 30 products that I report on. The cross-validation scores come from products the weights had not seen, but the 20 locked products give the honest final test.
 - The sentence model was not trained on shopping titles, so it may be weaker on brand names and size words.
 - The 20 locked final products have not been rated or used. They are kept for the final test.
 - The attribute weights are untuned starting values.
 
 ## What is next
 
-- Combine sentence vectors, CLIP and attributes into one hybrid search, tune the weights with my ratings, and check whether the mix beats each part.
+- Make the search fast with an approximate nearest-neighbour index (FAISS, HNSW, Annoy) and test shrinking the vectors with PCA.
+- A page where people set each weight with sliders, with the tuned weights as the best setting.
 - Compare fast search methods (FAISS, HNSW, Annoy) and test reducing the vector size with PCA.
 - Add caching, Kubernetes files and automatic deployment.
 - Rate the 20 locked products once, at the end, for the final result.
@@ -538,6 +636,8 @@ src/product_similarity/     Python package
   image_features.py         Turns pictures into vectors with ResNet and CLIP (offline only)
   dedupe.py                 Shows one copy of each item in a result list
   text_features.py          Turns titles into vectors with a sentence model (offline only)
+  tuning.py                 Coordinate ascent, cross-validation and part importance for the weights
+  hybrid_eval.py            Scores a set of hybrid weights against my ratings quickly
 experiments/                Scripts that I run by hand (nothing here is used by the service)
   run_evaluation.py         Scores the text methods against my ratings and records the runs
   check_images.py           Downloads and checks the 100-image sample
@@ -553,16 +653,21 @@ experiments/                Scripts that I run by hand (nothing here is used by 
   extract_text_features.py  Turns all titles into sentence vectors
   run_text_vector_search.py Finds similar titles and writes the rating page for new results
   run_text_vector_evaluation.py  Scores TF-IDF, sentence vectors and CLIP together and records the runs
+  hybrid_setup.py           Shared set-up for the hybrid scripts (ratings, vectors, scorer)
+  tune_hybrid_weights.py    Tunes the hybrid weights and checks them with 5-fold cross-validation
+  run_hybrid_search.py      Finds hybrid results without a rating and writes the rating page
+  run_hybrid_evaluation.py  Scores the hybrid next to the single methods and records the runs
+  log_hybrid_tuning.py      Records the tuning runs in MLflow
 evaluation/                 Test products, rating rules, rating pages and my ratings
   queries.json              The 50 test products (30 development, 20 locked)
   rubric.md                 The rules for rating 0, 1 or 2
   judgments/                Rating sheets, rating pages and my ratings (CSV)
   *.png                     Screenshots of the rating page and MLflow
 results/                    Exported scores, reports and image check numbers
-tests/                      141 tests
+tests/                      151 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
-notebooks/                  Seven analysis notebooks (they import logic from the package)
+notebooks/                  Eight analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
 .github/workflows/ci.yml    Continuous integration (lint, tests, Docker smoke test)
 ```
