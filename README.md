@@ -18,6 +18,7 @@ The project is built for the SAP technical exercise. The original task descripti
 | Image sample check (100 images) | Done: 99 of 100 downloaded |
 | Picture download for the whole catalogue | Done: 29,107 pictures (134 broken links) |
 | Fast vector search (FAISS HNSW and IVF, Annoy) | Done: HNSW is about 60 times faster than the exact search with 97% recall@10; the exact search is already fast at this size |
+| Shorter vectors with PCA | Done: at 128 numbers PCA keeps only 71% (pictures) and 82% (sentences) of the exact top 10, so it is not used |
 | Hybrid search (weights tuned by coordinate ascent, 5-fold cross-validation) | Done: the 4-weight hybrid scores highest (nDCG@10 0.806); the final test on the locked products is still to do |
 | Sentence vectors on titles | Done: clearly better than TF-IDF on titles, about the same as my baseline; combining everything is next |
 | Image similarity with CLIP vectors | Done on the whole catalogue: CLIP scores highest on the 30 development products; combining it with text is next |
@@ -41,7 +42,9 @@ I work in small steps. After each step I check the result, and I write down what
 8. **Tried a sentence model on the titles.** I turned all titles into vectors with a ready-made sentence model and scored it with my ratings next to TF-IDF and CLIP. ([notebook 07](notebooks/07_sentence_vectors_on_titles.ipynb))
 9. **Mixed everything into one hybrid search.** I combined the title (TF-IDF and sentence vectors), the CLIP picture and the attributes into one score, tuned the weights with coordinate ascent and checked them with 5-fold cross-validation. ([notebook 08](notebooks/08_hybrid_search.ipynb))
 10. **Made the search faster.** I timed the exact search, compared FAISS HNSW and IVF and Annoy with it, and used the fast index inside the hybrid. ([notebook 09](notebooks/09_fast_vector_search.ipynb))
-11. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
+11. **Tested shorter vectors.** I cut the vectors with PCA, ran every search method on them and compared time, memory and recall. ([notebook 10](notebooks/10_shorter_vectors_pca.ipynb))
+12. **Drew the vectors.** I squeezed the picture vectors into two numbers with t-SNE to look at them, before and after PCA. ([notebook 11](notebooks/11_tsne_picture_vectors.ipynb))
+13. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
 
 The sections below explain each step: what I did, why, and what I found.
 
@@ -254,6 +257,8 @@ docker run -p 8000:8000 product-similarity
 | `07_sentence_vectors_on_titles` | Turns every title into a vector with a ready-made sentence model, searches, and scores the results with all my ratings next to TF-IDF, attributes and CLIP | Sentence vectors (nDCG@10 0.662) are clearly better than TF-IDF on titles (0.500) and about the same as my baseline (0.637). CLIP is still highest (0.751), but its gap over sentence vectors could be luck |
 | `08_hybrid_search` | Mixes the title (TF-IDF and sentence vectors), CLIP and the attributes into one score, tunes the weights with coordinate ascent, checks them with 5-fold cross-validation, and scores the result next to every single method | The 4-weight hybrid scores highest (nDCG@10 0.806, against 0.750 for CLIP and 0.637 for the baseline). Sentence vectors and pictures carry most of the weight. The gap over CLIP alone could be luck with 30 products |
 | `09_fast_vector_search` | Times the exact search, compares FAISS HNSW and IVF and Annoy with it (time, memory, recall@10) and uses a fast index inside the hybrid | HNSW is about 60 times faster than the exact search and finds 97% of the exact top 10. The exact search is already about 1 ms at this size, so the gain matters for a bigger catalogue |
+| `10_shorter_vectors_pca` | Cuts the vectors with PCA to 256, 128 and 64 numbers, runs the exact search, HNSW, IVF and Annoy on them (time, memory, recall@10), and times the extra projection step | PCA makes the index 2 to 4 times smaller, but recall drops to 71% (pictures) and 82% (sentences) at 128 numbers, and the speed-up disappears once the query projection is counted. I keep the full vectors with HNSW |
+| `11_tsne_picture_vectors` | Squeezes 3,000 picture vectors into two numbers with t-SNE, with the full vectors and after PCA, and colours the biggest categories | The categories form separate groups, and the groups stay the same after PCA. It is only a picture for looking |
 
 Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
 
@@ -632,7 +637,7 @@ For each fast method I show its fastest setting that still finds at least 95% of
 - I tested only about 29,500 products. At this size the exact search is already fast, so the gain from a fast index will matter more for a much larger catalogue. I did not test that.
 - The timings are from one laptop, one thread, one query at a time. I did not time the final reranking of the 200 candidates with the hybrid.
 
-**What I do next.** I will test whether shrinking the vectors with PCA helps, for the exact search and for every fast method, and draw a t-SNE picture of the vectors.
+**What I do next.** I test whether shortening the vectors with PCA helps the memory and the speed (next section).
 
 ### Recorded in MLflow
 
@@ -646,7 +651,8 @@ The fast index inside the hybrid is the experiment `ann-hybrid-check`:
 
 The walk-through, with every table and chart, is in [notebook 09](notebooks/09_fast_vector_search.ipynb).
 
-References: Malkov and Yashunin, [Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs](https://arxiv.org/abs/1603.09320) (HNSW); Johnson, Douze and Jégou, [Billion-scale similarity search with GPUs](https://arxiv.org/abs/1702.08734) (FAISS); [Annoy](https://github.com/spotify/annoy).
+
+References: Malkov and Yashunin, [Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs](https://arxiv.org/abs/1603.09320) (HNSW); Johnson, Douze and Jégou, [Billion-scale similarity search with GPUs](https://arxiv.org/abs/1702.08734) (FAISS); [Annoy](https://github.com/spotify/annoy) from Spotify.
 
 ### Reproduce it
 
@@ -657,6 +663,92 @@ python experiments/ann_benchmark.py          # FAISS Flat, HNSW, IVF and Annoy
 python experiments/ann_hybrid_check.py       # the fast index inside the hybrid
 python experiments/log_ann_benchmark.py      # records the runs in MLflow
 ```
+
+## Shorter vectors (PCA)
+
+HNSW already finds 97% of the exact top 10. Here I test one more idea: make the vectors **shorter** with PCA (it keeps the directions in which the products differ most), so that they take less memory and the search has less to compute.
+
+- **Same rule as before.** The same 1,000 random products (seed 2020, never a locked product), 5 runs each with the fastest kept, the median time, one thread.
+- **What I ran.** PCA trained on all the vectors, keeping 256, 128 or 64 numbers (instead of 512 for pictures and 384 for sentences). Then the exact search, HNSW, IVF and Annoy on the shorter vectors, with the same settings as in notebook 09. The record is [`results/ann_pca.json`](results/ann_pca.json).
+- **Recall@10** is measured against the exact top 10 on the **full** vectors, so it shows what PCA and the index lose together.
+- **Extra cost.** A query must first be turned into its short version. I timed that as well.
+
+### Conclusion
+
+**What I wanted to know:** can I make the vectors shorter with PCA, so that they take less memory and the search is faster, without losing much recall?
+
+**What I did.** I trained PCA on all the vectors and kept 256, 128 or 64 numbers instead of 512 (pictures) or 384 (sentences). I ran the exact search, FAISS HNSW, FAISS IVF and Annoy on the shorter vectors, with the same rule as in notebook 09: the same 1,000 random products (seed 2020, never a locked product), each searched 5 times with the fastest run kept, the median time, one thread. Recall@10 is measured against the exact top 10 on the full vectors, so it shows what PCA and the index lose together. I also timed the extra step of turning a query into its short version, and I recorded every setting in MLflow (experiment `ann-pca`, 148 runs).
+
+| Picture vectors | Time per query | Memory | Recall@10 |
+|---|---|---|---|
+| Exact search, 512 numbers (no PCA) | 1.5 ms | 60.1 MB | 100% |
+| HNSW, 512 numbers (no PCA) | 0.018 ms | 64.4 MB | 97% |
+| HNSW + PCA, 256 numbers | 0.013 ms | 34.3 MB | 76% |
+| HNSW + PCA, 128 numbers | 0.010 ms | 19.3 MB | 71% |
+| HNSW + PCA, 64 numbers | 0.008 ms | 11.8 MB | 62% |
+
+| Sentence vectors | Time per query | Memory | Recall@10 |
+|---|---|---|---|
+| Exact search, 384 numbers (no PCA) | 0.85 ms | 45.3 MB | 100% |
+| HNSW, 384 numbers (no PCA) | 0.014 ms | 49.6 MB | 97% |
+| HNSW + PCA, 256 numbers | 0.015 ms | 38.2 MB | 86% |
+| HNSW + PCA, 128 numbers | 0.011 ms | 23.1 MB | 82% |
+| HNSW + PCA, 64 numbers | 0.009 ms | 15.6 MB | 72% |
+
+**What I found**
+
+- PCA makes the vectors and the index smaller: with 128 numbers the picture index goes from 64 MB to 19 MB.
+- The recall drops a lot. With 128 numbers, the picture vectors find 71% of the exact top 10 and the sentence vectors 82%, against 97% for HNSW on the full vectors.
+- The loss comes from PCA itself. For a given length, the exact search, HNSW, IVF and Annoy all end up within about one point of each other, so a better index does not win it back.
+- The speed-up is small and not real. Turning a query into its short version takes about 0.009 ms, which is about as much as the HNSW search itself (0.010 to 0.018 ms). With that step, the total is about the same as HNSW on the full vectors or higher (the only case a little lower, 0.016 ms against 0.018 ms, is the picture vectors with 64 numbers, at 62% recall).
+
+**Decision.** I drop PCA. The search keeps the full vectors with HNSW, which finds 97% of the exact top 10 in 0.014 to 0.018 ms. At my size, memory is not a problem (about 50 to 65 MB per index).
+
+**What I can't say yet**
+
+- I tested only about 29,500 products. For millions of products, the memory saving of PCA could matter, and a milder cut (more than 256 numbers) or a better trained reduction could be worth testing. I did not test that.
+- I trained PCA on all the vectors, including the test products. This is fine for a comparison of methods, but a real system would train it on a separate sample.
+- The timings are from one laptop, one thread, one query at a time.
+
+**What I do next.** I will make the service stronger (checks on the input and proper error codes), and then add caching, Kubernetes and the weights page.
+
+### Recorded in MLflow
+
+Every setting on the shorter vectors is one run in the experiment `ann-pca` (148 runs). The ten runs tagged `headline` are the exact search and HNSW without PCA, and HNSW with 256, 128 and 64 numbers (sentence vectors on the left, picture vectors on the right):
+
+![MLflow comparing the full vectors with the PCA vectors](evaluation/mlflow_ann_pca_runs.png)
+
+The walk-through, with every table and chart, is in [notebook 10](notebooks/10_shorter_vectors_pca.ipynb).
+
+
+References: Jolliffe and Cadima, [Principal component analysis: a review and recent developments](https://doi.org/10.1098/rsta.2015.0202) (2016) (PCA).
+
+### Reproduce it
+
+```bash
+python experiments/ann_pca.py                # PCA, then every method on the shorter vectors
+python experiments/log_ann_pca.py            # records the runs in MLflow
+```
+
+## A picture of the vectors (t-SNE)
+
+The picture vectors are long lists of numbers, which nobody can look at. t-SNE squeezes each one into two numbers, so that every product becomes a dot on a flat picture and similar products land close together (van der Maaten and Hinton, 2008). It is only for looking: it does not change any result and the search does not use it. I took 3,000 random products and drew them three times: with the full 512 numbers, and after PCA to 128 and to 64 numbers. The eight biggest categories are coloured.
+
+![t-SNE of 3,000 picture vectors, full and after PCA](evaluation/tsne_picture_vectors.png)
+
+### Conclusion
+
+**What I wanted to know:** do the picture vectors put similar products close together, and does PCA keep that?
+
+**What I found**
+
+- Products of the same category sit together: men's T-shirts, kurtas, sarees and caps and hats each form their own area. The picture vectors capture the kind of product, which is why a search over them works.
+- The three pictures look almost the same. The big groups stay together in the same places, even with 64 numbers. So PCA keeps the overall shape.
+- What PCA loses is the fine detail. Inside one big group there are many similar products, and which ones are the closest 10 changes a little when the vectors are cut. That is probably why the recall dropped in notebook 10.
+
+**What I can't say yet.** The picture is a rough view: distances in it are not exact, and it shows 3,000 products out of about 29,500. It does not replace the recall numbers. The walk-through is in [notebook 11](notebooks/11_tsne_picture_vectors.ipynb).
+
+References: van der Maaten and Hinton, [Visualizing data using t-SNE](https://www.jmlr.org/papers/v9/vandermaaten08a.html) (2008) (t-SNE).
 
 ## Where the numbers come from
 
@@ -670,6 +762,7 @@ Every result in this page can be traced to a notebook, a results file and an MLf
 | Sentence vectors on titles | [07](notebooks/07_sentence_vectors_on_titles.ipynb) | [`dev_text_vector_scoreboard.csv`](results/dev_text_vector_scoreboard.csv), [`dev_text_vector_evaluation_report.md`](results/dev_text_vector_evaluation_report.md) | `dev-ratings-text-vectors` |
 | Hybrid search and its weights | [08](notebooks/08_hybrid_search.ipynb) | [`dev_hybrid_scoreboard.csv`](results/dev_hybrid_scoreboard.csv), [`hybrid_tuning.json`](results/hybrid_tuning.json), [`hybrid_tuning_first_round.json`](results/hybrid_tuning_first_round.json) | `dev-hybrid-tuning`, `dev-ratings-hybrid` |
 | Speed of the exact and the fast search | [09](notebooks/09_fast_vector_search.ipynb) | [`ann_exact_baseline.json`](results/ann_exact_baseline.json), [`ann_benchmark.json`](results/ann_benchmark.json), [`ann_hybrid_check.json`](results/ann_hybrid_check.json) | `ann-benchmark`, `ann-hybrid-check` |
+| Shorter vectors with PCA | [10](notebooks/10_shorter_vectors_pca.ipynb) | [`ann_pca.json`](results/ann_pca.json) | `ann-pca` |
 
 ## Tests and CI/CD
 
@@ -700,7 +793,6 @@ The second job only starts if the first one passes. I merge into `main` through 
 - Make the service stronger: checks on the input and proper error codes.
 - Add caching, Kubernetes files and automatic deployment.
 - A page where people set each weight with sliders, with the tuned weights as the best setting.
-- Test shortening the vectors with PCA for the exact search and every fast method, and draw a t-SNE picture of the vectors.
 - Add caching, Kubernetes files and automatic deployment.
 - Rate the 20 locked products once, at the end, for the final result.
 
@@ -757,6 +849,8 @@ experiments/                Scripts that I run by hand (nothing here is used by 
   ann_benchmark.py          Compares FAISS Flat, HNSW, IVF and Annoy with the exact search
   ann_hybrid_check.py       Uses a fast index to pick candidates for the hybrid
   log_ann_benchmark.py      Records the fast-search runs in MLflow
+  ann_pca.py                Cuts the vectors with PCA and runs every method on them
+  log_ann_pca.py            Records the PCA runs in MLflow
 evaluation/                 Test products, rating rules, rating pages and my ratings
   queries.json              The 50 test products (30 development, 20 locked)
   rubric.md                 The rules for rating 0, 1 or 2
@@ -766,7 +860,7 @@ results/                    Exported scores, reports and image check numbers
 tests/                      156 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
-notebooks/                  Nine analysis notebooks (they import logic from the package)
+notebooks/                  Eleven analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
 .github/workflows/ci.yml    Continuous integration (lint, tests, Docker smoke test)
 ```
