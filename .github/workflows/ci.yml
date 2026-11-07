@@ -79,51 +79,98 @@ jobs:
         run: |
           curl -fsS http://localhost:8000/cache \
             | python3 -c "import json, sys; s = json.load(sys.stdin); print(s); assert s['enabled'] and s['hits'] == 2 and s['misses'] == 1 and s['entries'] == 1, s"
-      - name: "Options - the fast mode and the weights"
+      - name: "Options - one product, five different settings"
         run: |
           python3 - <<'PY'
           import json
           import urllib.request
 
           root = "http://localhost:8000"
-          question = "/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
+          product = "26d41bdc1495de290bc8e6062d927729"
+          count = 7  # not 5, so these searches are new and not answers cached by the earlier steps
+
 
           def get(path):
               with urllib.request.urlopen(root + path) as response:
                   return json.load(response)
 
-          def ask(label, mode=None, weights=None):
+
+          def search(mode=None, weights=None):
               extra = (f"&mode={mode}" if mode else "") + (f"&weights={weights}" if weights else "")
-              body = get(question + extra)
-              used = body["weights"]
-              if used != "tuned":
-                  used = {name: value for name, value in used.items() if value > 0}
-              print(label)
-              print("    mode asked:", mode or "not set (the default)", "| mode that ran:", body["mode"])
-              print("    weights set:", weights or "not set (the tuned weights)")
-              print("    weights used:", used)
-              print("    response time:", body["response_time_ms"], "ms | from the cache:", body["cached"])
-              for item in body["results"][:3]:
-                  print("       ", item["title"][:88])
-              return body
+              return get(f"/find_similar_products/details?product_id={product}&num_similar={count}{extra}")
+
 
           ready = get("/ready")
           assert ready["fast_ready"] is True, ready
-          print("modes the service offers:", ready["modes"], "- the fast mode is ready")
-          print("the tuned weights:", get("/weights")["tuned_weights"]["simple"])
+          tuned = get("/weights")["tuned_weights"]["simple"]
+          friendly = {"title": "title", "text_vectors": "sentence", "image": "picture", "attributes": "other attributes"}
+          mix = ", ".join(f"{friendly[name]} {value:.0%}" for name, value in tuned.items())
+
+          first = search()
+          print("OPTIONS - one product, five different settings")
+          print("Product searched:", first["query"]["title"][:90])
+          print(f"Each search asks for the {count} most similar products.")
+          print("(Not 5, so these are new searches and not answers cached by the steps above.)")
+
+          settings = [
+              (
+                  "normal search, no extra settings",
+                  {},
+                  f"exact mode, tuned mix ({mix})",
+              ),
+              (
+                  "same, but fast mode            (mode=fast)",
+                  {"mode": "fast"},
+                  "the fast index finds the candidates, then the same mix scores them",
+              ),
+              (
+                  "looks only at the picture      (weights=image:1)",
+                  {"weights": "image:1"},
+                  "only picture similarity counts",
+              ),
+              (
+                  "looks only at the title        (weights=title:1)",
+                  {"weights": "title:1"},
+                  "only the words of the title count",
+              ),
+              (
+                  "half sentence, half picture    (weights=text_vectors:0.5,image:0.5)",
+                  {"weights": "text_vectors:0.5,image:0.5"},
+                  "title meaning and picture count equally",
+              ),
+          ]
+
+          answers = []
+          for number, (label, options, meaning) in enumerate(settings, start=1):
+              body = first if number == 1 else search(**options)
+              answers.append(body)
+              kind = "answer from the cache" if body["cached"] else "new search"
+              print()
+              print(f"SEARCH {number} - {label}")
+              print("  What it does :", meaning)
+              print(f"  Time         : {body['response_time_ms']} ms   ({kind})")
+              for place, item in enumerate(body["results"][:3], start=1):
+                  lead = "  Top 3        : " if place == 1 else "                 "
+                  print(f"{lead}{place}. {item['title'][:70]}")
+
+          top3 = [[item["id"] for item in body["results"][:3]] for body in answers]
           print()
-          ask("1. default: exact mode, tuned weights")
-          fast = ask("2. fast mode, tuned weights", mode="fast")
-          assert fast["mode"] == "fast", fast["mode"]
-          picture = ask("3. picture only", weights="image:1")
-          title = ask("4. title only", weights="title:1")
-          mix = ask("5. sentence 0.5 and picture 0.5", weights="text_vectors:0.5,image:0.5")
-          ids = lambda body: [item["id"] for item in body["results"]]
-          assert ids(picture) != ids(title), "the weights did not change the answer"
-          assert ids(picture) != ids(mix) and ids(title) != ids(mix)
+          print("SUMMARY")
+          print(" #  Setting            Mode ran   Time        Top 3 shared with search 1")
+          names = ["normal", "fast mode", "picture only", "title only", "sentence+picture"]
+          for number, (name, body) in enumerate(zip(names, answers), start=1):
+              shared = "-" if number == 1 else f"{len(set(top3[0]) & set(top3[number - 1]))} of 3"
+              print(f" {number}  {name:<17}  {body['mode']:<9}  {body['response_time_ms']:>7} ms   {shared}")
+
+          assert answers[1]["mode"] == "fast", answers[1]["mode"]
+          ids = [[item["id"] for item in body["results"]] for body in answers]
+          assert ids[2] != ids[3] and ids[2] != ids[4] and ids[3] != ids[4], "weights changed nothing"
           print()
-          print("Different weights give different answers: picture only, title only and the mix are three different lists.")
-          print("(The times are from a shared test machine, so they are only an illustration; see notebooks 12 and 14 for the measured times.)")
+          print("CHECKS")
+          print(" OK  the fast mode really ran as fast")
+          print(" OK  picture only, title only and the mix give 3 different lists")
+          print("     -> the weights really change the answer")
+          print("Note: the times come from a shared CI machine, so they are only a rough idea.")
           PY
       - name: "Bad input gives clear errors (422)"
         run: |
