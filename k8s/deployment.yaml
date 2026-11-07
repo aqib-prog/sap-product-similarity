@@ -1,0 +1,91 @@
+# Runs 2 copies (pods) of the product-similarity image.
+# Both copies answer searches at the same time. If one stops, the other keeps answering.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-similarity
+  labels:
+    app: product-similarity
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: product-similarity
+  # Rolling update: start one new copy, wait until it is ready, only then stop an old copy.
+  # maxUnavailable 0 means there is never a moment with fewer ready copies than wanted.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: product-similarity
+    spec:
+      terminationGracePeriodSeconds: 30
+      # Prefer to put the two copies on different machines (only a preference).
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app: product-similarity
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: product-similarity:latest
+          # The image is built in CI and loaded into the test cluster, so it is not pulled.
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: PS_SEARCH_MODE
+              value: exact
+            - name: PS_CACHE_SIZE
+              value: "1024"
+          # Measured: about 1.1 GB with the vectors and both fast indexes loaded.
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1280Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          # Startup: loading the vectors and building the fast indexes takes about 15 s.
+          # Until /ready answers, the other two probes wait (up to 5 s x 40 = 200 s).
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: http
+            periodSeconds: 5
+            failureThreshold: 40
+          # Ready: no traffic is sent to a copy that answers "not ready".
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          # Alive: a copy that does not answer /live is restarted.
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3

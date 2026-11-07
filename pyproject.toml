@@ -21,6 +21,7 @@ dev = [
     "httpx>=0.28,<1",
     "ruff>=0.17,<0.18",
     "Pillow>=10,<13",
+    "PyYAML>=6,<7",
 ]
 # Experiment tracking. Not needed to run the service or the tests.
 experiments = [

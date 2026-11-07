@@ -150,3 +150,82 @@ jobs:
       - name: Show logs on failure
         if: failure()
         run: docker logs ps
+
+  kubernetes:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the Kubernetes files against the official schemas
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+          ./kubeconform -strict -summary k8s/
+      - name: Build the image
+        run: docker build -t product-similarity:latest .
+      - name: Create a test cluster (kind) and load the image into it
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: ci
+      - name: Load the image into the cluster
+        run: kind load docker-image product-similarity:latest --name ci
+      - name: Deploy - 2 copies, the service and the budget
+        run: |
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/product-similarity --timeout=300s
+          kubectl get deployment,pods,service -o wide
+      - name: "Both copies are ready (the readiness probe passed)"
+        run: |
+          ready=$(kubectl get deployment product-similarity -o jsonpath='{.status.readyReplicas}')
+          echo "ready copies: $ready"
+          test "$ready" = "2"
+          kubectl get endpoints product-similarity
+      - name: "Search through the service, from inside the cluster"
+        run: |
+          kubectl run tester --image=curlimages/curl:8.10.1 --restart=Never --command -- sleep 3600
+          kubectl wait --for=condition=Ready pod/tester --timeout=120s
+          kubectl exec tester -- curl -fsS http://product-similarity/ready
+          echo
+          kubectl exec tester -- curl -fsS "http://product-similarity/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3" \
+            | python3 -c "import json, sys; r = json.load(sys.stdin); assert len(r['results']) == 3, r; print('search through the service works:', [x['title'][:40] for x in r['results']])"
+      - name: "One copy is stopped - the other keeps answering (the backup)"
+        run: |
+          victim=$(kubectl get pods -l app=product-similarity -o jsonpath='{.items[0].metadata.name}')
+          echo "stopping $victim"
+          kubectl delete pod "$victim" --wait=false
+          for i in $(seq 1 20); do
+            code=$(kubectl exec tester -- curl -s --retry 3 -o /dev/null -w "%{http_code}" "http://product-similarity/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3")
+            echo "request $i -> $code"
+            test "$code" = "200"
+          done
+          kubectl rollout status deployment/product-similarity --timeout=300s
+          kubectl get pods -l app=product-similarity
+      - name: "Rolling update - a change causes no failed request"
+        run: |
+          cat > load.sh <<'SH'
+          i=0; fails=0
+          while [ ! -f /tmp/stop ]; do
+            i=$((i+1))
+            code=$(curl -s -o /dev/null -w "%{http_code}" "http://product-similarity/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3")
+            [ "$code" = "200" ] || fails=$((fails+1))
+            sleep 0.2
+          done
+          echo "requests=$i failures=$fails" > /tmp/result
+          SH
+          kubectl cp load.sh tester:/tmp/load.sh
+          kubectl exec tester -- rm -f /tmp/stop /tmp/result
+          (kubectl exec tester -- sh /tmp/load.sh &) 
+          sleep 2
+          kubectl set env deployment/product-similarity PS_CACHE_SIZE=2048
+          kubectl rollout status deployment/product-similarity --timeout=300s
+          kubectl exec tester -- touch /tmp/stop
+          sleep 3
+          result=$(kubectl exec tester -- cat /tmp/result)
+          echo "during the update: $result"
+          echo "$result" | grep -q "failures=0"
+          kubectl get pods -l app=product-similarity
+      - name: Show the state of the cluster on failure
+        if: failure()
+        run: |
+          kubectl get all -o wide
+          kubectl describe deployment product-similarity
+          kubectl logs -l app=product-similarity --tail=50 --prefix

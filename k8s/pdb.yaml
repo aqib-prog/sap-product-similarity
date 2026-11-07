@@ -1,0 +1,10 @@
+# While machines are being updated or drained, keep at least one copy running.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: product-similarity
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: product-similarity
