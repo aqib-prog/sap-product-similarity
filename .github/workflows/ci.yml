@@ -270,6 +270,174 @@ jobs:
           echo "during the update: $result"
           echo "$result" | grep -q "failures=0"
           kubectl get pods -l app=product-similarity
+      - name: "Pod - send the requests straight to ONE pod (it has its own cache)"
+        run: |
+          pod=$(kubectl get pods -l app=product-similarity -o jsonpath='{.items[0].metadata.name}')
+          echo "all the Pod steps below talk to $pod only"
+          nohup kubectl port-forward "pod/$pod" 8000:8000 > portforward.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fs http://localhost:8000/ready > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://localhost:8000/ready
+          echo
+          curl -fsS http://localhost:8000/cache > cache_before.json
+          echo "cache of this pod before the requests: $(cat cache_before.json)"
+      - name: "Pod - Request 1 - first time, the answer is searched (cache miss)"
+        run: |
+          curl -fsS -D headers.txt -o ids.json "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
+          python3 -c "import json; ids = json.load(open('ids.json')); assert len(ids) == 5 and len(set(ids)) == 5, ids; print(ids)"
+          grep -i '^x-cache' headers.txt
+          grep -qi '^x-cache: miss' headers.txt
+          echo "Request 1: X-Cache is miss, as expected for a new question"
+      - name: "Pod - Request 2 - same question again, answered from the cache (cache hit)"
+        run: |
+          curl -fsS -D headers.txt -o ids_again.json "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
+          grep -i '^x-cache' headers.txt
+          grep -qi '^x-cache: hit' headers.txt
+          cmp ids.json ids_again.json
+          echo "Request 2: X-Cache is hit, and the answer is identical to request 1"
+      - name: "Pod - Request 3 - same question on the details endpoint (cache hit)"
+        run: |
+          curl -fsS "http://localhost:8000/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5" > response.json
+          python3 -m json.tool response.json
+          python3 -c "
+          import json
+          r = json.load(open('response.json'))
+          assert len(r['results']) == 5 and all(x['title'] for x in r['results'])
+          assert r['question']['num_similar'] == 5 and r['response_time_ms'] >= 0
+          assert r['cached'] is True
+          print('Request 3: cached is', r['cached'], 'and the response time is', r['response_time_ms'], 'ms')
+          "
+      - name: "Pod - Cache statistics - 2 more hits and 1 more miss"
+        run: |
+          python3 - <<'PY'
+          import json
+          import urllib.request
+
+          before = json.load(open("cache_before.json"))
+          with urllib.request.urlopen("http://localhost:8000/cache") as response:
+              after = json.load(response)
+          hits = after["hits"] - before["hits"]
+          misses = after["misses"] - before["misses"]
+          print("before:", before)
+          print("after :", after)
+          print(f"requests 1-3 gave {hits} hits and {misses} miss")
+          assert hits == 2 and misses == 1, (hits, misses)
+          PY
+      - name: "Pod - Options - one product, five different settings"
+        run: |
+          python3 - <<'PY'
+          import json
+          import urllib.request
+
+          root = "http://localhost:8000"
+          product = "26d41bdc1495de290bc8e6062d927729"
+          count = 7  # not 5, so these searches are new and not answers cached by the earlier steps
+
+
+          def get(path):
+              with urllib.request.urlopen(root + path) as response:
+                  return json.load(response)
+
+
+          def search(mode=None, weights=None):
+              extra = (f"&mode={mode}" if mode else "") + (f"&weights={weights}" if weights else "")
+              return get(f"/find_similar_products/details?product_id={product}&num_similar={count}{extra}")
+
+
+          ready = get("/ready")
+          assert ready["fast_ready"] is True, ready
+          tuned = get("/weights")["tuned_weights"]["simple"]
+          friendly = {"title": "title", "text_vectors": "sentence", "image": "picture", "attributes": "other attributes"}
+          mix = ", ".join(f"{friendly[name]} {value:.0%}" for name, value in tuned.items())
+
+          first = search()
+          print("OPTIONS - one product, five different settings")
+          print("Product searched:", first["query"]["title"][:90])
+          print(f"Each search asks for the {count} most similar products.")
+          print("(Not 5, so these are new searches and not answers cached by the steps above.)")
+
+          settings = [
+              (
+                  "normal search, no extra settings",
+                  {},
+                  f"exact mode, tuned mix ({mix})",
+              ),
+              (
+                  "same, but fast mode            (mode=fast)",
+                  {"mode": "fast"},
+                  "the fast index finds the candidates, then the same mix scores them",
+              ),
+              (
+                  "looks only at the picture      (weights=image:1)",
+                  {"weights": "image:1"},
+                  "only picture similarity counts",
+              ),
+              (
+                  "looks only at the title        (weights=title:1)",
+                  {"weights": "title:1"},
+                  "only the words of the title count",
+              ),
+              (
+                  "half sentence, half picture    (weights=text_vectors:0.5,image:0.5)",
+                  {"weights": "text_vectors:0.5,image:0.5"},
+                  "title meaning and picture count equally",
+              ),
+          ]
+
+          answers = []
+          for number, (label, options, meaning) in enumerate(settings, start=1):
+              body = first if number == 1 else search(**options)
+              answers.append(body)
+              kind = "answer from the cache" if body["cached"] else "new search"
+              print()
+              print(f"SEARCH {number} - {label}")
+              print("  What it does :", meaning)
+              print(f"  Time         : {body['response_time_ms']} ms   ({kind})")
+              for place, item in enumerate(body["results"][:3], start=1):
+                  lead = "  Top 3        : " if place == 1 else "                 "
+                  print(f"{lead}{place}. {item['title'][:70]}")
+
+          top3 = [[item["id"] for item in body["results"][:3]] for body in answers]
+          print()
+          print("SUMMARY")
+          print(" #  Setting            Mode ran   Time        Top 3 shared with search 1")
+          names = ["normal", "fast mode", "picture only", "title only", "sentence+picture"]
+          for number, (name, body) in enumerate(zip(names, answers), start=1):
+              shared = "-" if number == 1 else f"{len(set(top3[0]) & set(top3[number - 1]))} of 3"
+              print(f" {number}  {name:<17}  {body['mode']:<9}  {body['response_time_ms']:>7} ms   {shared}")
+
+          assert answers[1]["mode"] == "fast", answers[1]["mode"]
+          ids = [[item["id"] for item in body["results"]] for body in answers]
+          assert ids[2] != ids[3] and ids[2] != ids[4] and ids[3] != ids[4], "weights changed nothing"
+          print()
+          print("CHECKS")
+          print(" OK  the fast mode really ran as fast")
+          print(" OK  picture only, title only and the mix give 3 different lists")
+          print("     -> the weights really change the answer")
+          print("Note: the times come from a shared CI machine, so they are only a rough idea.")
+          PY
+      - name: "Pod - Bad input gives clear errors (422)"
+        run: |
+          id=26d41bdc1495de290bc8e6062d927729
+          check() {
+            code=$(curl -s -o body.json -w "%{http_code}" "$1")
+            echo "$1 -> $code $(cat body.json)"
+            test "$code" = "422"
+          }
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=0"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=5000"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=many"
+          check "http://localhost:8000/find_similar_products?product_id=abc&num_similar=5"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=5&mode=turbo"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=5&weights=image:2"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=5&weights=speed:1"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=5&weights=attributes:0.5,brand:0.5"
+      - name: "Pod - Unknown product returns 404"
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/find_similar_products?product_id=00000000000000000000000000000000&num_similar=5")
+          test "$code" = "404"
       - name: Show the state of the cluster on failure
         if: failure()
         run: |
