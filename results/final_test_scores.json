@@ -1,0 +1,241 @@
+{
+  "products": 20,
+  "ratings": "my ratings, 204 results",
+  "modes": {
+    "exact": {
+      "ndcg_at_10": 0.9659,
+      "precision_at_10": 0.87,
+      "results": 200,
+      "rated_2": 165,
+      "rated_1": 9,
+      "rated_0": 26,
+      "unrated": 0,
+      "products_with_something_to_find": 19,
+      "ms_per_search": 7.032
+    },
+    "fast": {
+      "ndcg_at_10": 0.9657,
+      "precision_at_10": 0.87,
+      "results": 200,
+      "rated_2": 165,
+      "rated_1": 9,
+      "rated_0": 26,
+      "unrated": 0,
+      "products_with_something_to_find": 19,
+      "ms_per_search": 0.417
+    }
+  },
+  "per_product_ndcg": {
+    "same_in_both_modes": 18,
+    "fast_lower": 1,
+    "fast_higher": 0,
+    "differing": {
+      "Q33": {
+        "exact": 0.7959,
+        "fast": 0.7925
+      }
+    }
+  },
+  "per_product": {
+    "Q03": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q05": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q08": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q10": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q13": {
+      "exact": {
+        "ndcg": 0.9511,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 0.9511,
+        "precision": 1.0
+      }
+    },
+    "Q15": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q18": {
+      "exact": {
+        "ndcg": 0.9196,
+        "precision": 0.9
+      },
+      "fast": {
+        "ndcg": 0.9196,
+        "precision": 0.9
+      }
+    },
+    "Q20": {
+      "exact": {
+        "ndcg": 0.9897,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 0.9897,
+        "precision": 1.0
+      }
+    },
+    "Q23": {
+      "exact": {
+        "ndcg": 0.9066,
+        "precision": 0.3
+      },
+      "fast": {
+        "ndcg": 0.9066,
+        "precision": 0.3
+      }
+    },
+    "Q25": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q28": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q30": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q33": {
+      "exact": {
+        "ndcg": 0.7959,
+        "precision": 0.7
+      },
+      "fast": {
+        "ndcg": 0.7925,
+        "precision": 0.7
+      }
+    },
+    "Q35": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q38": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q40": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q43": {
+      "exact": {
+        "ndcg": 0.7885,
+        "precision": 0.5
+      },
+      "fast": {
+        "ndcg": 0.7885,
+        "precision": 0.5
+      }
+    },
+    "Q45": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    },
+    "Q48": {
+      "exact": {
+        "ndcg": null,
+        "precision": 0.0
+      },
+      "fast": {
+        "ndcg": null,
+        "precision": 0.0
+      }
+    },
+    "Q50": {
+      "exact": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      },
+      "fast": {
+        "ndcg": 1.0,
+        "precision": 1.0
+      }
+    }
+  }
+}

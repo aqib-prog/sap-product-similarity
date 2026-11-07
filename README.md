@@ -14,17 +14,19 @@ The project is built for the SAP technical exercise. The original task descripti
 | Exploratory data analysis notebook (6 explained charts, 24 reproduced figures) | Done |
 | Preprocessing pipeline (cleaning, repeated products, derived fields) | Done, tested |
 | Baseline similarity function `find_similar_products` (title and attributes, untuned weights) | Done, tested |
-| Evaluation: 50 test products, blind rating page, scoring, MLflow tracking | Done for the 30 development products; the 20 final products stay locked |
+| Evaluation: 50 test products, blind rating page, scoring, MLflow tracking | Done: the 30 development products for tuning, and the 20 locked products for the final test (notebook 14) |
 | Image sample check (100 images) | Done: 99 of 100 downloaded |
 | Picture download for the whole catalogue | Done: 29,107 pictures (134 broken links) |
 | Fast vector search (FAISS HNSW and IVF, Annoy) | Done: HNSW is about 60 times faster than the exact search with 97% recall@10; the exact search is already fast at this size |
 | Shorter vectors with PCA | Done: at 128 numbers PCA keeps only 71% (pictures) and 82% (sentences) of the exact top 10, so it is not used |
 | The final search (exact and fast mode) | [12](notebooks/12_final_search.ipynb) | [`final_search_check.json`](results/final_search_check.json), [`fast_vs_exact_check.json`](results/fast_vs_exact_check.json), [`dev_final_search_coverage.json`](results/dev_final_search_coverage.json), [`dev_final_search_fast_coverage.json`](results/dev_final_search_fast_coverage.json) | `final-search` |
 | The cache (hit against miss, traffic) | [13](notebooks/13_caching.ipynb) | [`cache_benchmark.json`](results/cache_benchmark.json) | `caching` |
+| The final test (20 locked products) | [14](notebooks/14_final_test.ipynb) | [`final_test_scores.json`](results/final_test_scores.json), [`final_test_coverage.json`](results/final_test_coverage.json), my ratings in [`final_grades.csv`](evaluation/judgments/final_grades.csv) | `final-test` |
 | The half-size vectors in the Docker image | (no notebook; see "The vectors in the image") | [`vector_files_check.json`](results/vector_files_check.json) | none |
-| Final search: the tuned hybrid in the real search, with an exact and a fast mode | Done and checked on the 30 development products: same results as the notebooks; the fast mode only speeds up the sentence and picture parts, gives nearly the same quality (nDCG@10 0.810 against 0.811) and is about 15 times faster; the final test on the locked products is still to do |
+| Final search: the tuned hybrid in the real search, with an exact and a fast mode | Done and checked on the 30 development products: same results as the notebooks; the fast mode only speeds up the sentence and picture parts, gives nearly the same quality (nDCG@10 0.810 against 0.811) and is about 15 times faster; the final test on the locked products is in notebook 14 |
 | In-process cache for repeated questions | Done: a request in the cache takes 0.77 ms against 9.6 ms for a new search (about 12 times faster) |
-| Hybrid search (weights tuned by coordinate ascent, 5-fold cross-validation) | Done: the 4-weight hybrid scores highest (nDCG@10 0.806); the final test on the locked products is still to do |
+| Final test on the 20 locked products (both modes, rated once) | Done: precision@10 0.87 for both modes (0.877 on the development products), and the fast mode is about 17 times faster |
+| Hybrid search (weights tuned by coordinate ascent, 5-fold cross-validation) | Done: the 4-weight hybrid scores highest (nDCG@10 0.806); the final test on the locked products is in notebook 14 |
 | Sentence vectors on titles | Done: clearly better than TF-IDF on titles, about the same as my baseline; combining everything is next |
 | Image similarity with CLIP vectors | Done on the whole catalogue: CLIP scores highest on the 30 development products; combining it with text is next |
 | FastAPI service | Done, tested |
@@ -51,7 +53,8 @@ I work in small steps. After each step I check the result, and I write down what
 12. **Drew the vectors.** I squeezed the picture vectors into two numbers with t-SNE to look at them, before and after PCA. ([notebook 11](notebooks/11_tsne_picture_vectors.ipynb))
 13. **Put the tuned hybrid into the real search.** The search now has an exact mode and a fast mode (HNSW picks the candidates). I checked that it gives the same results as my notebooks, and I compared the two modes with my ratings, with time and memory. ([notebook 12](notebooks/12_final_search.ipynb))
 14. **Added a cache.** The service keeps the answers of the last 1,024 questions in its memory, says whether an answer came from the cache, and I measured a hit against a miss and a simulation of traffic. ([notebook 13](notebooks/13_caching.ipynb))
-15. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
+15. **Ran the final test.** I rated the results of the final search on the 20 products that had been locked from the start, and scored both modes. ([notebook 14](notebooks/14_final_test.ipynb))
+16. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
 
 The sections below explain each step: what I did, why, and what I found.
 
@@ -291,6 +294,7 @@ docker run -p 8000:8000 product-similarity
 | `11_tsne_picture_vectors` | Squeezes 3,000 picture vectors into two numbers with t-SNE, with the full vectors and after PCA, and colours the biggest categories | The categories form separate groups, and the groups stay the same after PCA. It is only a picture for looking |
 | `12_final_search` | Checks that the real search gives the same results as the notebooks, then compares its exact mode and fast mode (the same hybrid; the fast mode only speeds up the sentence and picture parts with HNSW indexes) with my ratings as the truth (nDCG@10, precision@10), the results I rated 2, 1 and 0 in each mode, product by product, and the time | Same top 10 for all 30 products (nDCG@10 0.8105). The fast mode gives nearly the same quality (0.8095, same precision@10) and is about 15 times faster (0.58 ms against 8.5 ms). I keep the exact mode as the default and the fast mode as a switch |
 | `13_caching` | Explains the in-process cache, measures a request that is in the cache against one that is not (200 products), and simulates traffic where a few products are asked for often, for several cache sizes | A hit takes 0.77 ms against 9.6 ms for a search (about 12 times faster). With an assumed popular-products traffic, a cache of 1,000 answers answers about half of the requests and halves the average time (10.3 ms to 5.5 ms) |
+| `14_final_test` | The one test of the finished search on the 20 locked products: both modes pooled into one blind page (204 results), rated by me, scored with nDCG@10 and precision@10, and timed | Precision@10 is 0.87 for both modes (0.877 on the development products). The fast mode has the same quality and is about 17 times faster (0.42 ms against 7.0 ms) |
 
 Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
 
@@ -586,7 +590,7 @@ Precision@10 is how many of the top 10 I rated 1 or 2.
 **What I can't say yet**
 
 - I tested only 30 products, and I was the only person rating.
-- I tuned the weights on these 30 products, so I will test them once on my 20 final products at the end.
+- I tuned the weights on these 30 products, so I tested them once on my 20 final products at the end (notebook 14).
 
 **What I do next.** I will make the search fast with an index (FAISS, HNSW, Annoy) and test making the vectors smaller with PCA.
 
@@ -815,11 +819,11 @@ The tuned hybrid is now in the real search (`HybridEngine` in [`src/product_simi
 - HNSW needs a little more memory, because its two indexes (114 MB) are kept on top of the vectors (166 MB), and building them takes about 13 seconds, once.
 - If a picture vector or a sentence vector is missing, the search works the same in both modes: that part is skipped and the other weights are scaled up. I checked this in a small test, not on the 30 products, because all of them have both vectors.
 - I tested only 30 products, with my ratings as the truth.
-- My weights were tuned on these same 30 products, so the scores are optimistic. The final test on the 20 locked products comes at the end.
+- My weights were tuned on these same 30 products, so the scores are optimistic. The final test on the 20 locked products is in notebook 14.
 - The fast mode makes its shortlist from the title meaning and the picture only, so a product that matches the query only through its attributes (brand, category, price) may not be on it.
 - I did not test a much bigger catalogue, where the fast mode would matter most. The timings are from one laptop, one thread, one query at a time.
 
-**What I do next.** Kubernetes and the CI/CD improvements, and then the rest: the stronger API (input checks, error codes and the `mode` option), caching, the page with the weights and the mode switch, and at the end the 20 locked products.
+**What I do next.** The stronger API (input checks, error codes and the `mode` option), then Kubernetes and the CI/CD improvements, then the page with the weights and the mode switch, and the final cleanup.
 
 ### Recorded in MLflow
 
@@ -861,7 +865,7 @@ A search takes about 10 ms, and the same question often comes again. So the serv
 
 **Limitation.** The cache is lost when the service restarts. With several copies of the service (Kubernetes), each copy has its own cache, so fewer requests are answered from memory. A shared cache such as Redis would fix this. I did not build it.
 
-**What I do next.** The stronger API, then Kubernetes and CI/CD, then the page, and at the end the 20 locked products.
+**What I do next.** The stronger API, then Kubernetes and CI/CD, then the page, and the final cleanup.
 
 ### Recorded in MLflow
 
@@ -876,6 +880,44 @@ The walk-through, with every table and chart, is in [notebook 13](notebooks/13_c
 ```bash
 python experiments/measure_cache.py   # miss against hit, and the traffic simulation
 python experiments/log_cache.py       # records the runs in MLflow
+```
+
+## The final test on the 20 locked products
+
+Since the start, 20 of my 50 test products have been locked: I never rated their results or used them in tuning. All the weights and settings were chosen with the other 30. This is the one test of the finished search on products it has never seen, and I changed nothing after seeing the result.
+
+- **The pool.** The top 10 of both modes of the final search (exact, and fast with HNSW), put into one blind page of 204 results, shuffled, with no method names ([`experiments/run_final_test_rating.py`](experiments/run_final_test_rating.py)).
+- **The truth is my ratings.** I rated every result 0, 1 or 2 ([`evaluation/judgments/final_grades.csv`](evaluation/judgments/final_grades.csv)). Each mode is scored from its own top 10 with nDCG@10 and precision@10, and the whole search is timed ([`results/final_test_scores.json`](results/final_test_scores.json)).
+
+### Conclusion
+
+**What I did.** I tested the finished search once, on the 20 products that were locked from the start. I rated the top 10 results of both modes (exact and fast), 204 results in all, and scored each mode from my ratings.
+
+| 20 locked products | nDCG@10 | Precision@10 | Time per search |
+|---|---|---|---|
+| Exact mode | 0.9659 | 0.87 | 7.0 ms |
+| Fast mode (HNSW) | 0.9657 | 0.87 | 0.42 ms |
+
+**What I found.** On products it had never seen, both modes work: precision@10 is 0.87 for both, close to 0.877 on the development products. The fast mode gives the same quality and is about 17 times faster.
+
+**Limitation.** The nDCG@10 here (0.97) cannot be compared with 0.81 on the development products, because the rated results come only from this one system. Precision@10 is the number to compare. It is only 20 products, rated by me, and the test was used once.
+
+**What I do next.** The stronger API, then Kubernetes and CI/CD, then the page, and the final cleanup.
+
+### Recorded in MLflow
+
+Each mode is a run in the experiment `final-test` (2 runs):
+
+![MLflow comparing the exact mode and the fast mode on the 20 locked products](evaluation/mlflow_final_test_runs.png)
+
+The walk-through, with the product-by-product table, is in [notebook 14](notebooks/14_final_test.ipynb).
+
+### Reproduce it
+
+```bash
+python experiments/run_final_test_rating.py   # the blind rating page (used once)
+python experiments/score_final_test.py        # scores both modes with my ratings
+python experiments/log_final_test.py          # records the runs in MLflow
 ```
 
 ## Where the numbers come from
@@ -911,9 +953,9 @@ The second job only starts if the first one passes. I merge into `main` through 
 
 - One person rated the results, so the labels reflect one judgment.
 - Only 30 development products have been used, so small differences cannot be told apart.
-- The hybrid weights were tuned on the same 30 products that I report on. The cross-validation scores come from products the weights had not seen, but the 20 locked products give the honest final test.
+- The hybrid weights were tuned on the same 30 products that I report on. The cross-validation scores come from products the weights had not seen, but the 20 locked products gave the honest final test (notebook 14).
 - The sentence model was not trained on shopping titles, so it may be weaker on brand names and size words.
-- The 20 locked final products have not been rated or used. They are kept for the final test.
+- The 20 locked final products were rated once, for the final test (notebook 14). They were never used for tuning.
 - The attribute weights are untuned starting values.
 
 ## What is next
@@ -921,7 +963,6 @@ The second job only starts if the first one passes. I merge into `main` through 
 - Add Kubernetes files and the CI/CD improvements (a dependency and image scan, and more checks).
 - Make the service stronger: checks on the input and proper error codes, and a `mode` option and the weights as optional inputs (they also become part of the cache question).
 - A page where people set each weight with sliders (with the tuned weights as the best setting), switch between the exact and the fast mode, and see the time of each search, with and without the cache.
-- Rate the 20 locked products once, at the end, and score both modes for the final result.
 
 ## Project layout
 
@@ -985,6 +1026,9 @@ experiments/                Scripts that I run by hand (nothing here is used by 
   check_vector_files.py     Checks that the half-size vectors do not change the results
   check_final_search.py     Checks that the real search gives the same results as the notebooks
   measure_cache.py          Measures a cache hit against a miss, and a traffic simulation
+  run_final_test_rating.py  Makes the blind rating page for the 20 locked products (used once)
+  score_final_test.py       Scores both modes on the 20 locked products with my ratings
+  log_final_test.py         Records the final test in MLflow
   log_cache.py              Records the cache measurements in MLflow
   run_final_search_rating.py Finds results without a rating for the final search and writes the rating page
   check_fast_vs_exact.py    Compares the exact and the fast mode (misses, time, memory)
@@ -998,7 +1042,7 @@ results/                    Exported scores, reports and image check numbers
 tests/                      207 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
-notebooks/                  Thirteen analysis notebooks (they import logic from the package)
+notebooks/                  Fourteen analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
 .github/workflows/ci.yml    Continuous integration (lint, tests, Docker smoke test)
 ```
