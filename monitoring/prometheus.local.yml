@@ -1,0 +1,14 @@
+# Prometheus on a laptop: the service runs with uvicorn on port 8000.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+rule_files:
+  - alerts.yml
+
+scrape_configs:
+  - job_name: product-similarity
+    static_configs:
+      - targets: ["localhost:8000"]
+        labels:
+          pod: local

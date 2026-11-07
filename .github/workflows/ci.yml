@@ -192,6 +192,51 @@ jobs:
         run: |
           code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/find_similar_products?product_id=00000000000000000000000000000000&num_similar=5")
           test "$code" = "404"
+      - name: "Metrics - the numbers that Prometheus reads"
+        run: |
+          python3 - <<'PY'
+          import urllib.request
+
+          with urllib.request.urlopen("http://localhost:8000/metrics") as response:
+              text = response.read().decode()
+
+          def number(name, **labels):
+              """One value from the page (0 when that series does not exist)."""
+              total = 0.0
+              for line in text.splitlines():
+                  if line.startswith("#") or not line.startswith(name + "{"):
+                      continue
+                  series, _, value = line.rpartition(" ")
+                  found = dict(part.split("=") for part in series[len(name) + 1 : -1].split(","))
+                  if all(found.get(k) == f'"{v}"' for k, v in labels.items()):
+                      total += float(value)
+              return total
+
+          print("SEARCHES")
+          for mode in ("exact", "fast"):
+              for cache in ("miss", "hit"):
+                  print(f"  {mode:<6} {cache:<5}", int(number("ps_searches_total", mode=mode, cache=cache)))
+          print("ERRORS")
+          for code in ("invalid_input", "invalid_mode", "invalid_weights", "product_not_found"):
+              print(f"  {code:<18}", int(number("ps_errors_total", error=code)))
+          print("OTHER")
+          print("  ready (1 = yes)     ", int(float(text.split("\nps_ready ")[1].split()[0])))
+          print("  answers in the cache", int(float(text.split("\nps_cache_entries ")[1].split()[0])))
+
+          # Request 1 and the four exact options were new, request 2 and 3 came from the cache.
+          assert number("ps_searches_total", mode="exact", cache="hit") == 2
+          assert number("ps_searches_total", mode="exact", cache="miss") == 5
+          assert number("ps_searches_total", mode="fast", cache="miss") == 1
+          assert number("ps_errors_total", error="invalid_input") == 4
+          assert number("ps_errors_total", error="invalid_mode") == 1
+          assert number("ps_errors_total", error="invalid_weights") == 3
+          assert number("ps_errors_total", error="product_not_found") == 1
+          assert "\nps_ready 1.0" in text, "the service is not ready"
+          assert number("ps_http_requests_total", endpoint="/find_similar_products", status="200") == 2
+          assert number("ps_http_requests_total", endpoint="/find_similar_products/details", status="200") == 6
+          assert "ps_process_resident_memory_bytes" in text
+          print("The counts match what the steps above did.")
+          PY
       - name: Container runs as a non-root user
         run: test "$(docker exec ps id -u)" != "0"
       - name: Show logs on failure
@@ -438,9 +483,63 @@ jobs:
         run: |
           code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/find_similar_products?product_id=00000000000000000000000000000000&num_similar=5")
           test "$code" = "404"
+      - name: "Monitoring - check the Prometheus files (promtool) and the cluster files"
+        run: |
+          docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" --entrypoint promtool prom/prometheus:v2.55.1 check config /etc/prometheus/prometheus.yml
+          docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" --entrypoint promtool prom/prometheus:v2.55.1 check config /etc/prometheus/prometheus.local.yml
+          docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" --entrypoint promtool prom/prometheus:v2.55.1 check rules /etc/prometheus/alerts.yml
+          kubectl kustomize monitoring/ | ./kubeconform -strict -summary
+      - name: "Monitoring - deploy Prometheus and Grafana"
+        run: |
+          kubectl apply -k monitoring/
+          kubectl rollout status deployment/prometheus --timeout=300s
+          kubectl rollout status deployment/grafana --timeout=300s
+          kubectl get pods
+      - name: "Monitoring - send traffic through the service"
+        run: |
+          id=26d41bdc1495de290bc8e6062d927729
+          kubectl exec tester -- sh -c "
+            for i in \$(seq 1 40); do
+              curl -s -o /dev/null 'http://product-similarity/find_similar_products?product_id=$id&num_similar='\$((i % 8 + 1))'&mode=fast'
+              curl -s -o /dev/null 'http://product-similarity/find_similar_products?product_id=$id&num_similar='\$((i % 8 + 1))
+            done
+            curl -s -o /dev/null 'http://product-similarity/find_similar_products?product_id=$id&num_similar=0'
+          "
+          echo "sent 81 requests: 40 fast, 40 exact, 1 wrong input"
+      - name: "Monitoring - Prometheus reads both pods and the numbers have grown"
+        run: |
+          for i in $(seq 1 30); do
+            kubectl exec tester -- curl -fsS http://prometheus:9090/api/v1/targets > targets.json
+            up=$(python3 -c "import json; t = json.load(open('targets.json'))['data']['activeTargets']; print(sum(1 for x in t if x['health'] == 'up' and x['labels'].get('job') == 'product-similarity'))")
+            echo "targets up: $up"
+            if [ "$up" = "2" ]; then break; fi
+            sleep 3
+          done
+          test "$up" = "2"
+          for i in $(seq 1 30); do
+            kubectl exec tester -- curl -fsS -G http://prometheus:9090/api/v1/query --data-urlencode 'query=sum(ps_http_requests_total{endpoint="/find_similar_products"})' > query.json
+            total=$(python3 -c "import json; r = json.load(open('query.json'))['data']['result']; print(int(float(r[0]['value'][1])) if r else 0)")
+            echo "requests Prometheus has counted: $total"
+            if [ "$total" -ge 81 ]; then break; fi
+            sleep 3
+          done
+          test "$total" -ge 81
+          kubectl exec tester -- curl -fsS http://prometheus:9090/api/v1/rules | python3 -c "import json, sys; names = [r['name'] for g in json.load(sys.stdin)['data']['groups'] for r in g['rules']]; print('alert rules loaded:', names); assert sorted(names) == ['HighErrorRate', 'SlowSearch'], names"
+      - name: "Monitoring - Grafana is up and the dashboard is loaded"
+        run: |
+          kubectl exec tester -- curl -fsS http://grafana:3000/api/health
+          echo
+          for i in $(seq 1 20); do
+            kubectl exec tester -- curl -fsS "http://grafana:3000/api/search?query=Product%20similarity" > dashboards.json
+            if grep -q "Product similarity" dashboards.json; then break; fi
+            sleep 3
+          done
+          python3 -c "import json; d = json.load(open('dashboards.json')); print('dashboards found:', [x['title'] for x in d]); assert any(x['title'] == 'Product similarity' for x in d)"
       - name: Show the state of the cluster on failure
         if: failure()
         run: |
           kubectl get all -o wide
           kubectl describe deployment product-similarity
           kubectl logs -l app=product-similarity --tail=50 --prefix
+          kubectl logs -l app=prometheus --tail=30 --prefix || true
+          kubectl logs -l app=grafana --tail=30 --prefix || true

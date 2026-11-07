@@ -1,0 +1,6 @@
+apiVersion: 1
+providers:
+  - name: product-similarity
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

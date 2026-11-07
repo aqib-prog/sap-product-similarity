@@ -1,0 +1,26 @@
+# Two warning lights for the service.
+groups:
+  - name: product-similarity
+    rules:
+      - alert: HighErrorRate
+        # More than 5 in 100 requests ended in a server error (5xx) for 5 minutes.
+        # Wrong input from a caller (422, 404) is not counted: that is not the service's fault.
+        expr: >
+          sum(rate(ps_http_requests_total{status=~"5.."}[5m]))
+          / sum(rate(ps_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "More than 5% of the requests end in a server error"
+      - alert: SlowSearch
+        # The slowest 5 in 100 searches take longer than 100 ms (the normal time is about 10 ms).
+        expr: >
+          histogram_quantile(0.95,
+            sum by (le) (rate(ps_http_request_seconds_bucket{endpoint=~"/find_similar_products.*"}[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The p95 search time is above 100 ms"

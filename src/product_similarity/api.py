@@ -15,6 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from product_similarity.cache import SearchCache
 from product_similarity.hybrid import MODES
+from product_similarity.metrics import Metrics
 from product_similarity.scoring import (
     ModeNotAvailableError,
     ProductNotFoundError,
@@ -65,6 +66,10 @@ def create_app(
     settings = get_settings()
     cache = SearchCache(settings.cache_size if cache_size is None else cache_size)
     max_results = settings.max_results
+    metrics = Metrics(
+        cache_entries=lambda: cache.stats()["entries"],
+        is_ready=lambda: app.state.engine is not None,
+    )
 
     def ranked_answer(
         engine: SimilarityEngine,
@@ -85,11 +90,15 @@ def create_app(
         if cacheable:
             saved = cache.get(key)
             if saved is not None:
+                metrics.searches.labels(mode=saved[1], cache="hit").inc()
                 return saved[0], saved[1], True
+        started = time.perf_counter()
         try:
             ranked, used = engine.search(product_id, num_similar, mode, weights)
         except ModeNotAvailableError as problem:
             raise ApiError(422, "mode_not_available", str(problem)) from None
+        metrics.search_seconds.labels(mode=used).observe(time.perf_counter() - started)
+        metrics.searches.labels(mode=used, cache="miss").inc()
         ranked = tuple(ranked)
         if cacheable:
             cache.put(key, (ranked, used))
@@ -128,6 +137,24 @@ def create_app(
 
     app = FastAPI(title="Product similarity", lifespan=lifespan)
     app.state.cache = cache
+    app.state.metrics = metrics
+
+    @app.middleware("http")
+    async def count_requests(request: Request, call_next):
+        """Count and time every request, except the reads of `/metrics` itself."""
+        if request.url.path == "/metrics":
+            return await call_next(request)
+        started = time.perf_counter()
+        status = 500  # an error that no handler caught is a 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            return response
+        finally:
+            route = request.scope.get("route")
+            endpoint = getattr(route, "path", None) or "unmatched"
+            metrics.requests.labels(endpoint=endpoint, status=str(status)).inc()
+            metrics.request_seconds.labels(endpoint=endpoint).observe(time.perf_counter() - started)
 
     def get_engine(request: Request) -> SimilarityEngine:
         engine = request.app.state.engine
@@ -222,6 +249,12 @@ def create_app(
         """How the in-process cache is doing: entries, hits, misses and the hit rate."""
         return cache.stats()
 
+    @app.get("/metrics", include_in_schema=False)
+    def metrics_page() -> Response:
+        """The numbers for Prometheus: requests, times, cache hits, errors and memory."""
+        body, content_type = metrics.render()
+        return Response(body, media_type=content_type)
+
     @app.get("/live")
     def live() -> dict:
         """The process is running."""
@@ -247,10 +280,12 @@ def create_app(
 
     @app.exception_handler(ApiError)
     async def api_error(request: Request, exc: ApiError) -> JSONResponse:
+        metrics.errors.labels(error=exc.code).inc()
         return JSONResponse(error_body(exc.code, exc.message), status_code=exc.status)
 
     @app.exception_handler(RequestValidationError)
     async def invalid_input(request: Request, exc: RequestValidationError) -> JSONResponse:
+        metrics.errors.labels(error="invalid_input").inc()
         problems = []
         for item in exc.errors():
             field = str(item["loc"][-1])
@@ -270,8 +305,10 @@ def create_app(
     @app.exception_handler(StarletteHTTPException)
     async def http_problem(request: Request, exc: StarletteHTTPException) -> JSONResponse:
         codes = {404: "not_found", 405: "method_not_allowed"}
+        code = codes.get(exc.status_code, "error")
+        metrics.errors.labels(error=code).inc()
         return JSONResponse(
-            error_body(codes.get(exc.status_code, "error"), str(exc.detail)),
+            error_body(code, str(exc.detail)),
             status_code=exc.status_code,
         )
 
@@ -279,6 +316,7 @@ def create_app(
     async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
         # The full error goes to the log; the caller only sees a safe message.
         logger.exception("Unhandled error on %s", request.url.path)
+        metrics.errors.labels(error="internal_error").inc()
         return JSONResponse(
             error_body("internal_error", "something went wrong on the server"), status_code=500
         )

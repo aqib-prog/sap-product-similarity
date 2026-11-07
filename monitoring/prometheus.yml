@@ -1,0 +1,23 @@
+# Prometheus inside the cluster: it finds the pods by itself and reads /metrics of each.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: product-similarity
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: [default]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: product-similarity
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        action: keep
+        regex: http
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
