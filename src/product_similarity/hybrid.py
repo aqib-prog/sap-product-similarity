@@ -73,37 +73,58 @@ class FinalVectors:
     copies_links: list[str]
 
 
+def assemble_final_vectors(
+    products: Sequence[Product],
+    picture_links: Sequence[str],
+    picture_unit: np.ndarray,
+    not_photos: Collection[str],
+    sentence_ids: Sequence[str],
+    sentence_vectors: np.ndarray,
+) -> FinalVectors | None:
+    """Line the saved vectors up with the products, one row per product.
+
+    `picture_unit` holds picture vectors of length 1, one for each link in `picture_links`.
+    A product without a picture (or with a picture that is not a product photo) gets NaN.
+    Returns None when the sentence vectors do not belong to these products.
+    """
+    if [str(i) for i in sentence_ids] != [p.uniq_id for p in products]:
+        logger.warning("The saved sentence vectors do not match the products")
+        return None
+    row_of_link = {str(u): i for i, u in enumerate(picture_links)}
+    excluded = set(not_photos)
+    picture = np.full((len(products), picture_unit.shape[1]), np.nan, dtype=np.float32)
+    for i, p in enumerate(products):
+        if p.image_url in row_of_link and p.image_url not in excluded:
+            picture[i] = picture_unit[row_of_link[p.image_url]]
+    sentence = np.asarray(sentence_vectors).astype(np.float32)
+    floors = {
+        "image": random_pair_floor(picture),
+        "text_vectors": random_pair_floor(sentence),
+    }
+    matrix, links = picture_table(products, row_of_link, picture_unit)
+    return FinalVectors(picture, sentence, floors, matrix, links)
+
+
 def load_final_vectors(
     products: Sequence[Product],
     embeddings_dir: Path,
     not_photos: Path | None = None,
 ) -> FinalVectors | None:
-    """Read the saved picture (CLIP) and sentence vectors, or None if they are not there
-    or do not belong to these products."""
+    """Read the vectors as they were made offline (full-size numbers), or None if they are
+    not there or do not belong to these products. The service uses the half-size copies in
+    `vector_files.py` instead."""
     clip_file, text_file = embeddings_dir / "all_clip.npz", embeddings_dir / "text_minilm.npz"
     if not clip_file.exists() or not text_file.exists():
         return None
     text = np.load(text_file)
-    if [str(i) for i in text["ids"]] != [p.uniq_id for p in products]:
-        logger.warning("The saved sentence vectors do not match the products")
-        return None
     clip = np.load(clip_file)
     unit = clip["vectors"] / np.linalg.norm(clip["vectors"], axis=1, keepdims=True)
-    row_of_link = {str(u): i for i, u in enumerate(clip["urls"])}
     excluded: set[str] = set()
     if not_photos is not None and not_photos.exists():
         excluded = {r["url"] for r in json.loads(not_photos.read_text(encoding="utf-8"))}
-    picture = np.full((len(products), unit.shape[1]), np.nan, dtype=np.float32)
-    for i, p in enumerate(products):
-        if p.image_url in row_of_link and p.image_url not in excluded:
-            picture[i] = unit[row_of_link[p.image_url]]
-    sentence = text["vectors"].astype(np.float32)
-    floors = {
-        "image": random_pair_floor(picture),
-        "text_vectors": random_pair_floor(sentence),
-    }
-    matrix, links = picture_table(products, row_of_link, unit)
-    return FinalVectors(picture, sentence, floors, matrix, links)
+    return assemble_final_vectors(
+        products, clip["urls"], unit, excluded, text["ids"], text["vectors"]
+    )
 
 
 class HybridEngine(SimilarityEngine):
@@ -111,6 +132,10 @@ class HybridEngine(SimilarityEngine):
 
     # The vectors are stored in the normal 4-byte format (half the size of the default).
     _embedding_dtype = np.float32
+
+    @property
+    def search_name(self) -> str:
+        return f"hybrid ({self.mode})"
 
     def __init__(
         self,

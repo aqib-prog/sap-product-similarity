@@ -17,7 +17,11 @@ class Settings:
 
     data_archive: Path = Path(os.environ.get("PS_DATA_ARCHIVE", "data/archive.zip"))
     artifact_dir: Path = Path(os.environ.get("PS_ARTIFACT_DIR", "artifacts"))
-    # Where the saved picture and sentence vectors are (made offline by `experiments/`).
+    # The half-size copies of the vectors that ship with the service (see vector_files.py).
+    vectors_dir: Path = Path(os.environ.get("PS_VECTORS_DIR", "artifacts/vectors"))
+    # Stop with an error when no vectors are found, instead of using the baseline search.
+    require_vectors: bool = os.environ.get("PS_REQUIRE_VECTORS", "") == "1"
+    # The vectors as they were made offline (full-size numbers); only on a development machine.
     embeddings_dir: Path = Path(os.environ.get("PS_EMBEDDINGS_DIR", "data/embeddings"))
     # Pictures that are not product photos (a shop logo, a drawing); optional.
     not_photos: Path = Path(os.environ.get("PS_NOT_PHOTOS", "data/images/shared/excluded.json"))
@@ -30,6 +34,8 @@ def get_settings() -> Settings:
     return Settings(
         data_archive=Path(os.environ.get("PS_DATA_ARCHIVE", "data/archive.zip")),
         artifact_dir=Path(os.environ.get("PS_ARTIFACT_DIR", "artifacts")),
+        vectors_dir=Path(os.environ.get("PS_VECTORS_DIR", "artifacts/vectors")),
+        require_vectors=os.environ.get("PS_REQUIRE_VECTORS", "") == "1",
         embeddings_dir=Path(os.environ.get("PS_EMBEDDINGS_DIR", "data/embeddings")),
         not_photos=Path(os.environ.get("PS_NOT_PHOTOS", "data/images/shared/excluded.json")),
         search_mode=os.environ.get("PS_SEARCH_MODE", "exact"),

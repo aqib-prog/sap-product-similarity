@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from product_similarity.image_features import normalise
-from product_similarity.service import default_engine
+from product_similarity.service import baseline_engine
 
 ROOT = Path(__file__).resolve().parents[1]
 EMBEDDINGS = ROOT / "data" / "embeddings"
@@ -37,7 +37,7 @@ def load_spaces() -> tuple[dict[str, Space], dict[str, np.ndarray], list]:
     queries_all = json.loads((ROOT / "evaluation/queries.json").read_text(encoding="utf-8"))
     locked = {q["id"] for q in queries_all if q["split"] == "final"}
     dev = [q["id"] for q in queries_all if q["split"] == "dev"]
-    engine = default_engine()
+    engine = baseline_engine()
     products = engine.products
     not_locked = np.array([p.uniq_id not in locked for p in products])
 

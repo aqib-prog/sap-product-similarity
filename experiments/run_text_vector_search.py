@@ -20,7 +20,7 @@ from product_similarity import evaluation as ev
 from product_similarity.dedupe import SAME_ITEM, pick_distinct, picture_table
 from product_similarity.judging import SEED, write_json, write_sheet
 from product_similarity.review_page import write_review_page
-from product_similarity.service import default_engine
+from product_similarity.service import baseline_engine
 
 ROOT = Path(__file__).resolve().parents[1]
 JUDGMENTS = ROOT / "evaluation" / "judgments"
@@ -42,7 +42,7 @@ def main() -> None:
     locked = {q["id"] for q in queries if q["split"] == "final"}
     dev = {q["query_no"]: q["id"] for q in queries if q["split"] == "dev"}
     grades = load_ratings()
-    engine = default_engine()
+    engine = baseline_engine()
     products = engine.products
 
     text = np.load(ROOT / "data" / "embeddings" / "text_minilm.npz")

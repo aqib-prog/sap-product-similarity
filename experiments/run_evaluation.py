@@ -15,7 +15,7 @@ from pathlib import Path
 
 from product_similarity import evaluation as ev
 from product_similarity.judging import comparison_methods
-from product_similarity.service import default_engine
+from product_similarity.service import baseline_engine
 from product_similarity.tracking import log_run, mlflow_available
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,7 +86,7 @@ def main() -> None:
     parser.add_argument("--no-mlflow", action="store_true")
     args = parser.parse_args()
 
-    engine = default_engine()
+    engine = baseline_engine()
     methods = comparison_methods(engine.products, engine.id_map)
     queries = json.loads((ROOT / "evaluation/queries.json").read_text(encoding="utf-8"))
     dev = {q["query_no"]: q["id"] for q in queries if q["split"] == "dev"}

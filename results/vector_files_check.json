@@ -1,0 +1,33 @@
+{
+  "number_format_in_files": "float16",
+  "max_rounding_error": {
+    "picture": 0.000244140625,
+    "sentence": 0.00010260939598083496
+  },
+  "modes": {
+    "exact": {
+      "development_products_with_identical_top_10": 30,
+      "development_products": 30,
+      "ndcg_at_10_full_size": 0.8105,
+      "ndcg_at_10_half_size": 0.8105,
+      "precision_at_10_full_size": 0.8767,
+      "precision_at_10_half_size": 0.8767,
+      "unrated_in_half_size_top_10": 0,
+      "random_products": 1000,
+      "random_products_with_identical_top_10": 987,
+      "random_average_overlap_at_10": 0.9996
+    },
+    "fast": {
+      "development_products_with_identical_top_10": 30,
+      "development_products": 30,
+      "ndcg_at_10_full_size": 0.8095,
+      "ndcg_at_10_half_size": 0.8095,
+      "precision_at_10_full_size": 0.8767,
+      "precision_at_10_half_size": 0.8767,
+      "unrated_in_half_size_top_10": 0,
+      "random_products": 1000,
+      "random_products_with_identical_top_10": 948,
+      "random_average_overlap_at_10": 0.9923
+    }
+  }
+}

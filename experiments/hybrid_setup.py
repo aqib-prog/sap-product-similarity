@@ -17,7 +17,7 @@ from product_similarity.dedupe import picture_table
 from product_similarity.hybrid import ATTRIBUTES, expand_four, random_pair_floor  # noqa: F401
 from product_similarity.hybrid_eval import HybridEvaluator
 from product_similarity.scoring import SimilarityEngine
-from product_similarity.service import default_engine
+from product_similarity.service import baseline_engine
 
 ROOT = Path(__file__).resolve().parents[1]
 JUDGMENTS = ROOT / "evaluation" / "judgments"
@@ -53,7 +53,7 @@ def build_evaluator() -> SimpleNamespace:
     dev = {q["query_no"]: q["id"] for q in queries_all if q["split"] == "dev"}
     grades = merged_ratings()
 
-    base = default_engine()
+    base = baseline_engine()
     products = base.products
     clip = np.load(EMBEDDINGS / "all_clip.npz")
     clip_unit = clip["vectors"] / np.linalg.norm(clip["vectors"], axis=1, keepdims=True)

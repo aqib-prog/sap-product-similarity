@@ -17,7 +17,7 @@ from pathlib import Path
 
 from product_similarity import evaluation as ev
 from product_similarity.judging import comparison_methods
-from product_similarity.service import default_engine
+from product_similarity.service import baseline_engine
 from product_similarity.tracking import log_run, mlflow_available
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,7 +70,7 @@ def main() -> None:
     for q, c in blank:
         as_zero[q][c], as_two[q][c] = 0, 2
 
-    engine = default_engine()
+    engine = baseline_engine()
     text = comparison_methods(engine.products, engine.id_map)
     top10 = json.loads((ROOT / "data/embeddings/dev_image_top10.json").read_text(encoding="utf-8"))
     ranked: dict[str, dict[str, list[str]]] = {

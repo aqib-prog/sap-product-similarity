@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from product_similarity.scoring import ProductNotFoundError, SimilarityEngine
 from product_similarity.service import default_engine
+from product_similarity.settings import get_settings
 
 logger = logging.getLogger("product_similarity.api")
 
@@ -29,6 +30,8 @@ def create_app(load_engine: Callable[[], SimilarityEngine] = default_engine) -> 
             app.state.engine = load_engine()
         except Exception:
             logger.exception("Could not load the similarity engine")
+            if get_settings().require_vectors:
+                raise  # stop the service: it must not run without the final search
         yield
 
     app = FastAPI(title="Product similarity", lifespan=lifespan)
@@ -86,7 +89,13 @@ def create_app(load_engine: Callable[[], SimilarityEngine] = default_engine) -> 
         engine = request.app.state.engine
         if engine is None:
             return JSONResponse({"status": "not ready"}, status_code=503)
-        return JSONResponse({"status": "ready", "products": len(engine.products)})
+        return JSONResponse(
+            {
+                "status": "ready",
+                "products": len(engine.products),
+                "search": engine.search_name,
+            }
+        )
 
     @app.exception_handler(Exception)
     async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:

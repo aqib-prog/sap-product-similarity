@@ -71,6 +71,9 @@ class SimilarityEngine:
     # The number format of the stored picture and sentence vectors.
     _embedding_dtype = np.float64
 
+    # What kind of search this engine runs (shown by the service).
+    search_name = "baseline"
+
     def __init__(
         self,
         products: Sequence[Product],

@@ -67,3 +67,22 @@ def test_identical_products_are_ordered_by_id(api):
     assert scores["t1"] == scores["t2"]
     ids = [uid for uid, _ in ranked]
     assert ids.index("t1") < ids.index("t2")
+
+
+def test_the_service_refuses_to_start_without_vectors_when_they_are_required(
+    api, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("PS_REQUIRE_VECTORS", "1")
+    monkeypatch.setenv("PS_VECTORS_DIR", str(tmp_path / "nothing"))
+    monkeypatch.setenv("PS_EMBEDDINGS_DIR", str(tmp_path / "nothing"))
+    with pytest.raises(RuntimeError, match="will not start"):
+        service.build_final_engine()
+
+
+def test_without_vectors_the_baseline_is_used_when_they_are_not_required(
+    api, monkeypatch, tmp_path
+):
+    monkeypatch.delenv("PS_REQUIRE_VECTORS", raising=False)
+    monkeypatch.setenv("PS_VECTORS_DIR", str(tmp_path / "nothing"))
+    monkeypatch.setenv("PS_EMBEDDINGS_DIR", str(tmp_path / "nothing"))
+    assert service.build_final_engine().search_name == "baseline"

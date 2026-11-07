@@ -1,0 +1,23 @@
+{
+  "format": "product-similarity-vectors-v1",
+  "number_format": "float16 (picture vectors scaled to length 1 before saving)",
+  "files": {
+    "picture_float16.npz": {
+      "sha256": "9b864396561422d8e631879eaacb7c82152654d64010f0ea71b81108834b059d",
+      "bytes": 27982312
+    },
+    "sentence_float16.npz": {
+      "sha256": "5de0bdb4d61901d701a9608fb95c300eb564560403100cfc6f801cf15f14f0a5",
+      "bytes": 21537308
+    }
+  },
+  "rows": {
+    "picture": 29107,
+    "sentence": 29529
+  },
+  "dimensions": {
+    "picture": 512,
+    "sentence": 384
+  },
+  "source": "CLIP (clip-vit-base-patch32) and MiniLM (all-MiniLM-L6-v2), computed offline"
+}

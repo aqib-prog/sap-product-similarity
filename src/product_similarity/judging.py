@@ -186,9 +186,9 @@ def write_json(data: object, path: Path) -> None:
 
 def main() -> None:
     """Choose the test products and write the files under evaluation/."""
-    from product_similarity.service import default_engine
+    from product_similarity.service import baseline_engine
 
-    base = default_engine()
+    base = baseline_engine()
     products, id_map = base.products, base.id_map
     queries = select_queries(products)
     write_json(queries, Path("evaluation/queries.json"))

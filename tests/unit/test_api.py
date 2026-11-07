@@ -147,3 +147,18 @@ def test_details_view_has_the_same_errors(client):
         ).status_code
         == 422
     )
+
+
+def test_ready_says_which_search_is_running(client):
+    assert client.get("/ready").json()["search"] == "baseline"
+
+
+def test_the_service_stops_when_the_vectors_are_required_and_missing(monkeypatch):
+    monkeypatch.setenv("PS_REQUIRE_VECTORS", "1")
+
+    def broken():
+        raise RuntimeError("no vectors")
+
+    with pytest.raises(RuntimeError, match="no vectors"):
+        with TestClient(create_app(broken)):
+            pass

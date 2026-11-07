@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src ./src
 COPY app.py .
 COPY data/archive.zip ./data/archive.zip
+# The picture and sentence vectors (half-size numbers, two files under 50 MB)
+COPY artifacts/vectors ./artifacts/vectors
 
 # Run as a non-root user
 RUN useradd --create-home --uid 10001 appuser
@@ -26,6 +28,8 @@ EXPOSE 8000
 
 # Define environment variable
 ENV NAME ProductSimilarityApp
+# Stop with an error when the vectors are missing, instead of using the baseline search
+ENV PS_REQUIRE_VECTORS=1
 
 # The engine is built once at startup (about 3 seconds), then requests are fast
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

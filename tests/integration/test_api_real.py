@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from product_similarity.api import create_app
-from product_similarity.service import build_engine
+from product_similarity.service import build_engine, build_final_engine
 
 ARCHIVE = Path(__file__).resolve().parents[2] / "data" / "archive.zip"
 pytestmark = pytest.mark.skipif(not ARCHIVE.exists(), reason="dataset archive not present")
@@ -31,7 +31,11 @@ def test_real_request_returns_five_ids(client):
 
 
 def test_service_is_ready_with_all_products(client):
-    assert client.get("/ready").json() == {"status": "ready", "products": 29529}
+    assert client.get("/ready").json() == {
+        "status": "ready",
+        "products": 29529,
+        "search": "baseline",
+    }
 
 
 def test_unknown_real_id_gives_404(client):
@@ -49,3 +53,20 @@ def test_real_details_view_has_titles(client):
     body = response.json()
     assert body["query"]["id"] == FIRST_ID
     assert len(body["results"]) == 3 and all(r["title"] for r in body["results"])
+
+
+VECTORS = ARCHIVE.parent.parent / "artifacts" / "vectors"
+
+
+@pytest.mark.skipif(not VECTORS.exists(), reason="the shipped vector files are not present")
+def test_the_final_search_runs_with_the_shipped_vectors(monkeypatch):
+    monkeypatch.setenv("PS_REQUIRE_VECTORS", "1")
+    monkeypatch.setenv("PS_VECTORS_DIR", str(VECTORS))
+    with TestClient(create_app(lambda: build_final_engine("exact"))) as final:
+        assert final.get("/ready").json()["search"] == "hybrid (exact)"
+        response = final.get(
+            "/find_similar_products", params={"product_id": FIRST_ID, "num_similar": 5}
+        )
+        ids = response.json()
+        assert response.status_code == 200
+        assert len(ids) == len(set(ids)) == 5 and FIRST_ID not in ids

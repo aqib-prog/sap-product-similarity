@@ -14,12 +14,14 @@ from product_similarity.hybrid import MODES, HybridEngine, load_final_vectors
 from product_similarity.preprocessing import build_products
 from product_similarity.scoring import ProductNotFoundError, SimilarityEngine
 from product_similarity.settings import get_settings
+from product_similarity.vector_files import load_vector_artifact
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
     "ProductNotFoundError",
     "build_engine",
+    "baseline_engine",
     "build_final_engine",
     "default_engine",
     "find_similar_products",
@@ -55,13 +57,26 @@ def build_final_engine(
     base = build_engine() if rows is None else build_engine(rows)
     if mode == "baseline":
         return base
-    vectors = load_final_vectors(base.products, settings.embeddings_dir, settings.not_photos)
+    # The half-size vectors that ship with the service come first; the full-size ones are
+    # only there on the machine where they were made.
+    vectors = load_vector_artifact(base.products, settings.vectors_dir)
     if vectors is None:
-        logger.warning(
-            "No usable vectors in %s: using the baseline search", settings.embeddings_dir
-        )
+        vectors = load_final_vectors(base.products, settings.embeddings_dir, settings.not_photos)
+    if vectors is None:
+        if settings.require_vectors:
+            raise RuntimeError(
+                f"No usable vectors in {settings.vectors_dir} (PS_REQUIRE_VECTORS=1), "
+                "so the service will not start with the baseline search"
+            )
+        logger.warning("No usable vectors in %s: using the baseline search", settings.vectors_dir)
         return base
     return HybridEngine(base.products, base.id_map, vectors, mode)
+
+
+@lru_cache(maxsize=1)
+def baseline_engine() -> SimilarityEngine:
+    """The title-and-attributes baseline, for the experiments that evaluate it."""
+    return build_engine()
 
 
 @lru_cache(maxsize=1)

@@ -13,7 +13,8 @@ experiments/
 benchmarks/
 evaluation/
 results/
-artifacts/
+artifacts/*
+!artifacts/vectors/
 mlruns/
 docs/
 tests/

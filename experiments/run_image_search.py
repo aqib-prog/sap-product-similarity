@@ -23,7 +23,7 @@ from product_similarity import evaluation as ev
 from product_similarity.image_features import top_k
 from product_similarity.judging import SEED, write_json, write_sheet
 from product_similarity.review_page import write_review_page
-from product_similarity.service import default_engine
+from product_similarity.service import baseline_engine
 from product_similarity.tracking import log_run, mlflow_available
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,7 +47,7 @@ def main() -> None:
     locked = {q["id"] for q in queries if q["split"] == "final"}
     dev = {q["query_no"]: q["id"] for q in queries if q["split"] == "dev"}
     grades = ev.load_grades(JUDGMENTS / "dev_grades.csv")
-    engine = default_engine()
+    engine = baseline_engine()
 
     top10: dict[str, dict[str, list[str]]] = {}
     missing: dict[str, list[str]] = {}

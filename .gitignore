@@ -164,7 +164,8 @@ cython_debug/
 #.idea/
 
 ## Project: generated data (rebuilt by the build command)
-artifacts/
+artifacts/*
+!artifacts/vectors/
 mlruns/
 data/images/
 data/embeddings/

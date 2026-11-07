@@ -20,7 +20,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install
-        run: python -m pip install -e ".[dev]"
+        run: python -m pip install -e ".[dev]" faiss-cpu==1.13.0
       - name: Lint
         run: |
           ruff check .
@@ -45,6 +45,10 @@ jobs:
           done
           docker logs ps
           exit 1
+      - name: Check that the container runs the final search
+        run: |
+          curl -fsS http://localhost:8000/ready \
+            | python3 -c "import json, sys; r = json.load(sys.stdin); assert r['search'].startswith('hybrid'), r; print(r)"
       - name: Request similar products
         run: |
           curl -fsS "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5" \

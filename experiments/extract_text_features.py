@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import sentence_transformers
 
-from product_similarity.service import default_engine
+from product_similarity.service import baseline_engine
 from product_similarity.text_features import TEXT_MODEL, TextEncoder, embed_titles
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +22,7 @@ SPEED = ROOT / "results" / "text_embedding_speed.json"
 
 
 def main() -> None:
-    engine = default_engine()
+    engine = baseline_engine()
     products = engine.products
     encoder = TextEncoder()
     vectors, report = embed_titles(encoder, [p.title or "" for p in products])

@@ -22,7 +22,7 @@ import numpy as np
 from product_similarity import evaluation as ev
 from product_similarity.dedupe import SAME_ITEM, pick_distinct
 from product_similarity.judging import comparison_methods
-from product_similarity.service import default_engine
+from product_similarity.service import baseline_engine
 from product_similarity.tracking import log_run, mlflow_available
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,7 +65,7 @@ def main() -> None:
     dev = {q["query_no"]: q["id"] for q in queries if q["split"] == "dev"}
     grades = merge(RATING_FILES)
 
-    engine = default_engine()
+    engine = baseline_engine()
     data = np.load(ROOT / "data" / "embeddings" / "all_clip.npz")
     vec_of = {str(u): i for i, u in enumerate(data["urls"])}
     unit = data["vectors"] / np.linalg.norm(data["vectors"], axis=1, keepdims=True)

@@ -20,12 +20,13 @@ The project is built for the SAP technical exercise. The original task descripti
 | Fast vector search (FAISS HNSW and IVF, Annoy) | Done: HNSW is about 60 times faster than the exact search with 97% recall@10; the exact search is already fast at this size |
 | Shorter vectors with PCA | Done: at 128 numbers PCA keeps only 71% (pictures) and 82% (sentences) of the exact top 10, so it is not used |
 | The final search (exact and fast mode) | [12](notebooks/12_final_search.ipynb) | [`final_search_check.json`](results/final_search_check.json), [`fast_vs_exact_check.json`](results/fast_vs_exact_check.json), [`dev_final_search_coverage.json`](results/dev_final_search_coverage.json), [`dev_final_search_fast_coverage.json`](results/dev_final_search_fast_coverage.json) | `final-search` |
+| The half-size vectors in the Docker image | (no notebook; see "The vectors in the image") | [`vector_files_check.json`](results/vector_files_check.json) | none |
 | Final search: the tuned hybrid in the real search, with an exact and a fast mode | Done and checked on the 30 development products: same results as the notebooks; the fast mode only speeds up the sentence and picture parts, gives nearly the same quality (nDCG@10 0.810 against 0.811) and is about 15 times faster; the final test on the locked products is still to do |
 | Hybrid search (weights tuned by coordinate ascent, 5-fold cross-validation) | Done: the 4-weight hybrid scores highest (nDCG@10 0.806); the final test on the locked products is still to do |
 | Sentence vectors on titles | Done: clearly better than TF-IDF on titles, about the same as my baseline; combining everything is next |
 | Image similarity with CLIP vectors | Done on the whole catalogue: CLIP scores highest on the 30 development products; combining it with text is next |
 | FastAPI service | Done, tested |
-| Docker image | Done: built and tested in CI (starts, answers requests, runs as a non-root user) |
+| Docker image | Done: built and tested in CI. It runs the final search with the vectors inside the image (half-size numbers, two files under 50 MB), and it stops with an error if they are missing |
 | CI: lint, tests, Docker build and smoke test on every push | Done, passing |
 | Vector search benchmarks (FAISS Flat and HNSW, Annoy) | Planned |
 | Kubernetes manifests, automatic deployment, monitoring | Planned |
@@ -163,7 +164,21 @@ docker build -t product-similarity .
 docker run -p 8000:8000 product-similarity
 ```
 
-The Docker image is built on `python:3.10-slim`, installs only the pinned serving packages from `requirements.txt` (no MLflow, no notebooks, no image models), and runs as a non-root user.
+The Docker image is built on `python:3.10-slim`, installs only the pinned serving packages from `requirements.txt` (no MLflow, no notebooks, no image models; FAISS is included, for the fast mode), and runs as a non-root user.
+
+### The vectors in the image
+
+The final search needs the picture vectors (CLIP) and the sentence vectors (MiniLM). They are computed once, offline, and the full-size files are too big for GitHub (56 MB and 43 MB, and git ignores them). So the service ships a **half-size copy**: every number is stored in 2 bytes instead of 4 (float16), in two files that are each under 50 MB (28.0 MB and 21.5 MB) in [`artifacts/vectors/`](artifacts/vectors/). The image copies them in, and the service reads them back as normal numbers when it starts.
+
+- **It does not change my results.** For the 30 development products, the top 10 is identical with the half-size vectors in the exact mode and in the fast mode (30 of 30), and nDCG@10 and precision@10 are the same (0.8105 and 0.8767 for the exact mode). On 1,000 random products, 987 of the exact mode's lists are identical, and 99.96% of the products in the top 10s are the same (fast mode: 948 identical lists, 99.2% the same products). The rounding error of one number is at most 0.00024. The record is [`results/vector_files_check.json`](results/vector_files_check.json).
+- **A damaged file is noticed.** `manifest.json` holds the SHA-256 of each file, and the service checks it when it starts.
+- **No silent fallback in the container.** The image sets `PS_REQUIRE_VECTORS=1`: if the vectors are missing or do not match the products, the service stops with an error instead of quietly using the old baseline search. Without that setting (on a laptop), the service falls back to the baseline with a warning.
+- **`/ready` says which search is running**, for example `{"status": "ready", "products": 29529, "search": "hybrid (exact)"}`.
+
+```bash
+python experiments/export_vectors.py       # makes the half-size files from the full-size ones
+python experiments/check_vector_files.py   # checks that the results do not change
+```
 
 ## Example
 
@@ -174,7 +189,7 @@ curl "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc
 ```
 
 ```json
-["46b2e244b4fd48e0a66f74a6031b10a4", "ec83e50a5c1e1b4f4a669e07266cdc3c", "2572b4aa6bf45ad494f75556d597e4cb"]
+["d8f9a3fe8b80227a37b8c5529931f383", "2d249ce6637640fe9ef8a5cf20cbc9dc", "706ee970954ce7332dee5defe042b254"]
 ```
 
 For display, `/find_similar_products/details` returns the same results with the question asked, readable product details, scores and the response time:
@@ -201,42 +216,43 @@ curl "http://localhost:8000/find_similar_products/details?product_id=26d41bdc149
   },
   "results": [
     {
-      "id": "46b2e244b4fd48e0a66f74a6031b10a4",
-      "title": "Janasya Women's Black Cotton Anarkali Printed Kurta",
-      "brand": null,
+      "id": "d8f9a3fe8b80227a37b8c5529931f383",
+      "title": "Kalamkari Print Cotton Fabric for Women's Clothes Like Kurti, Blouse, Dress, Patiala, Palazzo and Chudidar",
+      "brand": "Generic",
       "category": "WomensKurtasKurtis",
+      "audience": "women",
+      "price": 600.0,
+      "rating": 5.0,
+      "image_url": "https://images-na.ssl-images-amazon.com/images/I/516COs2TCIL.jpg",
+      "score": 0.480195
+    },
+    {
+      "id": "2d249ce6637640fe9ef8a5cf20cbc9dc",
+      "title": "Cotton Kalamkari Handblock Saree Blouse/Kurti Fabric 100 cms Purple Colour - Budda Print",
+      "brand": "LA' Facon",
+      "category": "WomensEthnicUnstitchedFabric",
+      "audience": "women",
+      "price": 200.0,
+      "rating": 3.0,
+      "image_url": "https://images-na.ssl-images-amazon.com/images/I/41NZcbBhbuL.jpg",
+      "score": 0.465029
+    },
+    {
+      "id": "706ee970954ce7332dee5defe042b254",
+      "title": "Worldoftextile Women's Cotton Sanganeri Hand Block Jaipuri Dabu Floral Print Salwar Suit, 5m(Multicolour)",
+      "brand": "Worldoftextile",
+      "category": "WomensEthnicUnstitchedFabric",
       "audience": "women",
       "price": null,
       "rating": 5.0,
-      "image_url": "https://images-na.ssl-images-amazon.com/images/I/415FAR7SieL.jpg",
-      "score": 0.571378
-    },
-    {
-      "id": "ec83e50a5c1e1b4f4a669e07266cdc3c",
-      "title": "Janasya Women's Black Cotton A-Line Printed Kurta",
-      "brand": null,
-      "category": "WomensKurtasKurtis",
-      "audience": "women",
-      "price": 339.0,
-      "rating": 3.0,
-      "image_url": "https://images-na.ssl-images-amazon.com/images/I/41eWb3tffyL.jpg",
-      "score": 0.567306
-    },
-    {
-      "id": "2572b4aa6bf45ad494f75556d597e4cb",
-      "title": "Janasya Women's Black Pure Cotton Kurta",
-      "brand": null,
-      "category": "WomensKurtasKurtis",
-      "audience": "women",
-      "price": 549.0,
-      "rating": 4.4,
-      "image_url": "https://images-na.ssl-images-amazon.com/images/I/410E0-LxWAL.jpg",
-      "score": 0.562516
+      "image_url": "https://images-na.ssl-images-amazon.com/images/I/61qgXhqar9L.jpg",
+      "score": 0.384028
     }
   ],
-  "response_time_ms": 8.47
+  "response_time_ms": 9.42
 }
 ```
+
 
 The query is a saree blouse fabric that the dataset files under the kurta category, so every result is a kurta. Category-based matching carries over that label. The response time varies by machine.
 
@@ -791,7 +807,7 @@ The tuned hybrid is now in the real search (`HybridEngine` in [`src/product_simi
 - The fast mode makes its shortlist from the title meaning and the picture only, so a product that matches the query only through its attributes (brand, category, price) may not be on it.
 - I did not test a much bigger catalogue, where the fast mode would matter most. The timings are from one laptop, one thread, one query at a time.
 
-**What I do next.** The Docker image with the final search, then Kubernetes and the CI/CD improvements, and then the rest: the stronger API (input checks, error codes and the `mode` option), caching, the page with the weights and the mode switch, and at the end the 20 locked products.
+**What I do next.** Kubernetes and the CI/CD improvements, and then the rest: the stronger API (input checks, error codes and the `mode` option), caching, the page with the weights and the mode switch, and at the end the 20 locked products.
 
 ### Recorded in MLflow
 
@@ -829,14 +845,14 @@ Every result in this page can be traced to a notebook, a results file and an MLf
 
 ### Tests
 
-There are 174 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
+There are 187 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
 
 ### CI/CD with GitHub Actions
 
 On every push and pull request, GitHub Actions runs two jobs:
 
-1. **test:** installs the project, checks the code style with ruff, and runs all the tests.
-2. **docker:** builds the image, starts the container, waits until it is ready, asks it for similar products, checks that an unknown ID returns 404, and checks that the container does not run as root.
+1. **test:** installs the project (with FAISS, so the fast-mode tests run), checks the code style with ruff, and runs all the tests.
+2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks it for similar products, checks that an unknown ID returns 404, and checks that the container does not run as root.
 
 The second job only starts if the first one passes. I merge into `main` through a pull request. Automatic deployment (for example to Kubernetes) is planned but not built yet.
 
@@ -851,7 +867,7 @@ The second job only starts if the first one passes. I merge into `main` through 
 
 ## What is next
 
-- Put the final search into the Docker image, then add Kubernetes files and the CI/CD improvements.
+- Add Kubernetes files and the CI/CD improvements (a dependency and image scan, and more checks).
 - Make the service stronger: checks on the input and proper error codes, and a `mode` option and the weights as optional inputs.
 - Add caching for repeated products.
 - A page where people set each weight with sliders (with the tuned weights as the best setting), switch between the exact and the fast mode, and see the time of each search, with and without the cache.
@@ -861,7 +877,7 @@ The second job only starts if the first one passes. I merge into `main` through 
 
 ```text
 app.py                      Entry point for uvicorn
-Dockerfile                  Builds the service image (serving packages only, non-root user)
+Dockerfile                  Builds the service image (serving packages and the vectors, non-root user)
 requirements.txt            Pinned packages used by the service and the Docker image
 pyproject.toml              Package settings and the optional extras (dev, notebooks, experiments, images, text, ann)
 Makefile                    Shortcuts: make install, lint, format, test
@@ -886,6 +902,7 @@ src/product_similarity/     Python package
   vector_search.py          Exact (brute-force) vector search and recall, the reference for fast indexes
   hybrid_eval.py            Scores a set of hybrid weights against my ratings quickly
   hybrid.py                 The final search: the tuned hybrid, with an exact and a fast (HNSW) mode
+  vector_files.py           Saves and reads the half-size vector files that ship with the service
 experiments/                Scripts that I run by hand (nothing here is used by the service)
   run_evaluation.py         Scores the text methods against my ratings and records the runs
   check_images.py           Downloads and checks the 100-image sample
@@ -913,6 +930,8 @@ experiments/                Scripts that I run by hand (nothing here is used by 
   log_ann_benchmark.py      Records the fast-search runs in MLflow
   ann_pca.py                Cuts the vectors with PCA and runs every method on them
   log_ann_pca.py            Records the PCA runs in MLflow
+  export_vectors.py         Makes the half-size vector files in artifacts/vectors/
+  check_vector_files.py     Checks that the half-size vectors do not change the results
   check_final_search.py     Checks that the real search gives the same results as the notebooks
   run_final_search_rating.py Finds results without a rating for the final search and writes the rating page
   check_fast_vs_exact.py    Compares the exact and the fast mode (misses, time, memory)
@@ -923,7 +942,7 @@ evaluation/                 Test products, rating rules, rating pages and my rat
   judgments/                Rating sheets, rating pages and my ratings (CSV)
   *.png                     Screenshots of the rating page and MLflow
 results/                    Exported scores, reports and image check numbers
-tests/                      174 tests
+tests/                      187 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
 notebooks/                  Twelve analysis notebooks (they import logic from the package)
