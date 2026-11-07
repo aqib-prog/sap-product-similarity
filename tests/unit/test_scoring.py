@@ -120,3 +120,12 @@ def test_text_vector_part_ranks_by_cosine_and_respects_the_floor(make_engine, ca
 def test_bad_embedding_floor_is_rejected(make_engine, catalogue):
     with pytest.raises(ValueError):
         make_engine(catalogue, embedding_floors={"text_vectors": 1.0})
+
+
+def test_scores_against_chosen_rows_match_the_full_scores(make_engine, catalogue):
+    engine = make_engine(catalogue)
+    rows = np.array([3, 0, 2])
+    full = engine.attribute_similarities(1)
+    part = engine.attribute_similarities(1, rows)
+    for name, values in full.items():
+        np.testing.assert_allclose(part[name], values[rows], equal_nan=True)

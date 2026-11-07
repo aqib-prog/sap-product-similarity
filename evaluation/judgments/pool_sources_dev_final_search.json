@@ -1,0 +1,150 @@
+{
+  "Q01": {
+    "01": {
+      "id": "09c4c6eefd5314176a80db8755930b3b",
+      "methods": [
+        "fast"
+      ]
+    }
+  },
+  "Q07": {
+    "01": {
+      "id": "b09bf49960abae2fff6d80da3389c260",
+      "methods": [
+        "fast_both_vectors"
+      ]
+    },
+    "02": {
+      "id": "2cd0eaf2fd90740af5c44784974d2d9f",
+      "methods": [
+        "fast_both_vectors"
+      ]
+    }
+  },
+  "Q16": {
+    "01": {
+      "id": "143de06e6f949cd59ca16fefae9685ea",
+      "methods": [
+        "fast"
+      ]
+    }
+  },
+  "Q19": {
+    "01": {
+      "id": "d332328c6634d51a7ce9ae9e0f309d87",
+      "methods": [
+        "fast",
+        "exact_both_vectors",
+        "fast_both_vectors"
+      ]
+    },
+    "02": {
+      "id": "0a0631045aac964a01648f25ce996b67",
+      "methods": [
+        "exact",
+        "fast",
+        "exact_both_vectors",
+        "fast_both_vectors"
+      ]
+    }
+  },
+  "Q26": {
+    "01": {
+      "id": "0bf605e2580a41dad9f071ee4da9177a",
+      "methods": [
+        "fast"
+      ]
+    }
+  },
+  "Q47": {
+    "01": {
+      "id": "fb9e927e59d1d73db5bb2a68d6f92fa5",
+      "methods": [
+        "fast_both_vectors"
+      ]
+    },
+    "02": {
+      "id": "9b6ef484c426535e4b0cf2c6d7423c8f",
+      "methods": [
+        "fast_both_vectors"
+      ]
+    },
+    "03": {
+      "id": "0df8090645085f92a408fbdf95ee30fc",
+      "methods": [
+        "fast_both_vectors"
+      ]
+    },
+    "04": {
+      "id": "2ea73cd3e96bb469a053252ecd2e7594",
+      "methods": [
+        "fast"
+      ]
+    },
+    "05": {
+      "id": "d7ca2d94936331229992310c961a3545",
+      "methods": [
+        "fast"
+      ]
+    },
+    "06": {
+      "id": "4e06402bca64e62ec7be5d9712bc3b6e",
+      "methods": [
+        "fast"
+      ]
+    },
+    "07": {
+      "id": "2b34a0eae62d562e1473458879a1df26",
+      "methods": [
+        "fast"
+      ]
+    },
+    "08": {
+      "id": "7b9ff99e0c35914ffac79c47011cb811",
+      "methods": [
+        "fast",
+        "fast_both_vectors"
+      ]
+    },
+    "09": {
+      "id": "29cc5d051526233ccf8dc4ed0ffc7859",
+      "methods": [
+        "fast"
+      ]
+    },
+    "10": {
+      "id": "8615836ff3af9a337a74cba2efcf9807",
+      "methods": [
+        "exact_both_vectors"
+      ]
+    },
+    "11": {
+      "id": "a035e6d654f555afe609ebc27faf85ab",
+      "methods": [
+        "exact_both_vectors"
+      ]
+    },
+    "12": {
+      "id": "b8230c08d50c91a9a9544fb31d68d3c0",
+      "methods": [
+        "exact_both_vectors"
+      ]
+    },
+    "13": {
+      "id": "f9f253f6c295088edf9d0ff2a5392b96",
+      "methods": [
+        "fast"
+      ]
+    }
+  },
+  "Q49": {
+    "01": {
+      "id": "ee37b57ff983813d05e9ece69e95d2ac",
+      "methods": [
+        "exact",
+        "exact_both_vectors",
+        "fast_both_vectors"
+      ]
+    }
+  }
+}

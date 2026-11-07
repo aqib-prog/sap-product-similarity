@@ -1,0 +1,14 @@
+{
+  "products": 30,
+  "same_list_in_same_order": 30,
+  "same_products_any_order": 30,
+  "notebook": {
+    "ndcg_at_10": 0.8105,
+    "precision_at_10": 0.8767
+  },
+  "real_search_exact": {
+    "ndcg_at_10": 0.8105,
+    "precision_at_10": 0.8767
+  },
+  "differences": {}
+}

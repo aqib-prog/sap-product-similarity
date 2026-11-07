@@ -1,0 +1,15 @@
+{
+  "results_per_search": 300,
+  "coverage": {
+    "exact": {
+      "rated": 300
+    },
+    "fast": {
+      "rated": 295,
+      "unrated": 5
+    }
+  },
+  "new_results_to_rate": 5,
+  "products_with_new_results": 2,
+  "locked_returned": 0
+}

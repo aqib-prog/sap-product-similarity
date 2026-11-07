@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rate similar products</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1f2933; --mute:#667085; --line:#d9dee5;
+          --accent:#2b6cb0; --g0:#c0392b; --g1:#d68910; --g2:#1e8449; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+         background:var(--bg); color:var(--ink); }
+  header { position:sticky; top:0; z-index:5; background:var(--card);
+           border-bottom:1px solid var(--line); padding:10px 16px; }
+  header h1 { font-size:16px; margin:0 0 4px; }
+  .bar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:14px; }
+  .bar button, .bar label.btn { background:var(--accent); color:#fff; border:0;
+         border-radius:6px; padding:6px 12px; cursor:pointer; font-size:14px; }
+  .bar input[type=file] { display:none; }
+  details { margin:6px 0 0; font-size:13px; color:var(--mute); }
+  details table { border-collapse:collapse; margin-top:4px; }
+  details td { padding:2px 10px 2px 0; vertical-align:top; }
+  nav { padding:8px 16px; display:flex; flex-wrap:wrap; gap:6px; }
+  nav a { text-decoration:none; font-size:13px; padding:3px 8px; border-radius:12px;
+          border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  nav a.done { background:#e7f5ec; border-color:#9fd3b0; }
+  section.query { margin:16px; }
+  .qcard { display:flex; gap:14px; background:#eef4fb; border:1px solid #b9d0ea;
+           border-radius:10px; padding:12px; margin-bottom:10px; }
+  .qcard img { width:150px; height:150px; object-fit:contain; background:#fff;
+               border-radius:6px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:10px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:10px; display:flex; flex-direction:column; gap:6px; }
+  .card.rated { border-color:#9fd3b0; }
+  .card img { width:100%; height:200px; object-fit:contain; background:#fff; border-radius:6px; }
+  .missing { height:200px; display:flex; align-items:center; justify-content:center;
+             color:var(--mute); background:#f0f1f3; border-radius:6px; font-size:13px; }
+  .title { font-size:13px; line-height:1.3; min-height:34px; }
+  .meta { font-size:12px; color:var(--mute); }
+  .buttons { display:flex; gap:6px; }
+  .buttons button { flex:1; padding:7px 0; border:1px solid var(--line); background:#fff;
+                    border-radius:6px; cursor:pointer; font-size:14px; font-weight:600; }
+  .buttons button[data-g="0"].on { background:var(--g0); color:#fff; border-color:var(--g0); }
+  .buttons button[data-g="1"].on { background:var(--g1); color:#fff; border-color:var(--g1); }
+  .buttons button[data-g="2"].on { background:var(--g2); color:#fff; border-color:var(--g2); }
+  .qtitle { font-size:15px; font-weight:600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Rate each result as a substitute for the query product</h1>
+  <div class="bar">
+    <span id="progress"></span>
+    <button id="download">Download my ratings (CSV)</button>
+    <label class="btn">Load saved ratings<input type="file" id="load" accept=".csv"></label>
+    <button id="clear" style="background:#8a94a0">Clear all</button>
+  </div>
+  <details>
+    <summary>Rating rules (click to open)</summary>
+    <table>
+      <tr><td><b style="color:var(--g2)">2</b></td><td>Strong match: same type of product, same audience, close style</td></tr>
+      <tr><td><b style="color:var(--g1)">1</b></td><td>Acceptable: same type and audience, but a noticeably different style, colour, pattern or price tier</td></tr>
+      <tr><td><b style="color:var(--g0)">0</b></td><td>Not a match: a different type, a different audience, an accessory, or not clothing</td></tr>
+    </table>
+    <div>Leave a card empty if you truly cannot decide. Your clicks are saved in this browser automatically.</div>
+  </details>
+</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<script>
+const DATA = [{"query_no": "Q01", "title": "OM SAI LATEST CREATION Women's Cotton a-line Kurta", "category": "WomensKurtasKurtis", "price": 899.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/31km37%2B5zXL.jpg", "candidates": [{"no": "01", "id": "09c4c6eefd5314176a80db8755930b3b", "title": "Rangriti Women's Cotton A-Line Kurta", "brand": null, "category": "WomensKurtasKurtis", "price": 349.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/41yxbhcg6SL.jpg"}]}, {"query_no": "Q07", "title": "Monte Carlo Boy's Regular fit T-Shirt", "category": "BoysT_Shirts", "price": 670.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/519rJts4xML.jpg", "candidates": [{"no": "01", "id": "b09bf49960abae2fff6d80da3389c260", "title": "Mothercare Boys' Plain Regular Fit T-Shirt", "brand": "Mothercare", "category": "BoysT_Shirts", "price": 445.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/41aBnCcavkL.jpg"}, {"no": "02", "id": "2cd0eaf2fd90740af5c44784974d2d9f", "title": "Pantaloons Junior Boy's Regular fit T-Shirt", "brand": "Pantaloons Junior", "category": "BoysT_Shirts", "price": 223.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/512PTrGoR7L.jpg"}]}, {"query_no": "Q16", "title": "Hawaii Luau Party Artificial Fabric Single Large Hibiscus Hair Clips Pink", "category": "MensCoats", "price": null, "image_url": "https://images-na.ssl-images-amazon.com/images/I/41oHBZ49wEL.jpg", "candidates": [{"no": "01", "id": "143de06e6f949cd59ca16fefae9685ea", "title": "DBD3D01A Hot Pink Polka Dots Woven Microfiber Birthday Gift Idea Pre-tied Bow Tie By Dan Smith", "brand": "Dan Smith", "category": "MensBowTies", "price": null, "image_url": "https://images-na.ssl-images-amazon.com/images/I/415AfzCBt5L.jpg"}]}, {"query_no": "Q19", "title": "U.S. Polo Assn. Men's Slim Fit Solid Short Sleeve Pique Polo Shirt", "category": "MensPolos", "price": null, "image_url": "https://images-na.ssl-images-amazon.com/images/I/31WmDV%2BZmeL.jpg", "candidates": [{"no": "01", "id": "d332328c6634d51a7ce9ae9e0f309d87", "title": "TOMMY HILFIGER Men's Striped Slim Fit Polo", "brand": null, "category": "MensPolos", "price": 2529.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/416LF1u1mYL.jpg"}, {"no": "02", "id": "0a0631045aac964a01648f25ce996b67", "title": "Amazon Brand - Symbol Men's Regular Fit Polo", "brand": null, "category": "MensPolos", "price": 319.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/41bki3DNgHL.jpg"}]}, {"query_no": "Q26", "title": "Tommy Hilfiger Men's Core Neat I Tie", "category": "MensNeckties", "price": null, "image_url": "https://images-na.ssl-images-amazon.com/images/I/415FmMMcHXL.jpg", "candidates": [{"no": "01", "id": "0bf605e2580a41dad9f071ee4da9177a", "title": "Towergem Extra Long Fashion Tie Men's Woven Jacquard Handmade XL Necktie", "brand": "Towergem", "category": "MensNeckties", "price": null, "image_url": "https://images-na.ssl-images-amazon.com/images/I/41BbRs3lU6L.jpg"}]}, {"query_no": "Q47", "title": "Kiara Sky Dip Dipping Powder D480 Let's Get Rediculous 1 Oz", "category": "WomensSportswear", "price": 6279.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/410c-pBusdL.jpg", "candidates": [{"no": "01", "id": "fb9e927e59d1d73db5bb2a68d6f92fa5", "title": "Coolibar UPF 50+ Girls& Swim Skirt - Sun Protective (X-Small- Aloha Pink)", "brand": "Coolibar", "category": "WomensSkirtsShorts", "price": null, "image_url": "https://images-na.ssl-images-amazon.com/images/I/41sDQR0Z70L.jpg"}, {"no": "02", "id": "9b6ef484c426535e4b0cf2c6d7423c8f", "title": "Yupoong 110 Wool Blend Cap - Navy", "brand": "Yupoong", "category": "MensCapsHats", "price": 2619.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/31C6HILzeIL.jpg"}, {"no": "03", "id": "0df8090645085f92a408fbdf95ee30fc", "title": "MITUSHI PRODUCTS Ladies Dyed Swimsuit Style W-555", "brand": "mitushi products", "category": "WomensSportswear", "price": 699.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/31O83KRrIYL.jpg"}, {"no": "04", "id": "2ea73cd3e96bb469a053252ecd2e7594", "title": "Bombay high Women's Button Down Shirt", "brand": "Bombay high", "category": "WomensBlousesShirts", "price": 1299.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/415%2BRioSUEL.jpg"}, {"no": "05", "id": "d7ca2d94936331229992310c961a3545", "title": "Darshita International Women's Ruffle Saree (Ruffledeal_Bottlegreen)", "brand": "Darshita International", "category": "WomensSarees", "price": 1099.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/415DPjSedbL.jpg"}, {"no": "06", "id": "4e06402bca64e62ec7be5d9712bc3b6e", "title": "Penny by Zivame Women's Bikini (Pack of 3)", "brand": null, "category": "WomensBikiniKnickers", "price": 959.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/51dfloBkA-L.jpg"}, {"no": "07", "id": "2b34a0eae62d562e1473458879a1df26", "title": "Ziya Pure Cotton Sleeveless Nighty Combo of Red Beige and Pink", "brand": "Ziya", "category": "WomensNightiesNightdresses", "price": 1099.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/510kEZA2tTL.jpg"}, {"no": "08", "id": "7b9ff99e0c35914ffac79c47011cb811", "title": "Royal Red Striped Disposable Overseas Caps, Package of 100", "brand": "Royal", "category": "MensCapsHats", "price": 2909.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/31HggzMyvIL.jpg"}, {"no": "09", "id": "29cc5d051526233ccf8dc4ed0ffc7859", "title": "Lux Lyra Indian Churidar Leggings, Pack of 4", "brand": "Pistaa's", "category": "WomensChuridarSalwarBottoms", "price": 1485.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/51RgFjhNlZL.jpg"}, {"no": "10", "id": "8615836ff3af9a337a74cba2efcf9807", "title": "JOYMODE Women's Retro Polka Underwire Bikini High Waisted Swimsuit Bathing Suits", "brand": "JOYMODE", "category": "WomensSportswear", "price": 6304.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/51w8xgeinTL.jpg"}, {"no": "11", "id": "a035e6d654f555afe609ebc27faf85ab", "title": "Giro GA09020 Mens Pivot Winter Gloves Black - S", "brand": "Giro", "category": "WomensSportswear", "price": 5249.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/41hhIXs629L.jpg"}, {"no": "12", "id": "b8230c08d50c91a9a9544fb31d68d3c0", "title": "Speedo Boys Marble Swirl Long Sleeve Swim Tee", "brand": "Speedo", "category": "WomensSportswear", "price": 5722.83, "image_url": "https://images-na.ssl-images-amazon.com/images/I/41A8ZQQtyaL.jpg"}, {"no": "13", "id": "f9f253f6c295088edf9d0ff2a5392b96", "title": "Dyno Seasonal Solutions 2564793-4Cc 56 In. Red Velvet & Satin Tree Skirt", "brand": "Dyno Seasonal Solutions", "category": "WomensSkirtsShorts", "price": 7749.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/41QDYz2zGBL.jpg"}]}, {"query_no": "Q49", "title": "TrailHeads Micro Fleece Neck Warmer | Contoured Winter Neck Gaiter - Black", "category": "MensT_Shirts", "price": 2889.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/51tB5xJ3vAL.jpg", "candidates": [{"no": "01", "id": "ee37b57ff983813d05e9ece69e95d2ac", "title": "GRITSTONES Steel Grey Full Sleeve V Neck T Shirt GSFSOMBVNECKSGRY", "brand": "GRITSTONES", "category": "MensT_Shirts", "price": 341.0, "image_url": "https://images-na.ssl-images-amazon.com/images/I/41jyzFAYfEL.jpg"}]}];
+const KEY = "ratings-final_search-v1";
+let ratings = {};
+try { ratings = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { ratings = {}; }
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify(ratings)); } catch (e) {} }
+function key(q, c) { return q.query_no + "|" + c.no; }
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = text;
+  return e;
+}
+function picture(url, alt) {
+  const holder = el("div");
+  if (!url) { holder.appendChild(el("div", "missing", "no picture")); return holder; }
+  const img = document.createElement("img");
+  img.src = url; img.alt = alt; img.loading = "lazy"; img.referrerPolicy = "no-referrer";
+  img.onerror = () => { holder.replaceChildren(el("div", "missing", "picture not available")); };
+  holder.appendChild(img);
+  return holder;
+}
+function money(p) { return (p === null || p === undefined || p === "") ? "no price" : "₹" + p; }
+
+function render() {
+  const main = document.getElementById("main"); main.replaceChildren();
+  const nav = document.getElementById("nav"); nav.replaceChildren();
+  DATA.forEach(q => {
+    const a = el("a", "", q.query_no); a.href = "#" + q.query_no; a.id = "nav-" + q.query_no; nav.appendChild(a);
+    const sec = el("section", "query"); sec.id = q.query_no;
+    const qc = el("div", "qcard");
+    qc.appendChild(picture(q.image_url, q.title));
+    const info = el("div");
+    info.appendChild(el("div", "qtitle", q.query_no + ": " + q.title));
+    info.appendChild(el("div", "meta", (q.category || "no category") + " | " + money(q.price)));
+    info.appendChild(el("div", "meta", "Would a shopper accept each result below instead of this product?"));
+    qc.appendChild(info); sec.appendChild(qc);
+    const grid = el("div", "grid");
+    q.candidates.forEach(c => {
+      const card = el("div", "card"); card.dataset.k = key(q, c);
+      card.appendChild(picture(c.image_url, c.title));
+      card.appendChild(el("div", "title", c.title));
+      card.appendChild(el("div", "meta", [c.brand || "no brand", c.category || "no category", money(c.price)].join(" | ")));
+      const row = el("div", "buttons");
+      [0, 1, 2].forEach(g => {
+        const b = el("button", "", String(g)); b.dataset.g = g; b.title = ["Not a match", "Acceptable", "Strong match"][g];
+        b.onclick = () => {
+          const k = key(q, c);
+          if (ratings[k] === g) { delete ratings[k]; } else { ratings[k] = g; }
+          save(); refresh();
+        };
+        row.appendChild(b);
+      });
+      card.appendChild(row); grid.appendChild(card);
+    });
+    sec.appendChild(grid); main.appendChild(sec);
+  });
+  refresh();
+}
+
+function refresh() {
+  let done = 0, total = 0;
+  DATA.forEach(q => {
+    let qDone = 0;
+    q.candidates.forEach(c => { total++; if (ratings[key(q, c)] !== undefined) { done++; qDone++; } });
+    document.getElementById("nav-" + q.query_no).className = qDone === q.candidates.length ? "done" : "";
+  });
+  document.querySelectorAll(".card").forEach(card => {
+    const g = ratings[card.dataset.k];
+    card.className = g === undefined ? "card" : "card rated";
+    card.querySelectorAll("button").forEach(b => { b.className = (g !== undefined && Number(b.dataset.g) === g) ? "on" : ""; });
+  });
+  document.getElementById("progress").textContent = done + " of " + total + " rated";
+}
+
+document.getElementById("download").onclick = () => {
+  const lines = ["query_no,candidate_no,candidate_id,grade"];
+  DATA.forEach(q => q.candidates.forEach(c => {
+    const g = ratings[key(q, c)];
+    lines.push([q.query_no, c.no, c.id, g === undefined ? "" : g].join(","));
+  }));
+  const blob = new Blob([lines.join("\n") + "\n"], { type: "text/csv" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "dev_grades_final_search.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+};
+document.getElementById("load").onchange = ev => {
+  const file = ev.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const byId = {}; DATA.forEach(q => q.candidates.forEach(c => { byId[q.query_no + "|" + c.no] = true; }));
+    reader.result.split(/\r?\n/).slice(1).forEach(line => {
+      const p = line.split(","); if (p.length < 4 || p[3] === "") return;
+      const k = p[0] + "|" + p[1]; if (byId[k]) ratings[k] = Number(p[3]);
+    });
+    save(); refresh();
+  };
+  reader.readAsText(file);
+};
+document.getElementById("clear").onclick = () => {
+  if (confirm("Remove all ratings from this browser?")) { ratings = {}; save(); refresh(); }
+};
+render();
+</script>
+</body>
+</html>

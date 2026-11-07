@@ -19,6 +19,8 @@ The project is built for the SAP technical exercise. The original task descripti
 | Picture download for the whole catalogue | Done: 29,107 pictures (134 broken links) |
 | Fast vector search (FAISS HNSW and IVF, Annoy) | Done: HNSW is about 60 times faster than the exact search with 97% recall@10; the exact search is already fast at this size |
 | Shorter vectors with PCA | Done: at 128 numbers PCA keeps only 71% (pictures) and 82% (sentences) of the exact top 10, so it is not used |
+| The final search (exact and fast mode) | [12](notebooks/12_final_search.ipynb) | [`final_search_check.json`](results/final_search_check.json), [`fast_vs_exact_check.json`](results/fast_vs_exact_check.json), [`dev_final_search_coverage.json`](results/dev_final_search_coverage.json), [`dev_final_search_fast_coverage.json`](results/dev_final_search_fast_coverage.json) | `final-search` |
+| Final search: the tuned hybrid in the real search, with an exact and a fast mode | Done and checked on the 30 development products: same results as the notebooks; the fast mode only speeds up the sentence and picture parts, gives nearly the same quality (nDCG@10 0.810 against 0.811) and is about 15 times faster; the final test on the locked products is still to do |
 | Hybrid search (weights tuned by coordinate ascent, 5-fold cross-validation) | Done: the 4-weight hybrid scores highest (nDCG@10 0.806); the final test on the locked products is still to do |
 | Sentence vectors on titles | Done: clearly better than TF-IDF on titles, about the same as my baseline; combining everything is next |
 | Image similarity with CLIP vectors | Done on the whole catalogue: CLIP scores highest on the 30 development products; combining it with text is next |
@@ -44,7 +46,8 @@ I work in small steps. After each step I check the result, and I write down what
 10. **Made the search faster.** I timed the exact search, compared FAISS HNSW and IVF and Annoy with it, and used the fast index inside the hybrid. ([notebook 09](notebooks/09_fast_vector_search.ipynb))
 11. **Tested shorter vectors.** I cut the vectors with PCA, ran every search method on them and compared time, memory and recall. ([notebook 10](notebooks/10_shorter_vectors_pca.ipynb))
 12. **Drew the vectors.** I squeezed the picture vectors into two numbers with t-SNE to look at them, before and after PCA. ([notebook 11](notebooks/11_tsne_picture_vectors.ipynb))
-13. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
+13. **Put the tuned hybrid into the real search.** The search now has an exact mode and a fast mode (HNSW picks the candidates). I checked that it gives the same results as my notebooks, and I compared the two modes with my ratings, with time and memory. ([notebook 12](notebooks/12_final_search.ipynb))
+14. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
 
 The sections below explain each step: what I did, why, and what I found.
 
@@ -259,6 +262,7 @@ docker run -p 8000:8000 product-similarity
 | `09_fast_vector_search` | Times the exact search, compares FAISS HNSW and IVF and Annoy with it (time, memory, recall@10) and uses a fast index inside the hybrid | HNSW is about 60 times faster than the exact search and finds 97% of the exact top 10. The exact search is already about 1 ms at this size, so the gain matters for a bigger catalogue |
 | `10_shorter_vectors_pca` | Cuts the vectors with PCA to 256, 128 and 64 numbers, runs the exact search, HNSW, IVF and Annoy on them (time, memory, recall@10), and times the extra projection step | PCA makes the index 2 to 4 times smaller, but recall drops to 71% (pictures) and 82% (sentences) at 128 numbers, and the speed-up disappears once the query projection is counted. I keep the full vectors with HNSW |
 | `11_tsne_picture_vectors` | Squeezes 3,000 picture vectors into two numbers with t-SNE, with the full vectors and after PCA, and colours the biggest categories | The categories form separate groups, and the groups stay the same after PCA. It is only a picture for looking |
+| `12_final_search` | Checks that the real search gives the same results as the notebooks, then compares its exact mode and fast mode (the same hybrid; the fast mode only speeds up the sentence and picture parts with HNSW indexes) with my ratings as the truth (nDCG@10, precision@10), the results I rated 2, 1 and 0 in each mode, product by product, and the time | Same top 10 for all 30 products (nDCG@10 0.8105). The fast mode gives nearly the same quality (0.8095, same precision@10) and is about 15 times faster (0.58 ms against 8.5 ms). I keep the exact mode as the default and the fast mode as a switch |
 
 Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
 
@@ -750,6 +754,63 @@ The picture vectors are long lists of numbers, which nobody can look at. t-SNE s
 
 References: van der Maaten and Hinton, [Visualizing data using t-SNE](https://www.jmlr.org/papers/v9/vandermaaten08a.html) (2008) (t-SNE).
 
+## The final search: exact mode and fast mode
+
+The tuned hybrid is now in the real search (`HybridEngine` in [`src/product_similarity/hybrid.py`](src/product_similarity/hybrid.py)). It uses the 4-weight mix from the hybrid step: sentence vectors 46%, picture vectors 29%, the seven attributes 23% together, and the TF-IDF title 3%. The vectors were computed once, offline, so the search never loads a model.
+
+- **Two modes, one hybrid.** Both score every shortlisted product with all ten parts, with the same weights and the same rescaling when a part is missing. They differ only in how the two vector parts are searched.
+- **Exact mode** (the default). Compares the sentence and picture vectors with every product.
+- **Fast mode.** An HNSW index for the sentence vectors and one for the picture vectors each return the 100 nearest products, and only those are scored. A product without a picture is found through its sentence vector.
+- **A switch.** The mode can be chosen for each search, and `PS_SEARCH_MODE` sets the default (`exact`, `fast`, or `baseline` when the vectors are missing). The page and the API will get a `mode` option.
+- **One copy of each item.** Both modes skip the same item shown twice (the same picture, for example another size), the same rule that my ratings use.
+- **Checked against the notebooks.** The exact mode gives the same top 10, in the same order, for all 30 development products ([`results/final_search_check.json`](results/final_search_check.json)).
+- **The truth is my ratings, for both modes.** I rated the 26 new results that the two modes brought up. nDCG@10, precision@10 and the counts of results rated 2, 1 and 0 come from them ([`results/final_search_ratings.json`](results/final_search_ratings.json)). Time is the whole search, with the same rule as before, on the 30 development products ([`results/fast_vs_exact_check.json`](results/fast_vs_exact_check.json)).
+
+### Conclusion
+
+**What I did.** I put the tuned hybrid into the real search, with two modes. Both are the same hybrid, with all ten parts and the same weights. The **exact mode** compares the sentence and picture vectors with every product. The **fast mode** uses HNSW only to speed up those two parts: it takes the 100 nearest products from an index of the sentence vectors and from an index of the picture vectors, and scores only those. First I checked that the real search gives the same results as my notebooks (30 of 30 products). Then I took **my own ratings as the source of truth** for both modes (I rated the 26 new results first) and compared them on the 30 development products, with nDCG@10, precision@10 and the time of one search.
+
+| 30 development products | nDCG@10 | Precision@10 | Time per search |
+|---|---|---|---|
+| Exact mode | 0.8105 | 0.8767 | 8.5 ms |
+| Fast mode (HNSW, 100 from each index) | 0.8095 | 0.8767 | 0.58 ms |
+
+**What I found**
+
+- By my ratings, the two modes are almost the same. nDCG@10 is 0.8105 and 0.8095, and precision@10 is the same. Of the 300 results of each mode, I rated 221 with a 2, 42 with a 1 and 37 with a 0 for the exact mode, and 220, 43 and 37 for the fast mode.
+- The fast mode is much faster: 0.58 ms against 8.5 ms, about 15 times. This is the advantage of HNSW.
+
+**Decision.** The exact mode is the default. I will create a page where I can choose between the default (exact) mode and the HNSW (fast) mode, see the time of each search, and tune the weights as well.
+
+**Limitations**
+
+- HNSW needs a little more memory, because its two indexes (114 MB) are kept on top of the vectors (166 MB), and building them takes about 13 seconds, once.
+- If a picture vector or a sentence vector is missing, the search works the same in both modes: that part is skipped and the other weights are scaled up. I checked this in a small test, not on the 30 products, because all of them have both vectors.
+- I tested only 30 products, with my ratings as the truth.
+- My weights were tuned on these same 30 products, so the scores are optimistic. The final test on the 20 locked products comes at the end.
+- The fast mode makes its shortlist from the title meaning and the picture only, so a product that matches the query only through its attributes (brand, category, price) may not be on it.
+- I did not test a much bigger catalogue, where the fast mode would matter most. The timings are from one laptop, one thread, one query at a time.
+
+**What I do next.** The Docker image with the final search, then Kubernetes and the CI/CD improvements, and then the rest: the stronger API (input checks, error codes and the `mode` option), caching, the page with the weights and the mode switch, and at the end the 20 locked products.
+
+### Recorded in MLflow
+
+Each run is recorded in the experiment `final-search` (5 runs). The two runs tagged `headline` are the exact mode and the fast mode with 100 nearest products from each index:
+
+![MLflow comparing the exact mode and the fast mode of the final search](evaluation/mlflow_final_search_runs.png)
+
+The walk-through, with every table, is in [notebook 12](notebooks/12_final_search.ipynb).
+
+### Reproduce it
+
+```bash
+python experiments/check_final_search.py       # the real search against the notebooks
+python experiments/run_final_search_rating.py  # finds results without a rating, writes the rating page
+python experiments/rating_comparison.py        # both modes scored with my ratings only
+python experiments/check_fast_vs_exact.py      # exact mode against fast mode: time (and the places that differ)
+python experiments/log_final_search.py         # records the runs in MLflow
+```
+
 ## Where the numbers come from
 
 Every result in this page can be traced to a notebook, a results file and an MLflow experiment. The MLflow databases stay on my computer (they are not in Git), so the screenshots in `evaluation/` show the runs.
@@ -768,7 +829,7 @@ Every result in this page can be traced to a notebook, a results file and an MLf
 
 ### Tests
 
-There are 156 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
+There are 174 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
 
 ### CI/CD with GitHub Actions
 
@@ -790,11 +851,11 @@ The second job only starts if the first one passes. I merge into `main` through 
 
 ## What is next
 
-- Make the service stronger: checks on the input and proper error codes.
-- Add caching, Kubernetes files and automatic deployment.
-- A page where people set each weight with sliders, with the tuned weights as the best setting.
-- Add caching, Kubernetes files and automatic deployment.
-- Rate the 20 locked products once, at the end, for the final result.
+- Put the final search into the Docker image, then add Kubernetes files and the CI/CD improvements.
+- Make the service stronger: checks on the input and proper error codes, and a `mode` option and the weights as optional inputs.
+- Add caching for repeated products.
+- A page where people set each weight with sliders (with the tuned weights as the best setting), switch between the exact and the fast mode, and see the time of each search, with and without the cache.
+- Rate the 20 locked products once, at the end, and score both modes for the final result.
 
 ## Project layout
 
@@ -824,6 +885,7 @@ src/product_similarity/     Python package
   tuning.py                 Coordinate ascent, cross-validation and part importance for the weights
   vector_search.py          Exact (brute-force) vector search and recall, the reference for fast indexes
   hybrid_eval.py            Scores a set of hybrid weights against my ratings quickly
+  hybrid.py                 The final search: the tuned hybrid, with an exact and a fast (HNSW) mode
 experiments/                Scripts that I run by hand (nothing here is used by the service)
   run_evaluation.py         Scores the text methods against my ratings and records the runs
   check_images.py           Downloads and checks the 100-image sample
@@ -851,16 +913,20 @@ experiments/                Scripts that I run by hand (nothing here is used by 
   log_ann_benchmark.py      Records the fast-search runs in MLflow
   ann_pca.py                Cuts the vectors with PCA and runs every method on them
   log_ann_pca.py            Records the PCA runs in MLflow
+  check_final_search.py     Checks that the real search gives the same results as the notebooks
+  run_final_search_rating.py Finds results without a rating for the final search and writes the rating page
+  check_fast_vs_exact.py    Compares the exact and the fast mode (misses, time, memory)
+  log_final_search.py       Records the final-search runs in MLflow
 evaluation/                 Test products, rating rules, rating pages and my ratings
   queries.json              The 50 test products (30 development, 20 locked)
   rubric.md                 The rules for rating 0, 1 or 2
   judgments/                Rating sheets, rating pages and my ratings (CSV)
   *.png                     Screenshots of the rating page and MLflow
 results/                    Exported scores, reports and image check numbers
-tests/                      156 tests
+tests/                      174 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
-notebooks/                  Eleven analysis notebooks (they import logic from the package)
+notebooks/                  Twelve analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
 .github/workflows/ci.yml    Continuous integration (lint, tests, Docker smoke test)
 ```

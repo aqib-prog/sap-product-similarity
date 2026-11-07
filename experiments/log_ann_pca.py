@@ -25,7 +25,9 @@ def best_hnsw(rows: list[dict]) -> dict:
     """The fastest HNSW setting within half a point of the best recall."""
     hnsw = [r for r in rows if r["index"] == "faiss_hnsw"]
     top = max(r["recall_at_10"] for r in hnsw)
-    return min((r for r in hnsw if r["recall_at_10"] >= top - 0.005), key=lambda r: r["ms_per_query"])
+    return min(
+        (r for r in hnsw if r["recall_at_10"] >= top - 0.005), key=lambda r: r["ms_per_query"]
+    )
 
 
 def main() -> None:
@@ -65,7 +67,13 @@ def main() -> None:
         log_run(
             EXPERIMENT,
             f"{space}_full_numpy_exact",
-            {**shared, "space": space, "index": "numpy_exact", "dimensions": info["dimensions"], "pca": "no"},
+            {
+                **shared,
+                "space": space,
+                "index": "numpy_exact",
+                "dimensions": info["dimensions"],
+                "pca": "no",
+            },
             {
                 "ms_per_query": timing["one_query_median_ms"],
                 "recall_at_10": 1.0,

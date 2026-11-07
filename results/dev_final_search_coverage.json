@@ -1,0 +1,25 @@
+{
+  "products_without_a_picture_or_sentence_vector": 163,
+  "results_per_search": 300,
+  "coverage": {
+    "exact": {
+      "rated": 298,
+      "unrated": 2
+    },
+    "fast": {
+      "rated": 288,
+      "unrated": 12
+    },
+    "exact_both_vectors": {
+      "rated": 294,
+      "unrated": 6
+    },
+    "fast_both_vectors": {
+      "rated": 291,
+      "unrated": 9
+    }
+  },
+  "new_results_to_rate": 21,
+  "products_with_new_results": 7,
+  "locked_returned": 0
+}

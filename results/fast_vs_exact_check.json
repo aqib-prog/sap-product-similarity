@@ -1,0 +1,128 @@
+{
+  "products": 30,
+  "reference": "exact mode of the real search",
+  "timing_rule": "30 development products, 5 runs each, fastest kept, median; one thread",
+  "comparison": {
+    "label": "final_search",
+    "products_that_can_be_results": 29509,
+    "exact": {
+      "ndcg_at_10": 0.8105,
+      "precision_at_10": 0.8767,
+      "unrated_in_top_10": 0,
+      "ms_per_query": 8.473,
+      "memory_mb": 166.3
+    },
+    "fast": {
+      "index": "HNSW for the sentence vectors and for the picture vectors, M=16, efConstruction=200, efSearch=64",
+      "build_seconds": 13.07,
+      "index_mb": 114.0,
+      "memory_mb": 280.3
+    },
+    "by_candidates": [
+      {
+        "candidates": 50,
+        "slots": 300,
+        "lost_from_final_top10_total": 25,
+        "exact_top10_not_in_candidates_total": 25,
+        "products_losing_none": 18,
+        "products_losing_1": 6,
+        "products_losing_2": 4,
+        "products_losing_3_or_more": 2,
+        "most_lost_by_one_product": 8,
+        "lost_by_product": {
+          "Q01": 1,
+          "Q04": 1,
+          "Q07": 1,
+          "Q12": 1,
+          "Q19": 2,
+          "Q21": 1,
+          "Q26": 3,
+          "Q31": 2,
+          "Q36": 2,
+          "Q44": 1,
+          "Q47": 8,
+          "Q49": 2
+        },
+        "recall_at_10_vs_exact": 0.9167,
+        "ndcg_at_10": 0.798,
+        "precision_at_10": 0.86,
+        "unrated_in_top_10": 7,
+        "ms_per_query": 0.524
+      },
+      {
+        "candidates": 100,
+        "slots": 300,
+        "lost_from_final_top10_total": 11,
+        "exact_top10_not_in_candidates_total": 11,
+        "products_losing_none": 27,
+        "products_losing_1": 1,
+        "products_losing_2": 1,
+        "products_losing_3_or_more": 1,
+        "most_lost_by_one_product": 8,
+        "lost_by_product": {
+          "Q44": 1,
+          "Q47": 8,
+          "Q49": 2
+        },
+        "recall_at_10_vs_exact": 0.9633,
+        "ndcg_at_10": 0.8095,
+        "precision_at_10": 0.8767,
+        "unrated_in_top_10": 0,
+        "ms_per_query": 0.582
+      },
+      {
+        "candidates": 250,
+        "slots": 300,
+        "lost_from_final_top10_total": 9,
+        "exact_top10_not_in_candidates_total": 9,
+        "products_losing_none": 28,
+        "products_losing_1": 0,
+        "products_losing_2": 1,
+        "products_losing_3_or_more": 1,
+        "most_lost_by_one_product": 7,
+        "lost_by_product": {
+          "Q47": 7,
+          "Q49": 2
+        },
+        "recall_at_10_vs_exact": 0.97,
+        "ndcg_at_10": 0.8112,
+        "precision_at_10": 0.88,
+        "unrated_in_top_10": 5,
+        "ms_per_query": 0.841
+      },
+      {
+        "candidates": 500,
+        "slots": 300,
+        "lost_from_final_top10_total": 8,
+        "exact_top10_not_in_candidates_total": 8,
+        "products_losing_none": 28,
+        "products_losing_1": 1,
+        "products_losing_2": 0,
+        "products_losing_3_or_more": 1,
+        "most_lost_by_one_product": 7,
+        "lost_by_product": {
+          "Q47": 7,
+          "Q49": 1
+        },
+        "recall_at_10_vs_exact": 0.9733,
+        "ndcg_at_10": 0.8076,
+        "precision_at_10": 0.8733,
+        "unrated_in_top_10": 6,
+        "ms_per_query": 1.123
+      }
+    ],
+    "average_part_scores_of_the_lost": {
+      "title_tfidf": 0.066,
+      "sentence": 0.096,
+      "picture": 0.396,
+      "attributes": 0.715
+    },
+    "average_part_scores_of_the_found": {
+      "title_tfidf": 0.455,
+      "sentence": 0.639,
+      "picture": 0.523,
+      "attributes": 0.788
+    },
+    "lost_places": 11
+  }
+}

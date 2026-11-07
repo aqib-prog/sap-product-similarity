@@ -14,8 +14,9 @@ import numpy as np
 
 from product_similarity import evaluation as ev
 from product_similarity.dedupe import picture_table
+from product_similarity.hybrid import ATTRIBUTES, expand_four, random_pair_floor  # noqa: F401
 from product_similarity.hybrid_eval import HybridEvaluator
-from product_similarity.scoring import DEFAULT_WEIGHTS, SimilarityEngine
+from product_similarity.scoring import SimilarityEngine
 from product_similarity.service import default_engine
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,9 +28,10 @@ RATING_FILES = [
     "dev_grades_images.csv",
     "dev_grades_full_images.csv",
     "dev_grades_text_vectors.csv",
-    "dev_grades_hybrid.csv",  # added once the new hybrid results have been rated
+    "dev_grades_hybrid.csv",
+    "dev_grades_final_search.csv",
+    "dev_grades_final_search_fast.csv",  # added once the new fast-mode results have been rated
 ]
-ATTRIBUTES = ("category", "brand", "audience", "price", "colour", "weight", "rating")
 
 
 def merged_ratings() -> dict[str, dict[str, int]]:
@@ -43,24 +45,6 @@ def merged_ratings() -> dict[str, dict[str, int]]:
                 assert candidate not in merged.setdefault(no, {}), "a result was rated twice"
                 merged[no][candidate] = grade
     return merged
-
-
-def random_pair_floor(vectors: np.ndarray, seed: int, pairs: int = 20000) -> float:
-    """Mean cosine of random pairs: the similarity of two unrelated products."""
-    rng = np.random.default_rng(seed)
-    valid = np.flatnonzero(~np.isnan(vectors).any(axis=1))
-    a, b = rng.choice(valid, pairs), rng.choice(valid, pairs)
-    keep = a != b
-    return float(np.mean(np.sum(vectors[a[keep]] * vectors[b[keep]], axis=1)))
-
-
-def expand_four(group: dict[str, float]) -> dict[str, float]:
-    """Turn the 4-weight mix into one weight per part (attributes keep their untuned ratios)."""
-    share = {k: DEFAULT_WEIGHTS[k] for k in ATTRIBUTES}
-    total = sum(share.values())
-    weights = {k: group["attributes"] * v / total for k, v in share.items()}
-    weights.update({k: group[k] for k in ("title", "text_vectors", "image")})
-    return weights
 
 
 def build_evaluator() -> SimpleNamespace:

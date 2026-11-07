@@ -68,6 +68,9 @@ def _closeness(values: np.ndarray, query: float, span: float) -> np.ndarray:
 class SimilarityEngine:
     """Scores one product against all others and returns the best matches."""
 
+    # The number format of the stored picture and sentence vectors.
+    _embedding_dtype = np.float64
+
     def __init__(
         self,
         products: Sequence[Product],
@@ -130,7 +133,7 @@ class SimilarityEngine:
     def _check_images(self, embeddings: np.ndarray | None) -> np.ndarray | None:
         if embeddings is None:
             return None
-        embeddings = np.asarray(embeddings, dtype=float)
+        embeddings = np.asarray(embeddings, dtype=self._embedding_dtype)
         if embeddings.ndim != 2 or embeddings.shape[0] != len(self.products):
             raise ValueError("image_embeddings needs one row per product")
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
@@ -142,29 +145,39 @@ class SimilarityEngine:
 
     # ---- scoring ----
 
-    def attribute_similarities(self, i: int) -> dict[str, np.ndarray]:
-        """Per-attribute scores for product `i` against every product (NaN = unknown)."""
-        n = len(self.products)
+    def attribute_similarities(
+        self, i: int, rows: np.ndarray | None = None
+    ) -> dict[str, np.ndarray]:
+        """Per-attribute scores for product `i` (NaN = unknown).
+
+        Against every product, or only against the product positions in `rows`: then each
+        score array has one entry per row in `rows`, in the same order.
+        """
+        every = rows is None
+        pick = (lambda a: a) if every else (lambda a: a[rows])
+        n = len(self.products) if every else len(rows)
         unknown = np.full(n, np.nan)
-        sims: dict[str, np.ndarray] = {"title": (self._tfidf @ self._tfidf[i].T).toarray().ravel()}
+        tfidf = self._tfidf if every else self._tfidf[rows]
+        sims: dict[str, np.ndarray] = {"title": (tfidf @ self._tfidf[i].T).toarray().ravel()}
         for name, codes in self._codes.items():
             if codes[i] < 0:
                 sims[name] = unknown.copy()
             else:
-                same = (codes == codes[i]).astype(float)
-                sims[name] = np.where(codes < 0, np.nan, same)
-        sims["price"] = _closeness(self._price, self._price[i], PRICE_SPAN)
-        sims["weight"] = _closeness(self._weight, self._weight[i], WEIGHT_SPAN)
-        sims["rating"] = _closeness(self._rating, self._rating[i], RATING_SPAN)
+                codes_of = pick(codes)
+                same = (codes_of == codes[i]).astype(float)
+                sims[name] = np.where(codes_of < 0, np.nan, same)
+        sims["price"] = _closeness(pick(self._price), self._price[i], PRICE_SPAN)
+        sims["weight"] = _closeness(pick(self._weight), self._weight[i], WEIGHT_SPAN)
+        sims["rating"] = _closeness(pick(self._rating), self._rating[i], RATING_SPAN)
 
         if self._colour_sizes[i] == 0:
             sims["colour"] = unknown.copy()
         else:
-            shared = (self._colours @ self._colours[i].T).toarray().ravel()
-            union = self._colour_sizes + self._colour_sizes[i] - shared
-            sims["colour"] = np.where(
-                self._colour_sizes > 0, shared / np.maximum(union, 1.0), np.nan
-            )
+            colours = self._colours if every else self._colours[rows]
+            sizes = pick(self._colour_sizes)
+            shared = (colours @ self._colours[i].T).toarray().ravel()
+            union = sizes + self._colour_sizes[i] - shared
+            sims["colour"] = np.where(sizes > 0, shared / np.maximum(union, 1.0), np.nan)
 
         for name, matrix in (("image", self._image), ("text_vectors", self._text_vectors)):
             if matrix is None:
@@ -174,12 +187,12 @@ class SimilarityEngine:
                 sims[name] = unknown.copy()
             else:
                 floor = self._floors[name]
-                sims[name] = np.clip((matrix @ query - floor) / (1.0 - floor), 0.0, 1.0)
+                sims[name] = np.clip((pick(matrix) @ query - floor) / (1.0 - floor), 0.0, 1.0)
         return sims
 
     def combine(self, sims: dict[str, np.ndarray]) -> np.ndarray:
         """Weighted average over the attributes both products have."""
-        n = len(self.products)
+        n = len(next(iter(sims.values())))
         total, weight_sum = np.zeros(n), np.zeros(n)
         for name, sim in sims.items():
             weight = self.weights[name]
