@@ -88,26 +88,42 @@ jobs:
           root = "http://localhost:8000"
           question = "/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
 
-          def ask(label, extra=""):
-              with urllib.request.urlopen(root + question + extra) as response:
-                  body = json.load(response)
-              print(f"{label} (mode that ran: {body['mode']})")
+          def get(path):
+              with urllib.request.urlopen(root + path) as response:
+                  return json.load(response)
+
+          def ask(label, mode=None, weights=None):
+              extra = (f"&mode={mode}" if mode else "") + (f"&weights={weights}" if weights else "")
+              body = get(question + extra)
+              used = body["weights"]
+              if used != "tuned":
+                  used = {name: value for name, value in used.items() if value > 0}
+              print(label)
+              print("    mode asked:", mode or "not set (the default)", "| mode that ran:", body["mode"])
+              print("    weights set:", weights or "not set (the tuned weights)")
+              print("    weights used:", used)
+              print("    response time:", body["response_time_ms"], "ms | from the cache:", body["cached"])
               for item in body["results"][:3]:
-                  print("     ", item["title"][:90])
+                  print("       ", item["title"][:88])
               return body
 
-          with urllib.request.urlopen(root + "/ready") as response:
-              ready = json.load(response)
+          ready = get("/ready")
           assert ready["fast_ready"] is True, ready
           print("modes the service offers:", ready["modes"], "- the fast mode is ready")
-          ask("1. tuned weights, exact mode")
-          fast = ask("2. tuned weights, fast mode (mode=fast)", "&mode=fast")
+          print("the tuned weights:", get("/weights")["tuned_weights"]["simple"])
+          print()
+          ask("1. default: exact mode, tuned weights")
+          fast = ask("2. fast mode, tuned weights", mode="fast")
           assert fast["mode"] == "fast", fast["mode"]
-          picture = ask("3. picture only (weights=image:1)", "&weights=image:1")
-          title = ask("4. title only (weights=title:1)", "&weights=title:1")
+          picture = ask("3. picture only", weights="image:1")
+          title = ask("4. title only", weights="title:1")
+          mix = ask("5. sentence 0.5 and picture 0.5", weights="text_vectors:0.5,image:0.5")
           ids = lambda body: [item["id"] for item in body["results"]]
           assert ids(picture) != ids(title), "the weights did not change the answer"
-          print("Picture-only and title-only weights give different answers.")
+          assert ids(picture) != ids(mix) and ids(title) != ids(mix)
+          print()
+          print("Different weights give different answers: picture only, title only and the mix are three different lists.")
+          print("(The times are from a shared test machine, so they are only an illustration; see notebooks 12 and 14 for the measured times.)")
           PY
       - name: "Bad input gives clear errors (422)"
         run: |
