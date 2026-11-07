@@ -81,15 +81,34 @@ jobs:
             | python3 -c "import json, sys; s = json.load(sys.stdin); print(s); assert s['enabled'] and s['hits'] == 2 and s['misses'] == 1 and s['entries'] == 1, s"
       - name: "Options - the fast mode and the weights"
         run: |
-          base="http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
-          curl -fsS http://localhost:8000/ready | python3 -c "import json, sys; r = json.load(sys.stdin); assert r['fast_ready'] is True, r; print('fast mode ready:', r['modes'])"
-          curl -fsS -D headers.txt -o fast.json "$base&mode=fast"
-          grep -i '^x-search-mode' headers.txt
-          grep -qi '^x-search-mode: fast' headers.txt
-          curl -fsS -o picture.json "$base&weights=image:1"
-          curl -fsS -o title.json "$base&weights=title:1"
-          if cmp -s picture.json title.json; then echo "the weights did not change the answer"; exit 1; fi
-          echo "picture-only and title-only weights give different answers"
+          python3 - <<'PY'
+          import json
+          import urllib.request
+
+          root = "http://localhost:8000"
+          question = "/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
+
+          def ask(label, extra=""):
+              with urllib.request.urlopen(root + question + extra) as response:
+                  body = json.load(response)
+              print(f"{label} (mode that ran: {body['mode']})")
+              for item in body["results"][:3]:
+                  print("     ", item["title"][:90])
+              return body
+
+          with urllib.request.urlopen(root + "/ready") as response:
+              ready = json.load(response)
+          assert ready["fast_ready"] is True, ready
+          print("modes the service offers:", ready["modes"], "- the fast mode is ready")
+          ask("1. tuned weights, exact mode")
+          fast = ask("2. tuned weights, fast mode (mode=fast)", "&mode=fast")
+          assert fast["mode"] == "fast", fast["mode"]
+          picture = ask("3. picture only (weights=image:1)", "&weights=image:1")
+          title = ask("4. title only (weights=title:1)", "&weights=title:1")
+          ids = lambda body: [item["id"] for item in body["results"]]
+          assert ids(picture) != ids(title), "the weights did not change the answer"
+          print("Picture-only and title-only weights give different answers.")
+          PY
       - name: "Bad input gives clear errors (422)"
         run: |
           id=26d41bdc1495de290bc8e6062d927729
