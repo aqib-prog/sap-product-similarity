@@ -64,7 +64,8 @@ def test_asking_for_more_than_exist_returns_all_others(client):
 def test_unknown_product_gives_404(client):
     response = get(client, UNKNOWN)
     assert response.status_code == 404
-    assert response.json() == {"detail": "Product not found"}
+    assert response.json()["error"] == "product_not_found"
+    assert UNKNOWN in response.json()["message"]
 
 
 @pytest.mark.parametrize("bad_id", ["abc", "A" * 32, "g" * 32, "a" * 31, "a" * 33, ""])
@@ -107,7 +108,10 @@ def test_unexpected_errors_are_hidden_from_the_caller(engine):
     with TestClient(create_app(lambda: engine), raise_server_exceptions=False) as client:
         response = get(client)
     assert response.status_code == 500
-    assert response.json() == {"detail": "Internal server error"}
+    assert response.json() == {
+        "error": "internal_error",
+        "message": "something went wrong on the server",
+    }
     assert "secret" not in response.text
 
 
@@ -118,7 +122,12 @@ def test_details_view_matches_the_plain_list_and_adds_readable_fields(client):
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["question"] == {"product_id": A, "num_similar": 2}
+    assert body["question"] == {
+        "product_id": A,
+        "num_similar": 2,
+        "mode": None,
+        "weights": None,
+    }
     assert body["query"]["id"] == A
     assert isinstance(body["response_time_ms"], float) and body["response_time_ms"] >= 0
     assert [r["id"] for r in body["results"]] == plain
@@ -226,3 +235,12 @@ def test_a_cache_of_size_zero_never_hits(engine):
 def test_very_large_answers_are_not_cached(client):
     get(client, A, 1000)
     assert get(client, A, 1000).headers["X-Cache"] == "miss"
+
+
+@pytest.mark.parametrize("extra", [{"mode": "fast"}, {"mode": "exact"}, {"weights": "image:1"}])
+def test_the_baseline_search_has_no_mode_or_weights_option(client, extra):
+    response = client.get(
+        "/find_similar_products", params={"product_id": A, "num_similar": 2, **extra}
+    )
+    assert response.status_code == 422
+    assert response.json()["error"] == "option_not_available"

@@ -159,3 +159,38 @@ def test_the_mode_can_be_chosen_for_each_search(small):
     assert engine.find_similar("b", 4, mode="exact") == exact
     with pytest.raises(ValueError):
         engine.find_similar("b", 4, mode="turbo")
+
+
+def test_weights_for_one_search_change_the_ranking_and_not_the_engine(small):
+    products, id_map, vectors = small
+    engine = HybridEngine(products, id_map, vectors, "exact")
+    default = engine.find_similar("b", 4)
+    picture_only = {"image": 1.0}
+    other = engine.find_similar("b", 4, weights=picture_only)
+    assert engine.find_similar("b", 4) == default  # the engine's own weights are unchanged
+    assert len(other) == len(default) == 4
+
+
+def test_search_says_which_mode_ran(small):
+    products, id_map, vectors = small
+    engine = HybridEngine(products, id_map, vectors, "exact")
+    assert engine.search("b", 3)[1] == "exact"
+
+
+def test_the_fast_mode_without_a_vector_weight_falls_back_to_the_exact_mode(small):
+    pytest.importorskip("faiss")
+    products, id_map, vectors = small
+    engine = HybridEngine(products, id_map, vectors, "exact", candidates=50)
+    ranked, used = engine.search("b", 3, mode="fast", weights={"brand": 1.0})
+    assert used == "exact"
+    assert ranked == engine.search("b", 3, mode="exact", weights={"brand": 1.0})[0]
+    assert engine.search("b", 3, mode="fast", weights={"image": 1.0})[1] == "fast"
+
+
+def test_weights_with_an_unknown_part_or_a_negative_value_are_refused(small):
+    products, id_map, vectors = small
+    engine = HybridEngine(products, id_map, vectors, "exact")
+    with pytest.raises(ValueError):
+        engine.search("b", 3, weights={"speed": 1.0})
+    with pytest.raises(ValueError):
+        engine.search("b", 3, weights={"image": -1.0})

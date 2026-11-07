@@ -79,6 +79,33 @@ jobs:
         run: |
           curl -fsS http://localhost:8000/cache \
             | python3 -c "import json, sys; s = json.load(sys.stdin); print(s); assert s['enabled'] and s['hits'] == 2 and s['misses'] == 1 and s['entries'] == 1, s"
+      - name: "Options - the fast mode and the weights"
+        run: |
+          base="http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
+          curl -fsS http://localhost:8000/ready | python3 -c "import json, sys; r = json.load(sys.stdin); assert r['fast_ready'] is True, r; print('fast mode ready:', r['modes'])"
+          curl -fsS -D headers.txt -o fast.json "$base&mode=fast"
+          grep -i '^x-search-mode' headers.txt
+          grep -qi '^x-search-mode: fast' headers.txt
+          curl -fsS -o picture.json "$base&weights=image:1"
+          curl -fsS -o title.json "$base&weights=title:1"
+          if cmp -s picture.json title.json; then echo "the weights did not change the answer"; exit 1; fi
+          echo "picture-only and title-only weights give different answers"
+      - name: "Bad input gives clear errors (422)"
+        run: |
+          id=26d41bdc1495de290bc8e6062d927729
+          check() {
+            code=$(curl -s -o body.json -w "%{http_code}" "$1")
+            echo "$1 -> $code $(cat body.json)"
+            test "$code" = "422"
+          }
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=0"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=5000"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=many"
+          check "http://localhost:8000/find_similar_products?product_id=abc&num_similar=5"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=5&mode=turbo"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=5&weights=image:2"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=5&weights=speed:1"
+          check "http://localhost:8000/find_similar_products?product_id=$id&num_similar=5&weights=attributes:0.5,brand:0.5"
       - name: Unknown product returns 404
         run: |
           code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/find_similar_products?product_id=00000000000000000000000000000000&num_similar=5")

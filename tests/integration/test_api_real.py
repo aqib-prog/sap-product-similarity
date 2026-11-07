@@ -35,6 +35,8 @@ def test_service_is_ready_with_all_products(client):
         "status": "ready",
         "products": 29529,
         "search": "baseline",
+        "modes": [],
+        "fast_ready": False,
     }
 
 
@@ -70,3 +72,20 @@ def test_the_final_search_runs_with_the_shipped_vectors(monkeypatch):
         ids = response.json()
         assert response.status_code == 200
         assert len(ids) == len(set(ids)) == 5 and FIRST_ID not in ids
+
+
+@pytest.mark.skipif(not VECTORS.exists(), reason="the shipped vector files are not present")
+def test_the_mode_and_the_weights_work_on_the_real_data(monkeypatch):
+    pytest.importorskip("faiss")
+    monkeypatch.setenv("PS_REQUIRE_VECTORS", "1")
+    monkeypatch.setenv("PS_VECTORS_DIR", str(VECTORS))
+    with TestClient(create_app(lambda: build_final_engine("exact"))) as final:
+        params = {"product_id": FIRST_ID, "num_similar": 5}
+        fast = final.get("/find_similar_products", params={**params, "mode": "fast"})
+        assert fast.status_code == 200 and fast.headers["X-Search-Mode"] == "fast"
+        assert len(set(fast.json())) == 5
+        default = final.get("/find_similar_products", params=params).json()
+        picture = final.get("/find_similar_products", params={**params, "weights": "image:1"})
+        title = final.get("/find_similar_products", params={**params, "weights": "title:1"})
+        assert picture.status_code == title.status_code == 200
+        assert picture.json() != title.json() and len(default) == 5

@@ -48,6 +48,10 @@ class ProductNotFoundError(KeyError):
     """The product ID is not in the dataset."""
 
 
+class ModeNotAvailableError(ValueError):
+    """The mode (or option) that was asked for cannot be used by this service."""
+
+
 def _array(values: Iterable[float | None]) -> np.ndarray:
     return np.array([np.nan if v is None else v for v in values], dtype=float)
 
@@ -73,6 +77,20 @@ class SimilarityEngine:
 
     # What kind of search this engine runs (shown by the service).
     search_name = "baseline"
+    # Whether a search can be given a mode and weights (only the final search can).
+    supports_options = False
+
+    def search(
+        self,
+        product_id: str,
+        num_similar: int,
+        mode: str | None = None,
+        weights: dict[str, float] | None = None,
+    ) -> tuple[list[tuple[str, float]], str]:
+        """The best matches as (ID, score) and the mode that ran. The baseline has no options."""
+        if mode is not None or weights is not None:
+            raise ModeNotAvailableError("the baseline search has no mode or weights option")
+        return self.find_similar_with_scores(product_id, num_similar), "baseline"
 
     def __init__(
         self,
@@ -193,12 +211,17 @@ class SimilarityEngine:
                 sims[name] = np.clip((pick(matrix) @ query - floor) / (1.0 - floor), 0.0, 1.0)
         return sims
 
-    def combine(self, sims: dict[str, np.ndarray]) -> np.ndarray:
-        """Weighted average over the attributes both products have."""
+    def combine(
+        self, sims: dict[str, np.ndarray], weights: dict[str, float] | None = None
+    ) -> np.ndarray:
+        """Weighted average over the attributes both products have.
+
+        `weights` replaces the engine's weights for this call only.
+        """
         n = len(next(iter(sims.values())))
         total, weight_sum = np.zeros(n), np.zeros(n)
         for name, sim in sims.items():
-            weight = self.weights[name]
+            weight = (weights if weights is not None else self.weights).get(name, 0.0)
             if weight == 0:
                 continue
             known = ~np.isnan(sim)
@@ -207,8 +230,8 @@ class SimilarityEngine:
         safe = np.where(weight_sum > 0, weight_sum, 1.0)
         return np.where(weight_sum > 0, total / safe, np.nan)
 
-    def score_all(self, i: int) -> np.ndarray:
-        return self.combine(self.attribute_similarities(i))
+    def score_all(self, i: int, weights: dict[str, float] | None = None) -> np.ndarray:
+        return self.combine(self.attribute_similarities(i), weights)
 
     # ---- public lookups ----
 

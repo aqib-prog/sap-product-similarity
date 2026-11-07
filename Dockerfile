@@ -30,6 +30,8 @@ EXPOSE 8000
 ENV NAME ProductSimilarityApp
 # Stop with an error when the vectors are missing, instead of using the baseline search
 ENV PS_REQUIRE_VECTORS=1
+# Build the fast indexes when the service starts, so that the first fast search is not slow
+ENV PS_PREBUILD_FAST=1
 
-# The engine is built once at startup (about 3 seconds), then requests are fast
+# The engine is built once at startup (about 2 seconds, plus 13 for the fast indexes), then requests are fast
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

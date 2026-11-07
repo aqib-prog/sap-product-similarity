@@ -25,6 +25,10 @@ class Settings:
     embeddings_dir: Path = Path(os.environ.get("PS_EMBEDDINGS_DIR", "data/embeddings"))
     # Pictures that are not product photos (a shop logo, a drawing); optional.
     not_photos: Path = Path(os.environ.get("PS_NOT_PHOTOS", "data/images/shared/excluded.json"))
+    # The most results one request can ask for (num_similar).
+    max_results: int = int(os.environ.get("PS_MAX_RESULTS", "1000"))
+    # Build the fast indexes when the service starts, so the first fast search is not slow.
+    prebuild_fast: bool = os.environ.get("PS_PREBUILD_FAST", "") == "1"
     # How many answers the in-process cache keeps (0 turns it off).
     cache_size: int = int(os.environ.get("PS_CACHE_SIZE", "1024"))
     # "exact" or "fast" (the tuned hybrid), or "baseline" (title and attributes only).
@@ -40,6 +44,8 @@ def get_settings() -> Settings:
         require_vectors=os.environ.get("PS_REQUIRE_VECTORS", "") == "1",
         embeddings_dir=Path(os.environ.get("PS_EMBEDDINGS_DIR", "data/embeddings")),
         not_photos=Path(os.environ.get("PS_NOT_PHOTOS", "data/images/shared/excluded.json")),
+        max_results=int(os.environ.get("PS_MAX_RESULTS", "1000")),
+        prebuild_fast=os.environ.get("PS_PREBUILD_FAST", "") == "1",
         cache_size=int(os.environ.get("PS_CACHE_SIZE", "1024")),
         search_mode=os.environ.get("PS_SEARCH_MODE", "exact"),
     )

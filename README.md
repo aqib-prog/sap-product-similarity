@@ -30,6 +30,7 @@ The project is built for the SAP technical exercise. The original task descripti
 | Sentence vectors on titles | Done: clearly better than TF-IDF on titles, about the same as my baseline; combining everything is next |
 | Image similarity with CLIP vectors | Done on the whole catalogue: CLIP scores highest on the 30 development products; combining it with text is next |
 | FastAPI service | Done, tested |
+| API: input checks, error codes, `mode` and `weights` options | Done: clear 422, 404 and 503 errors, and an exact or fast mode and your own weights for each search |
 | Docker image | Done: built and tested in CI. It runs the final search with the vectors inside the image (half-size numbers, two files under 50 MB), and it stops with an error if they are missing |
 | CI: lint, tests, Docker build and smoke test on every push | Done, passing |
 | Vector search benchmarks (FAISS Flat and HNSW, Annoy) | Planned |
@@ -54,7 +55,8 @@ I work in small steps. After each step I check the result, and I write down what
 13. **Put the tuned hybrid into the real search.** The search now has an exact mode and a fast mode (HNSW picks the candidates). I checked that it gives the same results as my notebooks, and I compared the two modes with my ratings, with time and memory. ([notebook 12](notebooks/12_final_search.ipynb))
 14. **Added a cache.** The service keeps the answers of the last 1,024 questions in its memory, says whether an answer came from the cache, and I measured a hit against a miss and a simulation of traffic. ([notebook 13](notebooks/13_caching.ipynb))
 15. **Ran the final test.** I rated the results of the final search on the 20 products that had been locked from the start, and scored both modes. ([notebook 14](notebooks/14_final_test.ipynb))
-16. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
+16. **Made the API stronger.** Clear input checks and error codes, a `mode` option (exact or fast), a `weights` option (the simple way with 4 names, or the advanced way with 10), and `GET /weights` for the page. ([notebook 15](notebooks/15_stronger_api.ipynb))
+17. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
 
 The sections below explain each step: what I did, why, and what I found.
 
@@ -163,15 +165,16 @@ Scores are rounded to 6 decimals, and ties are broken by product ID, so the same
 
 ## The service and Docker
 
-The service is a small FastAPI app. The engine is built once at startup (about 3 seconds), and then each request takes a few milliseconds. `num_similar` must be at least 1.
+The service is a small FastAPI app. The engine is built once at startup (about 2 seconds, and about 13 more for the fast indexes in the Docker image), and then each request takes a few milliseconds. `num_similar` must be at least 1.
 
 | Endpoint | What it returns |
 |---|---|
-| `GET /find_similar_products?product_id=...&num_similar=...` | The list of the most similar product IDs (the required endpoint). The header `X-Cache` says `hit` or `miss` |
-| `GET /find_similar_products/details?...` | The same search with the question, readable product details, the scores, `cached` (true or false) and `response_time_ms` |
+| `GET /find_similar_products?product_id=...&num_similar=...` | The list of the most similar product IDs (the required endpoint). The headers `X-Cache` (`hit` or `miss`) and `X-Search-Mode` (the mode that ran) |
+| `GET /find_similar_products/details?...` | The same search with the question, readable product details, the scores, `mode`, `weights`, `cached` and `response_time_ms` |
+| `GET /weights` | The modes, the limits, the names of the weights and the tuned weights (simple and advanced), for a page that sets them |
 | `GET /cache` | The cache statistics: `enabled`, `max_entries`, `entries`, `hits`, `misses` and `hit_rate` |
 | `GET /live` | The process is running |
-| `GET /ready` | The data is loaded; it also says which search runs, for example `"search": "hybrid (exact)"` |
+| `GET /ready` | The data is loaded; it also says which search runs, the modes, and whether the fast mode is ready |
 
 ```bash
 docker build -t product-similarity .
@@ -193,6 +196,31 @@ The final search needs the picture vectors (CLIP) and the sentence vectors (Mini
 python experiments/export_vectors.py       # makes the half-size files from the full-size ones
 python experiments/check_vector_files.py   # checks that the results do not change
 ```
+
+### Parameters and errors
+
+| Parameter | Meaning | Rule |
+|---|---|---|
+| `product_id` | The product to start from (required) | 32 lowercase hexadecimal characters |
+| `num_similar` | How many similar products to return (required) | A whole number from 1 to 1,000 (`PS_MAX_RESULTS`) |
+| `mode` | `exact` or `fast` (optional) | The default is `exact` |
+| `weights` | How much each part counts (optional) | `name:value` pairs, each value from 0 to 1, for example `image:0.6,title:0.4`. If it is left out, the tuned weights are used |
+
+- **Weights, two ways.** The simple way has 4 names (`title`, `text_vectors`, `image`, `attributes`, where `attributes` is the seven attributes together). The advanced way has the 10 parts. They cannot be mixed. What you send is what is used, and a part you leave out gets 0. The weights do not have to add up to 1. At least one must be above 0.
+- **The fast mode with weights.** Its shortlist comes from the sentence and picture vectors, so if both of their weights are 0 the exact mode runs instead, and the answer says so (`mode_note`).
+- **Every error has the same shape:** `{"error": "<code>", "message": "<a sentence>"}`.
+
+| Status | `error` | When |
+|---|---|---|
+| 422 | `invalid_input` | `product_id` or `num_similar` is missing or not valid |
+| 422 | `invalid_mode` | the mode is not `exact` or `fast` |
+| 422 | `invalid_weights` | a weight is unknown, repeated, not from 0 to 1, all zero, or simple and advanced are mixed |
+| 422 | `mode_not_available` / `option_not_available` | the service cannot do it (no FAISS, or the baseline search) |
+| 404 | `product_not_found` | no product has that ID |
+| 503 | `not_ready` | the data is not loaded yet |
+| 500 | `internal_error` | something unexpected; the details go to the log only |
+
+The cache question is the product, the number of results, the mode and the weights, so an answer for one set of weights is never given for another. The settings are environment variables: `PS_SEARCH_MODE`, `PS_MAX_RESULTS`, `PS_CACHE_SIZE`, `PS_PREBUILD_FAST` (the Docker image builds the fast indexes at start) and `PS_REQUIRE_VECTORS`.
 
 ## Example
 
@@ -295,6 +323,7 @@ docker run -p 8000:8000 product-similarity
 | `12_final_search` | Checks that the real search gives the same results as the notebooks, then compares its exact mode and fast mode (the same hybrid; the fast mode only speeds up the sentence and picture parts with HNSW indexes) with my ratings as the truth (nDCG@10, precision@10), the results I rated 2, 1 and 0 in each mode, product by product, and the time | Same top 10 for all 30 products (nDCG@10 0.8105). The fast mode gives nearly the same quality (0.8095, same precision@10) and is about 15 times faster (0.58 ms against 8.5 ms). I keep the exact mode as the default and the fast mode as a switch |
 | `13_caching` | Explains the in-process cache, measures a request that is in the cache against one that is not (200 products), and simulates traffic where a few products are asked for often, for several cache sizes | A hit takes 0.77 ms against 9.6 ms for a search (about 12 times faster). With an assumed popular-products traffic, a cache of 1,000 answers answers about half of the requests and halves the average time (10.3 ms to 5.5 ms) |
 | `14_final_test` | The one test of the finished search on the 20 locked products: both modes pooled into one blind page (204 results), rated by me, scored with nDCG@10 and precision@10, and timed | Precision@10 is 0.87 for both modes (0.877 on the development products). The fast mode has the same quality and is about 17 times faster (0.42 ms against 7.0 ms) |
+| `15_stronger_api` | Shows real requests to the real service: every error with its code, the `mode` option, the `weights` option (simple and advanced), and how the cache treats another mode or other weights | Bad input gets a 422 with a sentence, an unknown product a 404. Different weights give different lists. The cache never gives the answer of one set of weights for another |
 
 Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
 
@@ -938,14 +967,14 @@ Every result in this page can be traced to a notebook, a results file and an MLf
 
 ### Tests
 
-There are 207 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
+There are 265 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
 
 ### CI/CD with GitHub Actions
 
 On every push and pull request, GitHub Actions runs two jobs:
 
 1. **test:** installs the project (with FAISS, so the fast-mode tests run), checks the code style with ruff, and runs all the tests.
-2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks the same question three times and prints the result of each (request 1: `X-Cache: miss`, request 2: `X-Cache: hit` with an identical answer, request 3 on the details endpoint: `cached: true`), checks that `/cache` reports 2 hits and 1 miss, checks that an unknown ID returns 404, and checks that the container does not run as root.
+2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks the same question three times and prints the result of each (request 1: `X-Cache: miss`, request 2: `X-Cache: hit` with an identical answer, request 3 on the details endpoint: `cached: true`), checks that `/cache` reports 2 hits and 1 miss, checks that the fast mode and the weights work (`mode=fast`, and picture-only against title-only weights give different answers), checks that eight kinds of bad input give a 422, checks that an unknown ID returns 404, and checks that the container does not run as root.
 
 The second job only starts if the first one passes. I merge into `main` through a pull request. Automatic deployment (for example to Kubernetes) is planned but not built yet.
 
@@ -961,7 +990,6 @@ The second job only starts if the first one passes. I merge into `main` through 
 ## What is next
 
 - Add Kubernetes files and the CI/CD improvements (a dependency and image scan, and more checks).
-- Make the service stronger: checks on the input and proper error codes, and a `mode` option and the weights as optional inputs (they also become part of the cache question).
 - A page where people set each weight with sliders (with the tuned weights as the best setting), switch between the exact and the fast mode, and see the time of each search, with and without the cache.
 
 ## Project layout
@@ -994,6 +1022,7 @@ src/product_similarity/     Python package
   hybrid_eval.py            Scores a set of hybrid weights against my ratings quickly
   hybrid.py                 The final search: the tuned hybrid, with an exact and a fast (HNSW) mode
   cache.py                  The in-process cache for repeated questions
+  weights.py                Reads and checks the weights a user sets for one search
   vector_files.py           Saves and reads the half-size vector files that ship with the service
 experiments/                Scripts that I run by hand (nothing here is used by the service)
   run_evaluation.py         Scores the text methods against my ratings and records the runs
@@ -1039,10 +1068,10 @@ evaluation/                 Test products, rating rules, rating pages and my rat
   judgments/                Rating sheets, rating pages and my ratings (CSV)
   *.png                     Screenshots of the rating page and MLflow
 results/                    Exported scores, reports and image check numbers
-tests/                      207 tests
+tests/                      265 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
-notebooks/                  Fourteen analysis notebooks (they import logic from the package)
+notebooks/                  Fifteen analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
 .github/workflows/ci.yml    Continuous integration (lint, tests, Docker smoke test)
 ```

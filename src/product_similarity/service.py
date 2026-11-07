@@ -12,7 +12,7 @@ import numpy as np
 from product_similarity.data import canonicalize, load_products
 from product_similarity.hybrid import MODES, HybridEngine, load_final_vectors
 from product_similarity.preprocessing import build_products
-from product_similarity.scoring import ProductNotFoundError, SimilarityEngine
+from product_similarity.scoring import ModeNotAvailableError, ProductNotFoundError, SimilarityEngine
 from product_similarity.settings import get_settings
 from product_similarity.vector_files import load_vector_artifact
 
@@ -70,7 +70,13 @@ def build_final_engine(
             )
         logger.warning("No usable vectors in %s: using the baseline search", settings.vectors_dir)
         return base
-    return HybridEngine(base.products, base.id_map, vectors, mode)
+    engine = HybridEngine(base.products, base.id_map, vectors, mode)
+    if settings.prebuild_fast and mode == "exact":
+        try:
+            engine.prepare_fast()
+        except ModeNotAvailableError:
+            logger.warning("The fast mode is not available (FAISS is not installed)")
+    return engine
 
 
 @lru_cache(maxsize=1)

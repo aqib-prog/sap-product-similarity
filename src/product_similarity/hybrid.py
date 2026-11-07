@@ -27,7 +27,7 @@ import numpy as np
 from product_similarity.dedupe import pick_distinct, picture_table
 from product_similarity.preprocessing import Product
 from product_similarity.ranking import rank_indices
-from product_similarity.scoring import DEFAULT_WEIGHTS, SimilarityEngine
+from product_similarity.scoring import DEFAULT_WEIGHTS, ModeNotAvailableError, SimilarityEngine
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +133,13 @@ class HybridEngine(SimilarityEngine):
     # The vectors are stored in the normal 4-byte format (half the size of the default).
     _embedding_dtype = np.float32
 
+    supports_options = True
+
+    @property
+    def fast_ready(self) -> bool:
+        """Whether the fast indexes are built, so that a fast search is quick."""
+        return bool(self._indexes)
+
     @property
     def search_name(self) -> str:
         return f"hybrid ({self.mode})"
@@ -177,6 +184,10 @@ class HybridEngine(SimilarityEngine):
     def _vector_parts(self):
         return (("text_vectors", self._text_vectors), ("image", self._image))
 
+    def prepare_fast(self) -> None:
+        """Build the fast indexes now (otherwise the first fast search builds them)."""
+        self._build_indexes()
+
     def _build_indexes(self) -> None:
         with self._build_lock:
             if not self._indexes:
@@ -186,7 +197,9 @@ class HybridEngine(SimilarityEngine):
         try:
             import faiss
         except ImportError as exc:  # pragma: no cover - depends on the install
-            raise RuntimeError("fast mode needs faiss-cpu: pip install -e '.[ann]'") from exc
+            raise ModeNotAvailableError(
+                "the fast mode needs faiss-cpu: pip install -e '.[ann]'"
+            ) from exc
         # One thread while building, so that the same data always gives the same index.
         threads = faiss.omp_get_max_threads()
         faiss.omp_set_num_threads(1)
@@ -243,50 +256,96 @@ class HybridEngine(SimilarityEngine):
 
     # ---- ranking ----
 
-    def _ranked_rows(self, i: int, mode: str) -> tuple[np.ndarray, np.ndarray]:
+    def _ranked_rows(
+        self, i: int, mode: str, weights: dict[str, float] | None = None
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Product positions from best to worst for the given mode, and every score."""
         if mode == "fast":
             self._build_indexes()  # only the first fast search builds them
         rows = self.candidate_rows(i) if mode == "fast" else None
         if rows is None or len(rows) == 0:  # exact mode, or nothing to shortlist from
-            scores = self.score_all(i)
+            scores = self.score_all(i, weights)
             scores[self._hidden] = np.nan
             order = rank_indices(scores, self._id_rank, exclude=i)
             return order[~self._hidden[order]], scores
         rows = rows[~self._hidden[rows]]
-        scores_here = self.combine(self.attribute_similarities(i, rows))
+        scores_here = self.combine(self.attribute_similarities(i, rows), weights)
         scores = np.full(len(self.products), np.nan)
         scores[rows] = scores_here
         order = rank_indices(scores_here, self._id_rank[rows], exclude=-1)
         return rows[order][np.isfinite(scores_here[order])], scores
 
-    def find_similar(self, product_id: str, num_similar: int, mode: str | None = None) -> list[str]:
-        return [uid for uid, _ in self.find_similar_with_scores(product_id, num_similar, mode)]
+    def find_similar(
+        self,
+        product_id: str,
+        num_similar: int,
+        mode: str | None = None,
+        weights: dict[str, float] | None = None,
+    ) -> list[str]:
+        ranked = self.find_similar_with_scores(product_id, num_similar, mode, weights)
+        return [uid for uid, _ in ranked]
 
-    def describe(self, product_id: str, num_similar: int, mode: str | None = None) -> dict:
+    def describe(
+        self,
+        product_id: str,
+        num_similar: int,
+        mode: str | None = None,
+        weights: dict[str, float] | None = None,
+    ) -> dict:
         return self.describe_ranked(
-            product_id, self.find_similar_with_scores(product_id, num_similar, mode)
+            product_id, self.find_similar_with_scores(product_id, num_similar, mode, weights)
         )
 
     def find_similar_with_scores(
-        self, product_id: str, num_similar: int, mode: str | None = None
+        self,
+        product_id: str,
+        num_similar: int,
+        mode: str | None = None,
+        weights: dict[str, float] | None = None,
     ) -> list[tuple[str, float]]:
         """The best matches as (ID, score), one copy of each item, best first.
 
-        `mode` ("exact" or "fast") overrides the engine's mode for this search only.
+        `mode` ("exact" or "fast") and `weights` override the engine's for this search only.
+        """
+        return self.search(product_id, num_similar, mode, weights)[0]
+
+    def search(
+        self,
+        product_id: str,
+        num_similar: int,
+        mode: str | None = None,
+        weights: dict[str, float] | None = None,
+    ) -> tuple[list[tuple[str, float]], str]:
+        """The same as `find_similar_with_scores`, and the mode that really ran.
+
+        The fast mode makes its shortlist from the sentence and picture vectors. If the weights
+        give both of them 0, a shortlist from the vectors would mean nothing, so the exact
+        mode runs instead and that is what is reported.
         """
         mode = mode or self.mode
         if mode not in MODES:
             raise ValueError(f"mode must be one of {MODES}")
+        if weights is not None:
+            unknown = set(weights) - set(DEFAULT_WEIGHTS)
+            if unknown or any(w < 0 for w in weights.values()):
+                raise ValueError("weights must name the ten parts and cannot be negative")
         if (
             not isinstance(num_similar, Integral)
             or isinstance(num_similar, bool)
             or num_similar < 1
         ):
             raise ValueError("num_similar must be a whole number of at least 1")
+        used = mode
+        if (
+            mode == "fast"
+            and weights is not None
+            and weights.get("text_vectors", 0.0) == 0
+            and weights.get("image", 0.0) == 0
+        ):
+            used = "exact"
         k = int(num_similar)
         i = self.resolve(product_id)
-        order, scores = self._ranked_rows(i, mode)
+        order, scores = self._ranked_rows(i, used, weights)
         copies, links = self._copies_matrix, self._copies_links
         depth = max(60, 6 * k)
         while True:
@@ -294,4 +353,4 @@ class HybridEngine(SimilarityEngine):
             if len(kept) == k or depth >= len(order):
                 break
             depth *= 2
-        return [(str(self.ids[j]), round(float(scores[j]), 6)) for j in kept]
+        return [(str(self.ids[j]), round(float(scores[j]), 6)) for j in kept], used
