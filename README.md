@@ -903,7 +903,7 @@ There are 207 tests. The unit tests cover loading, cleaning, scoring, ranking, t
 On every push and pull request, GitHub Actions runs two jobs:
 
 1. **test:** installs the project (with FAISS, so the fast-mode tests run), checks the code style with ruff, and runs all the tests.
-2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks it for similar products, checks that the same question asked again comes from the cache (header `X-Cache: hit` and `cached: true`), checks that `/cache` reports the statistics, checks that an unknown ID returns 404, and checks that the container does not run as root.
+2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks the same question three times and prints the result of each (request 1: `X-Cache: miss`, request 2: `X-Cache: hit` with an identical answer, request 3 on the details endpoint: `cached: true`), checks that `/cache` reports 2 hits and 1 miss, checks that an unknown ID returns 404, and checks that the container does not run as root.
 
 The second job only starts if the first one passes. I merge into `main` through a pull request. Automatic deployment (for example to Kubernetes) is planned but not built yet.
 

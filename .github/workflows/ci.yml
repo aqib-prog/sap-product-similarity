@@ -49,15 +49,21 @@ jobs:
         run: |
           curl -fsS http://localhost:8000/ready \
             | python3 -c "import json, sys; r = json.load(sys.stdin); assert r['search'].startswith('hybrid'), r; print(r)"
-      - name: Request similar products
+      - name: "Request 1 - first time, the answer is searched (cache miss)"
         run: |
-          curl -fsS "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5" \
-            | python3 -c "import json, sys; ids = json.load(sys.stdin); assert len(ids) == 5 and len(set(ids)) == 5, ids; print(ids)"
-      - name: Check that the same question is answered from the cache
+          curl -fsS -D headers.txt -o ids.json "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
+          python3 -c "import json; ids = json.load(open('ids.json')); assert len(ids) == 5 and len(set(ids)) == 5, ids; print(ids)"
+          grep -i '^x-cache' headers.txt
+          grep -qi '^x-cache: miss' headers.txt
+          echo "Request 1: X-Cache is miss, as expected for a new question"
+      - name: "Request 2 - same question again, answered from the cache (cache hit)"
         run: |
-          curl -fsS -D - -o /dev/null "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5" \
-            | grep -i '^x-cache: hit'
-      - name: Show the full JSON response
+          curl -fsS -D headers.txt -o ids_again.json "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
+          grep -i '^x-cache' headers.txt
+          grep -qi '^x-cache: hit' headers.txt
+          cmp ids.json ids_again.json
+          echo "Request 2: X-Cache is hit, and the answer is identical to request 1"
+      - name: "Request 3 - same question on the details endpoint (cache hit)"
         run: |
           curl -fsS "http://localhost:8000/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5" > response.json
           python3 -m json.tool response.json
@@ -66,12 +72,13 @@ jobs:
           r = json.load(open('response.json'))
           assert len(r['results']) == 5 and all(x['title'] for x in r['results'])
           assert r['question']['num_similar'] == 5 and r['response_time_ms'] >= 0
-          assert r['cached'] is True  # the same question was asked before
+          assert r['cached'] is True
+          print('Request 3: cached is', r['cached'], 'and the response time is', r['response_time_ms'], 'ms')
           "
-      - name: Cache statistics are reported
+      - name: "Cache statistics - 2 hits and 1 miss"
         run: |
           curl -fsS http://localhost:8000/cache \
-            | python3 -c "import json, sys; s = json.load(sys.stdin); assert s['enabled'] and s['hits'] >= 1 and s['entries'] >= 1, s; print(s)"
+            | python3 -c "import json, sys; s = json.load(sys.stdin); print(s); assert s['enabled'] and s['hits'] == 2 and s['misses'] == 1 and s['entries'] == 1, s"
       - name: Unknown product returns 404
         run: |
           code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/find_similar_products?product_id=00000000000000000000000000000000&num_similar=5")
