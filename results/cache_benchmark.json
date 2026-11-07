@@ -1,0 +1,49 @@
+{
+  "search": "hybrid (exact)",
+  "num_similar": 10,
+  "timing_rule": "200 random products, cache emptied before each pair, 5 rounds, fastest kept, median",
+  "miss_against_hit": {
+    "products": 200,
+    "rounds": 5,
+    "miss_median_ms": 9.586,
+    "miss_95th_percentile_ms": 10.528,
+    "hit_median_ms": 0.767,
+    "hit_95th_percentile_ms": 0.785,
+    "times_faster": 12.5
+  },
+  "memory_kb_per_cached_answer": 1.82,
+  "traffic_simulation": {
+    "popularity": "1/rank (Zipf shape), an assumption, not real traffic",
+    "results": [
+      {
+        "cache_size": 0,
+        "requests": 2000,
+        "hit_rate": 0.0,
+        "average_ms_per_request": 10.26,
+        "different_products_asked": 1011
+      },
+      {
+        "cache_size": 100,
+        "requests": 2000,
+        "hit_rate": 0.321,
+        "average_ms_per_request": 7.205,
+        "different_products_asked": 1011
+      },
+      {
+        "cache_size": 1000,
+        "requests": 2000,
+        "hit_rate": 0.4945,
+        "average_ms_per_request": 5.548,
+        "different_products_asked": 1011
+      },
+      {
+        "cache_size": 5000,
+        "requests": 2000,
+        "hit_rate": 0.4945,
+        "average_ms_per_request": 5.545,
+        "different_products_asked": 1011
+      }
+    ]
+  },
+  "python": "3.9.6"
+}

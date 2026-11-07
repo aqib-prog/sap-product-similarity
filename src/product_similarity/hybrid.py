@@ -264,10 +264,9 @@ class HybridEngine(SimilarityEngine):
         return [uid for uid, _ in self.find_similar_with_scores(product_id, num_similar, mode)]
 
     def describe(self, product_id: str, num_similar: int, mode: str | None = None) -> dict:
-        ranked = self.find_similar_with_scores(product_id, num_similar, mode)
-        query = self.products[self.resolve(product_id)]
-        results = [{**self._summary(self.products[self._row[u]]), "score": sc} for u, sc in ranked]
-        return {"query": self._summary(query), "results": results}
+        return self.describe_ranked(
+            product_id, self.find_similar_with_scores(product_id, num_similar, mode)
+        )
 
     def find_similar_with_scores(
         self, product_id: str, num_similar: int, mode: str | None = None

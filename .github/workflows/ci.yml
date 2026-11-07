@@ -53,6 +53,10 @@ jobs:
         run: |
           curl -fsS "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5" \
             | python3 -c "import json, sys; ids = json.load(sys.stdin); assert len(ids) == 5 and len(set(ids)) == 5, ids; print(ids)"
+      - name: Check that the same question is answered from the cache
+        run: |
+          curl -fsS -D - -o /dev/null "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5" \
+            | grep -i '^x-cache: hit'
       - name: Show the full JSON response
         run: |
           curl -fsS "http://localhost:8000/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5" > response.json

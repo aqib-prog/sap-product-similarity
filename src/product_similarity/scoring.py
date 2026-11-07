@@ -253,11 +253,17 @@ class SimilarityEngine:
 
     def describe(self, product_id: str, num_similar: int) -> dict:
         """The query product and its best matches with readable details and scores."""
-        ranked = self.find_similar_with_scores(product_id, num_similar)
+        return self.describe_ranked(
+            product_id, self.find_similar_with_scores(product_id, num_similar)
+        )
+
+    def describe_ranked(self, product_id: str, ranked: Sequence[tuple[str, float]]) -> dict:
+        """The same as `describe`, for matches that are already found: (ID, score) pairs."""
         query = self.products[self.resolve(product_id)]
-        results = []
-        for uid, score in ranked:
-            results.append({**self._summary(self.products[self._row[uid]]), "score": score})
+        results = [
+            {**self._summary(self.products[self._row[uid]]), "score": score}
+            for uid, score in ranked
+        ]
         return {"query": self._summary(query), "results": results}
 
     def explain(self, product_id: str, other_id: str) -> dict:

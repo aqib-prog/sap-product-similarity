@@ -20,8 +20,10 @@ The project is built for the SAP technical exercise. The original task descripti
 | Fast vector search (FAISS HNSW and IVF, Annoy) | Done: HNSW is about 60 times faster than the exact search with 97% recall@10; the exact search is already fast at this size |
 | Shorter vectors with PCA | Done: at 128 numbers PCA keeps only 71% (pictures) and 82% (sentences) of the exact top 10, so it is not used |
 | The final search (exact and fast mode) | [12](notebooks/12_final_search.ipynb) | [`final_search_check.json`](results/final_search_check.json), [`fast_vs_exact_check.json`](results/fast_vs_exact_check.json), [`dev_final_search_coverage.json`](results/dev_final_search_coverage.json), [`dev_final_search_fast_coverage.json`](results/dev_final_search_fast_coverage.json) | `final-search` |
+| The cache (hit against miss, traffic) | [13](notebooks/13_caching.ipynb) | [`cache_benchmark.json`](results/cache_benchmark.json) | `caching` |
 | The half-size vectors in the Docker image | (no notebook; see "The vectors in the image") | [`vector_files_check.json`](results/vector_files_check.json) | none |
 | Final search: the tuned hybrid in the real search, with an exact and a fast mode | Done and checked on the 30 development products: same results as the notebooks; the fast mode only speeds up the sentence and picture parts, gives nearly the same quality (nDCG@10 0.810 against 0.811) and is about 15 times faster; the final test on the locked products is still to do |
+| In-process cache for repeated questions | Done: a request in the cache takes 0.77 ms against 9.6 ms for a new search (about 12 times faster) |
 | Hybrid search (weights tuned by coordinate ascent, 5-fold cross-validation) | Done: the 4-weight hybrid scores highest (nDCG@10 0.806); the final test on the locked products is still to do |
 | Sentence vectors on titles | Done: clearly better than TF-IDF on titles, about the same as my baseline; combining everything is next |
 | Image similarity with CLIP vectors | Done on the whole catalogue: CLIP scores highest on the 30 development products; combining it with text is next |
@@ -48,7 +50,8 @@ I work in small steps. After each step I check the result, and I write down what
 11. **Tested shorter vectors.** I cut the vectors with PCA, ran every search method on them and compared time, memory and recall. ([notebook 10](notebooks/10_shorter_vectors_pca.ipynb))
 12. **Drew the vectors.** I squeezed the picture vectors into two numbers with t-SNE to look at them, before and after PCA. ([notebook 11](notebooks/11_tsne_picture_vectors.ipynb))
 13. **Put the tuned hybrid into the real search.** The search now has an exact mode and a fast mode (HNSW picks the candidates). I checked that it gives the same results as my notebooks, and I compared the two modes with my ratings, with time and memory. ([notebook 12](notebooks/12_final_search.ipynb))
-14. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
+14. **Added a cache.** The service keeps the answers of the last 1,024 questions in its memory, says whether an answer came from the cache, and I measured a hit against a miss and a simulation of traffic. ([notebook 13](notebooks/13_caching.ipynb))
+15. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
 
 The sections below explain each step: what I did, why, and what I found.
 
@@ -279,6 +282,7 @@ docker run -p 8000:8000 product-similarity
 | `10_shorter_vectors_pca` | Cuts the vectors with PCA to 256, 128 and 64 numbers, runs the exact search, HNSW, IVF and Annoy on them (time, memory, recall@10), and times the extra projection step | PCA makes the index 2 to 4 times smaller, but recall drops to 71% (pictures) and 82% (sentences) at 128 numbers, and the speed-up disappears once the query projection is counted. I keep the full vectors with HNSW |
 | `11_tsne_picture_vectors` | Squeezes 3,000 picture vectors into two numbers with t-SNE, with the full vectors and after PCA, and colours the biggest categories | The categories form separate groups, and the groups stay the same after PCA. It is only a picture for looking |
 | `12_final_search` | Checks that the real search gives the same results as the notebooks, then compares its exact mode and fast mode (the same hybrid; the fast mode only speeds up the sentence and picture parts with HNSW indexes) with my ratings as the truth (nDCG@10, precision@10), the results I rated 2, 1 and 0 in each mode, product by product, and the time | Same top 10 for all 30 products (nDCG@10 0.8105). The fast mode gives nearly the same quality (0.8095, same precision@10) and is about 15 times faster (0.58 ms against 8.5 ms). I keep the exact mode as the default and the fast mode as a switch |
+| `13_caching` | Explains the in-process cache, measures a request that is in the cache against one that is not (200 products), and simulates traffic where a few products are asked for often, for several cache sizes | A hit takes 0.77 ms against 9.6 ms for a search (about 12 times faster). With an assumed popular-products traffic, a cache of 1,000 answers answers about half of the requests and halves the average time (10.3 ms to 5.5 ms) |
 
 Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
 
@@ -827,6 +831,57 @@ python experiments/check_fast_vs_exact.py      # exact mode against fast mode: t
 python experiments/log_final_search.py         # records the runs in MLflow
 ```
 
+## Caching
+
+A search takes about 10 ms, and the same question often comes again. So the service keeps the answers of recent questions and gives them back without searching.
+
+- **An in-process cache.** It lives in the memory of the service. It keeps 1,024 answers by default (`PS_CACHE_SIZE`, and 0 turns it off), and when it is full it drops the answer that was used least recently. It is safe when many requests arrive at once.
+- **The question.** The product and the number of results. Another product or another number is another question, and an old ID and the product that was kept share one entry. The mode and the weights will be added when the API gets them. Only answers of up to 100 results are cached, and a product that does not exist is never saved.
+- **What the API shows.** The plain endpoint has an `X-Cache` header (`hit` or `miss`). The details endpoint has a `cached` field. `GET /cache` reports the entries, the hits, the misses and the hit rate.
+- **The record** is [`results/cache_benchmark.json`](results/cache_benchmark.json), made by `experiments/measure_cache.py`.
+
+### Conclusion
+
+**What I did.** I added a cache to the service. It keeps the answers of the last 1,024 questions inside the service's own memory (an in-process cache), and when it is full it drops the answer that was used least recently. A question is the product and the number of results (later also the mode and the weights), and answers of up to 100 results are cached. The API says whether an answer came from the cache (an `X-Cache` header and a `cached` field), and a small `/cache` endpoint reports the hits, the misses and the hit rate. I measured it on the real service with the final search in exact mode. For 200 random products, I emptied the cache, asked the same question twice (the first is a miss, the second a hit), repeated it 5 times and kept the fastest, and I report the median. Then I simulated 2,000 requests where a few products are asked for often (an assumed popularity that falls off like 1/rank, because I have no real traffic) for different cache sizes. Every run is in MLflow (experiment `caching`).
+
+| One request | Time |
+|---|---|
+| Not in the cache (miss) | 9.6 ms |
+| In the cache (hit) | 0.77 ms |
+
+**What I found**
+
+- A request that is in the cache is about 12 times faster: 0.77 ms against 9.6 ms. The cached answer is the same as the searched one.
+- With traffic where a few products are asked often, a cache of 1,000 answers answers about half of the requests (49%) from the cache, and the average time per request goes from 10.3 ms to 5.5 ms. A cache of only 100 answers gives 32% hits and 7.2 ms.
+- One cached answer of 10 results takes about 1.8 KB, so 1,024 answers take about 2 MB.
+
+**Decision.** I keep the in-process cache of 1,024 answers, switched on by default. It can be turned off with `PS_CACHE_SIZE=0`. On the final page I will show the time of a cache hit and of a miss next to each other.
+
+**Limitations**
+
+- The cache is lost when the service restarts. With several copies of the service (several pods on Kubernetes), each copy has its own cache, so fewer requests are hits. A shared cache such as Redis would be the next step. I did not build it.
+- The cache has no expiry, because the data does not change. If the data changed, the cache would have to be cleared by restarting the service.
+- The traffic is a simulation with an assumed popularity, not real traffic. The real hit rate depends on how often people ask for the same products.
+- Only answers of up to 100 results are cached, so that a few huge answers cannot fill the memory.
+- The timings are through the service's test client on one laptop, one thread, without a real network.
+
+**What I do next.** The stronger API (input checks, error codes and the `mode` and weights options, which also become part of the cache question), then Kubernetes and the CI/CD improvements, then the page with the weights, the mode switch and the times with and without the cache, and at the end the 20 locked products.
+
+### Recorded in MLflow
+
+Each measurement is a run in the experiment `caching` (6 runs): one request that is not in the cache, one that is, and the traffic simulation for each cache size.
+
+![MLflow comparing a cache miss, a cache hit and the traffic simulation](evaluation/mlflow_cache_runs.png)
+
+The walk-through, with every table and chart, is in [notebook 13](notebooks/13_caching.ipynb).
+
+### Reproduce it
+
+```bash
+python experiments/measure_cache.py   # miss against hit, and the traffic simulation
+python experiments/log_cache.py       # records the runs in MLflow
+```
+
 ## Where the numbers come from
 
 Every result in this page can be traced to a notebook, a results file and an MLflow experiment. The MLflow databases stay on my computer (they are not in Git), so the screenshots in `evaluation/` show the runs.
@@ -845,14 +900,14 @@ Every result in this page can be traced to a notebook, a results file and an MLf
 
 ### Tests
 
-There are 187 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
+There are 207 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
 
 ### CI/CD with GitHub Actions
 
 On every push and pull request, GitHub Actions runs two jobs:
 
 1. **test:** installs the project (with FAISS, so the fast-mode tests run), checks the code style with ruff, and runs all the tests.
-2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks it for similar products, checks that an unknown ID returns 404, and checks that the container does not run as root.
+2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks it for similar products, checks that the same question asked again comes from the cache, checks that an unknown ID returns 404, and checks that the container does not run as root.
 
 The second job only starts if the first one passes. I merge into `main` through a pull request. Automatic deployment (for example to Kubernetes) is planned but not built yet.
 
@@ -868,8 +923,7 @@ The second job only starts if the first one passes. I merge into `main` through 
 ## What is next
 
 - Add Kubernetes files and the CI/CD improvements (a dependency and image scan, and more checks).
-- Make the service stronger: checks on the input and proper error codes, and a `mode` option and the weights as optional inputs.
-- Add caching for repeated products.
+- Make the service stronger: checks on the input and proper error codes, and a `mode` option and the weights as optional inputs (they also become part of the cache question).
 - A page where people set each weight with sliders (with the tuned weights as the best setting), switch between the exact and the fast mode, and see the time of each search, with and without the cache.
 - Rate the 20 locked products once, at the end, and score both modes for the final result.
 
@@ -902,6 +956,7 @@ src/product_similarity/     Python package
   vector_search.py          Exact (brute-force) vector search and recall, the reference for fast indexes
   hybrid_eval.py            Scores a set of hybrid weights against my ratings quickly
   hybrid.py                 The final search: the tuned hybrid, with an exact and a fast (HNSW) mode
+  cache.py                  The in-process cache for repeated questions
   vector_files.py           Saves and reads the half-size vector files that ship with the service
 experiments/                Scripts that I run by hand (nothing here is used by the service)
   run_evaluation.py         Scores the text methods against my ratings and records the runs
@@ -933,6 +988,8 @@ experiments/                Scripts that I run by hand (nothing here is used by 
   export_vectors.py         Makes the half-size vector files in artifacts/vectors/
   check_vector_files.py     Checks that the half-size vectors do not change the results
   check_final_search.py     Checks that the real search gives the same results as the notebooks
+  measure_cache.py          Measures a cache hit against a miss, and a traffic simulation
+  log_cache.py              Records the cache measurements in MLflow
   run_final_search_rating.py Finds results without a rating for the final search and writes the rating page
   check_fast_vs_exact.py    Compares the exact and the fast mode (misses, time, memory)
   log_final_search.py       Records the final-search runs in MLflow
@@ -942,10 +999,10 @@ evaluation/                 Test products, rating rules, rating pages and my rat
   judgments/                Rating sheets, rating pages and my ratings (CSV)
   *.png                     Screenshots of the rating page and MLflow
 results/                    Exported scores, reports and image check numbers
-tests/                      187 tests
+tests/                      207 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
-notebooks/                  Twelve analysis notebooks (they import logic from the package)
+notebooks/                  Thirteen analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
 .github/workflows/ci.yml    Continuous integration (lint, tests, Docker smoke test)
 ```
