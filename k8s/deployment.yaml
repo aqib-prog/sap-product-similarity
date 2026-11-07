@@ -56,7 +56,7 @@ spec:
           # Measured: about 1.1 GB with the vectors and both fast indexes loaded.
           resources:
             requests:
-              cpu: 500m
+              cpu: 250m
               memory: 1280Mi
             limits:
               cpu: "1"

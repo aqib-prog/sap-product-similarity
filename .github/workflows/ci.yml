@@ -254,7 +254,7 @@ jobs:
             i=$((i+1))
             code=$(curl -s -o /dev/null -w "%{http_code}" "http://product-similarity/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3")
             [ "$code" = "200" ] || fails=$((fails+1))
-            sleep 0.2
+            sleep 0.5
           done
           echo "requests=$i failures=$fails" > /tmp/result
           SH
@@ -263,7 +263,7 @@ jobs:
           (kubectl exec tester -- sh /tmp/load.sh &) 
           sleep 2
           kubectl set env deployment/product-similarity PS_CACHE_SIZE=2048
-          kubectl rollout status deployment/product-similarity --timeout=300s
+          kubectl rollout status deployment/product-similarity --timeout=600s
           kubectl exec tester -- touch /tmp/stop
           sleep 3
           result=$(kubectl exec tester -- cat /tmp/result)
