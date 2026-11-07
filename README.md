@@ -162,6 +162,14 @@ Scores are rounded to 6 decimals, and ties are broken by product ID, so the same
 
 The service is a small FastAPI app. The engine is built once at startup (about 3 seconds), and then each request takes a few milliseconds. `num_similar` must be at least 1.
 
+| Endpoint | What it returns |
+|---|---|
+| `GET /find_similar_products?product_id=...&num_similar=...` | The list of the most similar product IDs (the required endpoint). The header `X-Cache` says `hit` or `miss` |
+| `GET /find_similar_products/details?...` | The same search with the question, readable product details, the scores, `cached` (true or false) and `response_time_ms` |
+| `GET /cache` | The cache statistics: `enabled`, `max_entries`, `entries`, `hits`, `misses` and `hit_rate` |
+| `GET /live` | The process is running |
+| `GET /ready` | The data is loaded; it also says which search runs, for example `"search": "hybrid (exact)"` |
+
 ```bash
 docker build -t product-similarity .
 docker run -p 8000:8000 product-similarity
@@ -842,30 +850,18 @@ A search takes about 10 ms, and the same question often comes again. So the serv
 
 ### Conclusion
 
-**What I did.** I added a cache to the service. It keeps the answers of the last 1,024 questions inside the service's own memory (an in-process cache), and when it is full it drops the answer that was used least recently. A question is the product and the number of results (later also the mode and the weights), and answers of up to 100 results are cached. The API says whether an answer came from the cache (an `X-Cache` header and a `cached` field), and a small `/cache` endpoint reports the hits, the misses and the hit rate. I measured it on the real service with the final search in exact mode. For 200 random products, I emptied the cache, asked the same question twice (the first is a miss, the second a hit), repeated it 5 times and kept the fastest, and I report the median. Then I simulated 2,000 requests where a few products are asked for often (an assumed popularity that falls off like 1/rank, because I have no real traffic) for different cache sizes. Every run is in MLflow (experiment `caching`).
+**What I did.** I added caching to the service. It remembers the answers to the last 1,024 questions, so a question that comes again is answered from memory, without searching.
 
 | One request | Time |
 |---|---|
-| Not in the cache (miss) | 9.6 ms |
-| In the cache (hit) | 0.77 ms |
+| Not remembered (miss) | 9.6 ms |
+| Remembered (hit) | 0.77 ms |
 
-**What I found**
+**What I found.** A remembered answer is about 12 times faster, and it is the same answer. In a simulation where a few products are asked for often, the cache answers about half of the requests, and the average time drops from 10.3 ms to 5.5 ms.
 
-- A request that is in the cache is about 12 times faster: 0.77 ms against 9.6 ms. The cached answer is the same as the searched one.
-- With traffic where a few products are asked often, a cache of 1,000 answers answers about half of the requests (49%) from the cache, and the average time per request goes from 10.3 ms to 5.5 ms. A cache of only 100 answers gives 32% hits and 7.2 ms.
-- One cached answer of 10 results takes about 1.8 KB, so 1,024 answers take about 2 MB.
+**Limitation.** The cache is lost when the service restarts. With several copies of the service (Kubernetes), each copy has its own cache, so fewer requests are answered from memory. A shared cache such as Redis would fix this. I did not build it.
 
-**Decision.** I keep the in-process cache of 1,024 answers, switched on by default. It can be turned off with `PS_CACHE_SIZE=0`. On the final page I will show the time of a cache hit and of a miss next to each other.
-
-**Limitations**
-
-- The cache is lost when the service restarts. With several copies of the service (several pods on Kubernetes), each copy has its own cache, so fewer requests are hits. A shared cache such as Redis would be the next step. I did not build it.
-- The cache has no expiry, because the data does not change. If the data changed, the cache would have to be cleared by restarting the service.
-- The traffic is a simulation with an assumed popularity, not real traffic. The real hit rate depends on how often people ask for the same products.
-- Only answers of up to 100 results are cached, so that a few huge answers cannot fill the memory.
-- The timings are through the service's test client on one laptop, one thread, without a real network.
-
-**What I do next.** The stronger API (input checks, error codes and the `mode` and weights options, which also become part of the cache question), then Kubernetes and the CI/CD improvements, then the page with the weights, the mode switch and the times with and without the cache, and at the end the 20 locked products.
+**What I do next.** The stronger API, then Kubernetes and CI/CD, then the page, and at the end the 20 locked products.
 
 ### Recorded in MLflow
 
@@ -907,7 +903,7 @@ There are 207 tests. The unit tests cover loading, cleaning, scoring, ranking, t
 On every push and pull request, GitHub Actions runs two jobs:
 
 1. **test:** installs the project (with FAISS, so the fast-mode tests run), checks the code style with ruff, and runs all the tests.
-2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks it for similar products, checks that the same question asked again comes from the cache, checks that an unknown ID returns 404, and checks that the container does not run as root.
+2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks it for similar products, checks that the same question asked again comes from the cache (header `X-Cache: hit` and `cached: true`), checks that `/cache` reports the statistics, checks that an unknown ID returns 404, and checks that the container does not run as root.
 
 The second job only starts if the first one passes. I merge into `main` through a pull request. Automatic deployment (for example to Kubernetes) is planned but not built yet.
 

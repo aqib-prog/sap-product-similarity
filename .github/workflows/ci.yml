@@ -66,7 +66,12 @@ jobs:
           r = json.load(open('response.json'))
           assert len(r['results']) == 5 and all(x['title'] for x in r['results'])
           assert r['question']['num_similar'] == 5 and r['response_time_ms'] >= 0
+          assert r['cached'] is True  # the same question was asked before
           "
+      - name: Cache statistics are reported
+        run: |
+          curl -fsS http://localhost:8000/cache \
+            | python3 -c "import json, sys; s = json.load(sys.stdin); assert s['enabled'] and s['hits'] >= 1 and s['entries'] >= 1, s; print(s)"
       - name: Unknown product returns 404
         run: |
           code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/find_similar_products?product_id=00000000000000000000000000000000&num_similar=5")
