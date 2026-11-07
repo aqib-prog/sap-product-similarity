@@ -34,7 +34,8 @@ The project is built for the SAP technical exercise. The original task descripti
 | Docker image | Done: built and tested in CI. It runs the final search with the vectors inside the image (half-size numbers, two files under 50 MB), and it stops with an error if they are missing |
 | CI: lint, tests, Docker build and smoke test on every push | Done, passing |
 | Vector search benchmarks (FAISS Flat and HNSW, Annoy) | Planned |
-| Kubernetes manifests, automatic deployment, monitoring | Planned |
+| Kubernetes files (2 pods, a Service, probes, a rolling update) | Done: deployed and tested in a temporary cluster in CI on every push |
+| Monitoring (`/metrics`, Prometheus, Grafana, two alert rules) | Done: checked in CI, and a dashboard screenshot from a local run |
 
 ## What I did so far
 
@@ -57,6 +58,8 @@ I work in small steps. After each step I check the result, and I write down what
 15. **Ran the final test.** I rated the results of the final search on the 20 products that had been locked from the start, and scored both modes. ([notebook 14](notebooks/14_final_test.ipynb))
 16. **Made the API stronger.** Clear input checks and error codes, a `mode` option (exact or fast), a `weights` option (the simple way with 4 names, or the advanced way with 10), and `GET /weights` for the page. ([notebook 15](notebooks/15_stronger_api.ipynb))
 17. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
+18. **Ran it on Kubernetes.** The image runs as 2 pods behind one Service, with liveness and readiness probes and a rolling update. CI starts a temporary cluster on every push and tests it. (See "Kubernetes".)
+19. **Added monitoring.** The service reports its own numbers on `/metrics`. Prometheus collects them, Grafana draws them, and two alert rules judge them. (See "Monitoring".)
 
 The sections below explain each step: what I did, why, and what I found.
 
@@ -175,6 +178,7 @@ The service is a small FastAPI app. The engine is built once at startup (about 2
 | `GET /cache` | The cache statistics: `enabled`, `max_entries`, `entries`, `hits`, `misses` and `hit_rate` |
 | `GET /live` | The process is running |
 | `GET /ready` | The data is loaded; it also says which search runs, the modes, and whether the fast mode is ready |
+| `GET /metrics` | The service's own numbers (requests, times, cache hits, errors) as text, for Prometheus (see "Monitoring") |
 
 ```bash
 docker build -t product-similarity .
@@ -963,20 +967,54 @@ Every result in this page can be traced to a notebook, a results file and an MLf
 | Speed of the exact and the fast search | [09](notebooks/09_fast_vector_search.ipynb) | [`ann_exact_baseline.json`](results/ann_exact_baseline.json), [`ann_benchmark.json`](results/ann_benchmark.json), [`ann_hybrid_check.json`](results/ann_hybrid_check.json) | `ann-benchmark`, `ann-hybrid-check` |
 | Shorter vectors with PCA | [10](notebooks/10_shorter_vectors_pca.ipynb) | [`ann_pca.json`](results/ann_pca.json) | `ann-pca` |
 
+## Kubernetes
+
+Docker packs the service into one image. Kubernetes runs several copies of that image (called pods) and looks after them: it restarts a pod that breaks, it sends requests only to pods that are ready, and it replaces the pods one at a time when I change something. The files are in [`k8s/`](k8s/).
+
+| File | What it says |
+|---|---|
+| [`deployment.yaml`](k8s/deployment.yaml) | Run 2 pods of the image, with the probes, the memory and CPU limits, a non-root user, and the rolling-update rule |
+| [`service.yaml`](k8s/service.yaml) | One fixed address in front of the pods. It sends each request to a pod that is ready |
+| [`pdb.yaml`](k8s/pdb.yaml) | While a machine is being updated or drained, keep at least 1 pod running |
+
+- **Two pods, both serving.** Both pods answer requests at the same time. If one stops, the other keeps answering, so each is the other's backup. I did not make one pod wait idle, because that would use the memory of a whole pod for nothing.
+- **The probes.** A probe is a question that Kubernetes asks each pod every few seconds. There are three, and they use the two endpoints the API already has.
+
+| Probe | Endpoint | Question | If the answer is no |
+|---|---|---|---|
+| Startup | `/ready` | Have you finished loading (about 15 seconds)? | The other two probes wait, for up to 200 seconds |
+| Readiness | `/ready` | Can you answer searches now? | The pod gets no traffic, but keeps running |
+| Liveness | `/live` | Are you stuck? | Kubernetes restarts the pod |
+
+- **Deployment strategy: rolling update** (`maxSurge: 1`, `maxUnavailable: 0`). Kubernetes starts a third pod with the new version, waits until it is ready, and only then stops an old pod. There is never a moment with fewer than 2 ready pods. If the new version never becomes ready, the rollout stops and the old pods keep serving.
+- **Memory and CPU.** Each pod asks for 1,280 MB and 0.25 CPU, and may use at most 2 GB and 1 CPU. I measured about 1.06 GB with the vectors and both fast indexes loaded. A pod that goes over its memory limit is restarted, which protects the other pods.
+- **The cache is per pod.** The cache lives inside the process (see "Caching"), so each pod has its own. The same question can be a miss on one pod and a hit on the other, and a new pod starts with an empty cache. A cache shared by all pods (for example Redis) would fix that, and I did not build it.
+- **What CI tests.** The `kubernetes` job starts a temporary cluster (kind) on the GitHub machine, loads the image, applies the files, and checks that: both pods become ready; a search through the Service works; when one pod is deleted, 20 requests in a row still return 200; and during a rolling update no request fails (84 requests, 0 failures in the run I checked). The cluster is deleted when the job ends.
+- **What I did not do.** I do not deploy to a real cluster, and I do not push the image to a registry (an online store for images, such as Docker Hub), because I have no cluster to deploy to. For a real deployment I would push the image to a registry, put its name in `deployment.yaml`, and run `kubectl apply -f k8s/`. When I run the service on my own computer, I run it with `uvicorn`.
+
+## Monitoring
+
+The service shows its own numbers (requests, time, cache hits, errors) on `/metrics`. Prometheus collects them and Grafana draws them as a dashboard. The files are in [`monitoring/`](monitoring/), and CI checks that it works.
+
+The screenshot is from a run on my laptop with 2,052 test searches. The memory panel is empty because only Linux shows memory.
+
+![The Grafana dashboard](monitoring/screenshots/grafana-dashboard.png)
+
 ## Tests and CI/CD
 
 ### Tests
 
-There are 265 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
+There are 275 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
 
 ### CI/CD with GitHub Actions
 
-On every push and pull request, GitHub Actions runs two jobs:
+On every push and pull request, GitHub Actions runs three jobs:
 
 1. **test:** installs the project (with FAISS, so the fast-mode tests run), checks the code style with ruff, and runs all the tests.
-2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks the same question three times and prints the result of each (request 1: `X-Cache: miss`, request 2: `X-Cache: hit` with an identical answer, request 3 on the details endpoint: `cached: true`), checks that `/cache` reports 2 hits and 1 miss, checks that the fast mode and the weights work (for five searches it prints the mode asked and the mode that ran, the weights set and the weights used, the response time, whether it came from the cache, and the three most similar titles; it checks that picture-only, title-only and a mix give three different lists), checks that eight kinds of bad input give a 422, checks that an unknown ID returns 404, and checks that the container does not run as root.
+2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks the same question three times and prints the result of each (request 1: `X-Cache: miss`, request 2: `X-Cache: hit` with an identical answer, request 3 on the details endpoint: `cached: true`), checks that `/cache` reports 2 hits and 1 miss, checks that the fast mode and the weights work (for five searches it prints the mode asked and the mode that ran, the weights set and the weights used, the response time, whether it came from the cache, and the three most similar titles; it checks that picture-only, title-only and a mix give three different lists), checks that eight kinds of bad input give a 422, checks that an unknown ID returns 404, checks that `/metrics` reports the numbers that these steps caused, and checks that the container does not run as root.
+3. **kubernetes:** checks the Kubernetes files against the official schemas, builds the image, starts a temporary cluster (kind) and deploys the two pods and the Service. It checks that both pods are ready and that a search through the Service works, deletes one pod and checks that 20 requests still return 200, and runs a rolling update while sending requests to check that none fails. Then it runs the same API checks as the docker job against one pod (the cache requests miss, hit, hit; the five settings; the eight bad inputs; the unknown product). Last, it checks the monitoring files, deploys Prometheus and Grafana, sends traffic, and checks that Prometheus reads both pods and that Grafana shows the dashboard.
 
-The second job only starts if the first one passes. I merge into `main` through a pull request. Automatic deployment (for example to Kubernetes) is planned but not built yet.
+The docker and kubernetes jobs only start if the test job passes. I merge into `main` through a pull request. I do not deploy to a real cluster (see "Kubernetes"); CI shows that the files work in a temporary one.
 
 ## Limits so far
 
@@ -989,7 +1027,7 @@ The second job only starts if the first one passes. I merge into `main` through 
 
 ## What is next
 
-- Add Kubernetes files and the CI/CD improvements (a dependency and image scan, and more checks).
+- Add a dependency scan and an image scan to CI.
 - A page where people set each weight with sliders (with the tuned weights as the best setting), switch between the exact and the fast mode, and see the time of each search, with and without the cache.
 
 ## Project layout
@@ -1024,6 +1062,7 @@ src/product_similarity/     Python package
   cache.py                  The in-process cache for repeated questions
   weights.py                Reads and checks the weights a user sets for one search
   vector_files.py           Saves and reads the half-size vector files that ship with the service
+  metrics.py                The numbers on /metrics (requests, times, cache hits, errors) for Prometheus
 experiments/                Scripts that I run by hand (nothing here is used by the service)
   run_evaluation.py         Scores the text methods against my ratings and records the runs
   check_images.py           Downloads and checks the 100-image sample
@@ -1068,12 +1107,15 @@ evaluation/                 Test products, rating rules, rating pages and my rat
   judgments/                Rating sheets, rating pages and my ratings (CSV)
   *.png                     Screenshots of the rating page and MLflow
 results/                    Exported scores, reports and image check numbers
-tests/                      265 tests
+tests/                      275 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
 notebooks/                  Fifteen analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
-.github/workflows/ci.yml    Continuous integration (lint, tests, Docker smoke test)
+k8s/                        Kubernetes files: deployment (2 pods, probes, rolling update), service, pod budget
+monitoring/                 Prometheus and Grafana files, alert rules, a script to run them locally, a traffic script
+  screenshots/              The Grafana dashboard from a local run
+.github/workflows/ci.yml    Continuous integration (lint, tests, Docker and Kubernetes checks)
 ```
 
 Not in Git: the downloaded pictures, the saved picture vectors and the local MLflow databases. They stay on my computer.
