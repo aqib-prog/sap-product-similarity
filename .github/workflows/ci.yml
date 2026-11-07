@@ -31,6 +31,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     needs: test
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Build the image
@@ -246,6 +247,7 @@ jobs:
   kubernetes:
     runs-on: ubuntu-latest
     needs: test
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Check the Kubernetes files against the official schemas
@@ -317,16 +319,16 @@ jobs:
           kubectl get pods -l app=product-similarity
       - name: "Pod - send the requests straight to ONE pod (it has its own cache)"
         run: |
-          pod=$(kubectl get pods -l app=product-similarity -o jsonpath='{.items[0].metadata.name}')
+          pod=$(kubectl get pods -l app=product-similarity -o json | python3 -c "import json, sys; pods = [p for p in json.load(sys.stdin)['items'] if 'deletionTimestamp' not in p['metadata'] and p['status']['phase'] == 'Running']; print(pods[0]['metadata']['name'])")
           echo "all the Pod steps below talk to $pod only"
           nohup kubectl port-forward "pod/$pod" 8000:8000 > portforward.log 2>&1 &
           for i in $(seq 1 30); do
-            if curl -fs http://localhost:8000/ready > /dev/null; then break; fi
+            if curl -fs -m 3 http://localhost:8000/ready > /dev/null; then break; fi
             sleep 1
           done
-          curl -fsS http://localhost:8000/ready
+          curl -fsS -m 5 http://localhost:8000/ready
           echo
-          curl -fsS http://localhost:8000/cache > cache_before.json
+          curl -fsS -m 5 http://localhost:8000/cache > cache_before.json
           echo "cache of this pod before the requests: $(cat cache_before.json)"
       - name: "Pod - Request 1 - first time, the answer is searched (cache miss)"
         run: |
