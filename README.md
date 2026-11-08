@@ -609,7 +609,9 @@ The final score is a weighted average: multiply each part's score by its weight,
 | Rating | 0.75 | 1.8% | 0.0132 |
 | **Total** | | **98.2%** (the weight part is left out) | **0.7634** |
 
-The weights of the parts that were used add up to 98.2% and not 100%, so the total is rescaled: **0.7634 ÷ 0.982 = 0.777**. That is the final score of this pair. Without the rescaling, a product would lose points just for having no weight.
+The weights of the parts that were used add up to 98.2% and not 100%, so the total is rescaled: **0.7634 ÷ 0.982 = 0.777**. That is the final score of this pair.
+
+**Why rescale?** So that a pair is not punished for a missing part. The score is calculated out of the parts that could be measured, so a missing part gives no penalty and no bonus. Without the rescaling, a product would lose points just for having no weight.
 
 ### Two rules that apply to every part
 
