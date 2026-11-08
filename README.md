@@ -69,20 +69,20 @@ A search runs in one of two modes. Exact compares with every product. Fast uses 
 
 ## Tech stack
 
-The Architecture picture shows the flow, and this table names the tool behind each box. The versions are the ones pinned in [`requirements.txt`](requirements.txt) and [`pyproject.toml`](pyproject.toml).
+The Architecture picture shows the flow, and this table names the tool behind each box. The versions are the ones pinned in [`requirements.txt`](requirements.txt) and [`pyproject.toml`](pyproject.toml), and the Prometheus and Grafana versions are pinned in the files in [`monitoring/`](monitoring/).
 
 | Area | Tool | Used for |
 |---|---|---|
 | Language | Python 3.10 (3.9 or newer works) | everything |
 | Data and maths | numpy 2.0.2, scipy 1.13.1, scikit-learn 1.6.1 | loading, scoring, TF-IDF, PCA and t-SNE |
 | Title features | TF-IDF (scikit-learn); the `all-MiniLM-L6-v2` sentence model from Hugging Face, through `sentence-transformers` | title words and title meaning |
-| Picture features | CLIP (`openai/clip-vit-base-patch32`, through `transformers` and PyTorch); ResNet as the comparison | picture vectors |
+| Picture features | CLIP (`openai/clip-vit-base-patch32`, through `transformers` and PyTorch); ResNet-50 (through `torchvision`) as the comparison | picture vectors |
 | Vector search | FAISS 1.13.0 (Flat, HNSW and IVF); Annoy 1.17.1 for the benchmark | the fast mode and the speed tests |
 | **Experiment tracking** | **MLflow** (2.16 or newer) | every experiment run is recorded with its settings, the weights, the data fingerprint and its scores (nDCG@10, Precision@10 and time), so runs can be compared side by side. The screenshots in this README come from it. The MLflow databases stay on my computer and are not in Git, and the service never uses MLflow. |
 | Service | FastAPI 0.128.8 and uvicorn 0.39.0 | the endpoint and the page |
 | Packaging and deployment | Docker (`python:3.10-slim`) and Kubernetes | the image, 2 pods, a Service, probes and a rolling update |
 | Automation | GitHub Actions | tests, Docker and Kubernetes checks and the security scans, on every push |
-| Monitoring | Prometheus 2.55 and Grafana 11.3 (with `prometheus-client` 0.21.1 in the service) | the numbers on `/metrics`, the dashboard and the alert rules |
+| Monitoring | Prometheus 2.55 and Grafana 11.3 in the cluster files (on my laptop I ran the newer Homebrew versions for the screenshot), with `prometheus-client` 0.21.1 in the service | the numbers on `/metrics`, the dashboard and the alert rules |
 | Quality | pytest, ruff, pip-audit and Trivy | tests, code style and security scans |
 
 **What is in the Docker image, and what is not.** The image holds only what the service needs: FastAPI, uvicorn, numpy, scipy, scikit-learn, FAISS, `prometheus-client`, and the half-size vector files. PyTorch, `transformers`, `sentence-transformers`, MLflow, Annoy and the notebooks are used offline, to build the vectors and run the experiments, and they are not in the image.
