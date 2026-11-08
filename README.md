@@ -39,15 +39,15 @@ I scored every method against my own ratings (0, 1 or 2) on the 30 development p
 
 **Which products?** I picked 50 products with a fixed seed, so anyone gets the same 50. They come from seven groups, so they are not all alike:
 
-| Group | Products |
-|---|---|
-| Common categories | 12 |
-| Rare categories | 6 |
-| Sparse data (many fields missing) | 8 |
-| Complete data | 8 |
-| Repeated titles | 8 |
-| Low prices | 4 |
-| High prices | 4 |
+| Group | How a product qualifies | Taken |
+|---|---|---|
+| Common category | its category has 500 or more products | 12 |
+| Rare category | its category has fewer than 50 products | 6 |
+| Sparse data | 4 or fewer of its attributes are known | 8 |
+| Complete data | 7 or more of its attributes are known | 8 |
+| Repeated title | the same title appears 3 or more times | 8 |
+| Low price | price under 300 INR | 4 |
+| High price | price over 2,000 INR | 4 |
 
 30 of them are the **development products**, which I used to compare the methods and tune the weights. The other 20 are **locked**: I never used them for tuning or for choosing a method until the final test. The full list is in [`evaluation/queries.json`](evaluation/queries.json), and the details are in [How the results were evaluated](#how-the-results-were-evaluated).
 
