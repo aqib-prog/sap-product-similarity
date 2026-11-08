@@ -1202,7 +1202,11 @@ The cache question is the product, the number of results, the mode and the weigh
 
 ## Example
 
-The required endpoint returns a plain JSON list of product IDs:
+Here is the service answering real requests. I started it on my computer (`localhost:8000`, see [Getting started](#getting-started-yet-to-review)) and copied what it returned. Times change from machine to machine. The product is a saree blouse fabric, and its ID is `26d41bdc1495de290bc8e6062d927729`.
+
+### 1. The required call
+
+You send a product ID and how many results you want. You get back a plain list of product IDs, best match first.
 
 ```bash
 curl "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3"
@@ -1212,7 +1216,9 @@ curl "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc
 ["d8f9a3fe8b80227a37b8c5529931f383", "2d249ce6637640fe9ef8a5cf20cbc9dc", "706ee970954ce7332dee5defe042b254"]
 ```
 
-For display, `/find_similar_products/details` returns the same results with the question asked, readable product details, scores and the response time:
+### 2. The same search with details
+
+`/find_similar_products/details` returns the same results with the question asked, readable product details, the score of each result, and the response time. The page uses this endpoint.
 
 ```bash
 curl "http://localhost:8000/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3"
@@ -1273,15 +1279,61 @@ curl "http://localhost:8000/find_similar_products/details?product_id=26d41bdc149
 }
 ```
 
+The query is a saree blouse fabric that the dataset files under the kurta category, so the first result is a kurta. Category-based matching carries over that label.
 
-The query is a saree blouse fabric that the dataset files under the kurta category, so every result is a kurta. Category-based matching carries over that label. The response time varies by machine.
+### 3. The options: mode and weights
 
-With Docker:
+`mode` chooses how the search runs, and `weights` chooses how much each part counts. Both are optional. Without them, the service runs the exact mode with my tuned weights.
 
 ```bash
-docker build -t product-similarity .
-docker run -p 8000:8000 product-similarity
+# the fast mode (HNSW indexes): the list can differ a little, because it is approximate
+curl -i "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3&mode=fast"
+
+# only the picture and the title words count: 60% and 40%
+curl "http://localhost:8000/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=2&weights=image:0.6,title:0.4"
 ```
+
+The first call returns the header `x-search-mode: fast`. Its list shares two products with the exact mode (`2d249ce6…` and `706ee970…`), and the third is a different product (`feb5cc86…`). The second call shows the weights it used, with every other part at 0:
+
+```json
+"weights": {"title": 0.4, "text_vectors": 0.0, "image": 0.6, "category": 0.0, "brand": 0.0,
+            "audience": 0.0, "price": 0.0, "colour": 0.0, "weight": 0.0, "rating": 0.0}
+```
+
+### 4. The cache
+
+If the same question comes again, the service gives back the answer it kept (see [The cache](#8-the-cache)). Ask the same question twice with `-i` to see the headers:
+
+```bash
+curl -i "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
+```
+
+- The first time, the header is `x-cache: miss` (a new search).
+- The second time, the header is `x-cache: hit` (the kept answer), and the list is the same.
+
+The details endpoint shows the same with a field and a time. For `num_similar=4` on this product, the first request had `"cached": false` and `"response_time_ms": 18.22`, and the second had `"cached": true` and `"response_time_ms": 0.05`.
+
+`GET /cache` reports the totals:
+
+```json
+{"enabled": true, "max_entries": 1024, "entries": 8, "hits": 6, "misses": 8, "hit_rate": 0.4286}
+```
+
+A different product, number of results, mode or weights is a different question, so it gets its own entry.
+
+### 5. When the input is wrong
+
+Every error has the same shape: a code and one sentence. The full list is in [Parameters and errors](#parameters-and-errors).
+
+```bash
+curl "http://localhost:8000/find_similar_products?product_id=abc&num_similar=3"
+```
+
+```json
+{"error": "invalid_input", "message": "product_id must be 32 lowercase hexadecimal characters", "problems": ["product_id must be 32 lowercase hexadecimal characters"]}
+```
+
+An ID that is valid but not in the dataset gives a 404 with `"error": "product_not_found"`, and an unknown mode gives a 422 with `"error": "invalid_mode"`.
 
 ## The page
 
