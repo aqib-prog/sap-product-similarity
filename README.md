@@ -9,8 +9,6 @@ The project is built for the SAP technical exercise. The original task descripti
 - [What it does](#what-it-does)
 - [Architecture](#architecture)
 - [Results at a glance](#results-at-a-glance)
-- [Getting started](#getting-started)
-- [Run the service](#run-the-service)
 - [Data exploration (EDA)](#data-exploration-eda)
 - [Cleaning the data](#cleaning-the-data)
 - [How the first similarity search works](#how-the-first-similarity-search-works)
@@ -34,6 +32,8 @@ The project is built for the SAP technical exercise. The original task descripti
 - [Kubernetes](#kubernetes)
 - [Monitoring](#monitoring)
 - [Tests and CI/CD](#tests-and-cicd)
+- [Getting started (yet to review)](#getting-started-yet-to-review)
+- [Run the service (yet to review)](#run-the-service-yet-to-review)
 - [Limits so far](#limits-so-far)
 - [Project layout](#project-layout)
 - [License](#license)
@@ -139,37 +139,6 @@ About 12 times faster.
 The cache is **in-process**: each running copy of the service keeps the last 1,024 answers in its own memory. A question is the product, the number of results, the mode and the weights. Answers for more than 100 results are never kept. The cache is lost when the service restarts, and each Kubernetes pod has its own. A shared cache such as Redis would fix that, and I describe it as the upgrade but did not build it. More in [Caching](#caching).
 
 Notebook: [13 Caching, section 2 One request: a miss against a hit](notebooks/13_caching.ipynb). Numbers: [`cache_benchmark.json`](results/cache_benchmark.json).
-
-## Getting started
-
-Requires Python 3.9 or newer (CI runs Python 3.10).
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev,notebooks]"
-make test
-make lint
-```
-
-Optional extras: `experiments` (MLflow) and `images` (ResNet and CLIP). Neither is needed to run the service or the tests.
-
-To open the notebooks:
-
-```bash
-jupyter lab notebooks/
-```
-
-## Run the service
-
-```bash
-PYTHONPATH=src uvicorn app:app --port 8000
-```
-
-```bash
-curl "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
-```
-
-The response is a JSON list of product IDs. An unknown ID returns 404, invalid input returns 422, and `/live` and `/ready` report service health. `/find_similar_products/details` returns the same search with titles, prices, scores and timing.
 
 ## Data exploration (EDA)
 
@@ -1149,6 +1118,41 @@ On every push and pull request, GitHub Actions runs four jobs:
 4. **kubernetes:** checks the Kubernetes files against the official schemas, builds the image, starts a temporary cluster (kind) and deploys the two pods and the Service. It checks that both pods are ready and that a search through the Service works, deletes one pod and checks that 20 requests still return 200, and runs a rolling update while sending requests to check that none fails. Then it runs the same API checks as the docker job against one pod (the cache requests miss, hit, hit; the five settings; the eight bad inputs; the unknown product). Last, it checks the monitoring files, deploys Prometheus and Grafana, sends traffic, and checks that Prometheus reads both pods and that Grafana shows the dashboard.
 
 The docker and kubernetes jobs only start if the test job passes. I merge into `main` through a pull request. I do not deploy to a real cluster (see "Kubernetes"); CI shows that the files work in a temporary one.
+
+## Getting started (yet to review)
+
+> **Yet to review:** written early, before the page, Docker, Kubernetes and monitoring existed. It will be merged with "Run the service" into one "Getting started" section.
+
+Requires Python 3.9 or newer (CI runs Python 3.10).
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev,notebooks]"
+make test
+make lint
+```
+
+Optional extras: `experiments` (MLflow) and `images` (ResNet and CLIP). Neither is needed to run the service or the tests.
+
+To open the notebooks:
+
+```bash
+jupyter lab notebooks/
+```
+
+## Run the service (yet to review)
+
+> **Yet to review:** needs the page at `/`, `PS_PREBUILD_FAST=1`, the Docker command and the Dashboard.
+
+```bash
+PYTHONPATH=src uvicorn app:app --port 8000
+```
+
+```bash
+curl "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
+```
+
+The response is a JSON list of product IDs. An unknown ID returns 404, invalid input returns 422, and `/live` and `/ready` report service health. `/find_similar_products/details` returns the same search with titles, prices, scores and timing.
 
 ## Limits so far
 
