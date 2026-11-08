@@ -217,17 +217,17 @@ The raw file is never changed. It is read in place, and each step below turns th
 **Goal:** clean the raw data so products can be compared fairly, without changing SAP's original file.
 
 **1. Repeated products**
-- **What I did:** kept one copy of each product, the newest crawl (and the lowest ID if tied). All 30,000 IDs still work. 1.6% of the rows were repeat copies.
+- **What I did:** the same product appears in several rows, because the data was collected from Amazon more than once. I kept one row per product, the one collected most recently (and the one with the lowest ID if they tie). All 30,000 old IDs still work, because each old ID points to the row I kept. 471 rows (1.6%) were repeat copies.
 - **Example:** a Captain America T-shirt appears 3 times. I keep the newest one.
-- **Why:** so the same product can't show up twice in the results.
+- **Why:** so the same product can't show up twice in the results, and a product can never match itself.
 
 ![Repeat copies are a small share of the rows](screenshots/preprocessing/01_repeat_copies.png)
 
 *Notebook: [02 Preprocessing, section 1, Repeated products](notebooks/02_preprocessing.ipynb).*
 
 **2. Weight**
-- **What I did:** treated the fake number `999999999` as "unknown", converted units to grams, and removed impossible weights (outside 1 g to 5 kg).
-- **Example:** stockings listed as "136 Kilograms" are removed. "1.4 Kg" becomes 1,400 g.
+- **What I did:** treated the fake number `999999999` as "unknown", converted units to grams, and removed values that cannot be real: anything under 1 g or over 5 kg. The notebook prints a table of every removed value (9 products), so nothing is hidden.
+- **Example:** stockings listed as "136 Kilograms" are removed (I spotted it in that table). "1.4 Kg" becomes 1,400 g.
 - **Why:** only about 1 in 5 products (20.9%) has a real weight, so it will matter very little.
 
 ![Only about 1 in 5 products has a usable weight](screenshots/preprocessing/02_weight.png)
@@ -244,9 +244,8 @@ The raw file is never changed. It is read in place, and each step below turns th
 *Notebook: [02 Preprocessing, section 3, Brand](notebooks/02_preprocessing.ipynb).*
 
 **4. Category**
-- **What I did:** when a category was missing, I copied the most common category of products on the same Amazon shelf.
+- **What I did:** when a category was missing, I copied the most common category of the products on the same Amazon shelf. The shelf is the section of the Amazon store a product is listed in, and products on the same shelf are usually the same kind of item.
 - **Example:** "Pepe Jeans Boy's T-Shirt" had no category, so it got `BoysT_Shirts` from its shelf.
-- **How I checked:** I covered up categories I already knew and guessed them back. It was right 96.6% of the time (about 97 in 100). The misses were mostly close categories, like a T-shirt filed as a top.
 - **Why:** category is our strongest signal, and now 98.8% of products have one.
 
 ![Category guesses compared with the real category](screenshots/preprocessing/04_category.png)
@@ -272,18 +271,18 @@ The raw file is never changed. It is read in place, and each step below turns th
 *Notebook: [02 Preprocessing, section 6, Audience](notebooks/02_preprocessing.ipynb).*
 
 **7. Guessing a missing brand from the title (switched off)**
-- **What I did:** built it and tested it on products whose brand I already know. It was right 98.2% of the time when it named a brand.
-- **Example:** "Puma Unisex T-Shirt" has no brand, and the title starts with "Puma". But a Florsheim belt with "Stacy Adams" in its title would be wrong.
-- **Why it's off:** I haven't verified it on products that really lack a brand.
+- **What I did:** many titles start with the brand, so I built a way to fill a missing brand from the first words of the title. I tested it on products whose brand I already know (hide the brand, guess it from the title), and it was right 98.2% of the time when it named a brand.
+- **Example:** "Puma Unisex T-Shirt" has no brand, and the title starts with "Puma", so the guess is Puma. But a Florsheim belt with "Stacy Adams" in its title would get the wrong brand.
+- **Why it's off:** products with no brand may be different from the ones I tested on (for example unbranded items), and I haven't checked it on them. So the missing brands stay missing.
 
 ![Brand from the title, tested on products that already have a brand](screenshots/preprocessing/07_brand_from_title.png)
 
 *Notebook: [02 Preprocessing, section 9, Brand recovery from titles (switched off)](notebooks/02_preprocessing.ipynb).*
 
 **8. Rating and price**
-- **What I did:** kept the rating in three forms (the raw rating, the page rating and the review count) and the price in two (raw and log).
-- **Example:** a vest is rated 1.0, but its page says "Be the first to review this item". 6,571 products are like this.
-- **Why:** so that experiments can decide how to use them. The weights are tuned later (see Hybrid search).
+- **What I did:** kept the rating together with the review count, so I can tell a rating that real reviews back from one that nothing backs. I kept the price in two forms, the raw price and its log (see the exploration section).
+- **Example:** a vest has a rating of 1.0, but its page says "Be the first to review this item", so nobody has reviewed it. 6,571 products are like this.
+- **Why:** a rating with no reviews behind it cannot be trusted, so the rating only gets a small influence on the score (the weights are tuned later, see Hybrid search).
 
 ![Review state and the shape of the log price](screenshots/preprocessing/08_rating_price.png)
 
