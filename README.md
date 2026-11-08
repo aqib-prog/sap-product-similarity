@@ -18,17 +18,7 @@ The project is built for the SAP technical exercise. The original task descripti
 - [Example](#example)
 - [Analysis notebooks](#analysis-notebooks)
 - [How the results were evaluated](#how-the-results-were-evaluated)
-- [Image sample check](#image-sample-check)
-- [Image similarity (small test)](#image-similarity-small-test)
-- [Image similarity over the whole catalogue](#image-similarity-over-the-whole-catalogue)
-- [Sentence vectors on titles](#sentence-vectors-on-titles)
-- [Hybrid search](#hybrid-search)
-- [Fast vector search](#fast-vector-search)
-- [Shorter vectors (PCA)](#shorter-vectors-pca)
-- [A picture of the vectors (t-SNE)](#a-picture-of-the-vectors-t-sne)
-- [The final search: exact mode and fast mode](#the-final-search-exact-mode-and-fast-mode)
-- [Caching](#caching)
-- [The final test on the 20 locked products](#the-final-test-on-the-20-locked-products)
+- [What I tried, and what I kept](#what-i-tried-and-what-i-kept)
 - [Where the numbers come from](#where-the-numbers-come-from)
 - [The page](#the-page)
 - [Kubernetes](#kubernetes)
@@ -98,7 +88,7 @@ The assignment has three parts. This section shows the code for each, with a lin
 | **Part 2.** An image that can be deployed on Kubernetes, from the sample Dockerfile | Yes | [`Dockerfile`](Dockerfile) |
 | **Part 2, optional.** A local cluster | Yes, deployed and tested in a temporary cluster in CI | [`k8s/`](k8s/), see [Kubernetes](#kubernetes) |
 | **Part 3, bonus.** Vector search, with the paper and why I chose it | Yes: HNSW | [`hybrid.py`](src/product_similarity/hybrid.py), [notebook 09](notebooks/09_fast_vector_search.ipynb) |
-| **Suggested approaches.** PCA, t-SNE, caching | Yes | [PCA](#shorter-vectors-pca), [t-SNE](#a-picture-of-the-vectors-t-sne), [Caching](#caching) |
+| **Suggested approaches.** PCA, t-SNE, caching | Yes | [PCA](#5-shorter-vectors-pca), [t-SNE](#6-drawing-the-vectors-t-sne), [Caching](#8-the-cache) |
 
 ### Part 1: the function
 
@@ -135,7 +125,7 @@ return order[order != exclude]
 5. **Return the first `num_similar` IDs.**
 
 - **Used in the final search:** yes. This is the function behind the endpoint and the page.
-- **How each feature is compared** is in the next sections, and the weights are in [Hybrid search](#hybrid-search).
+- **How each feature is compared** is in the next sections, and the weights are in [Hybrid search](#3-the-mix-hybrid-search).
 
 *Notebooks: [03 Baseline examples, sections 1, 2 and 6](notebooks/03_baseline_examples.ipynb) (five real queries, why each product is similar, correctness checks on the real data), and [08 Hybrid search, section 2, Choosing the weights](notebooks/08_hybrid_search.ipynb).*
 
@@ -205,7 +195,7 @@ rows = np.unique(np.concatenate(found))
 
 Only those candidates are then scored with the same 10-part score, so the answer keeps the same quality.
 
-**Why HNSW:** I compared it with FAISS Flat (exact), IVF and Annoy on the same vectors. HNSW was about 60 times faster than the exact search and still found 97% of the exact top 10, so it gave the best speed for the recall. I also tested shorter vectors with PCA and dropped them, because they lost too much recall. The measured results are in [Fast vector search](#fast-vector-search) and [notebook 09, section 3, The fast methods](notebooks/09_fast_vector_search.ipynb), and the final comparison is in [Results at a glance](#results-at-a-glance).
+**Why HNSW:** I compared it with FAISS Flat (exact), IVF and Annoy on the same vectors. HNSW was about 60 times faster than the exact search and still found 97% of the exact top 10, so it gave the best speed for the recall. I also tested shorter vectors with PCA and dropped them, because they lost too much recall. The measured results are in [Fast vector search](#4-fast-search) and [notebook 09, section 3, The fast methods](notebooks/09_fast_vector_search.ipynb), and the final comparison is in [Results at a glance](#results-at-a-glance).
 
 - **Used in the final search:** yes, as the **fast mode**. The exact mode stays the default, and the fast mode gives nearly the same quality about 15 to 17 times faster.
 
@@ -282,7 +272,7 @@ Notebook: [14 Final test, section 2 Product by product, and section 3 How to rea
 
 About 12 times faster.
 
-The cache is **in-process**: each running copy of the service keeps the last 1,024 answers in its own memory. A question is the product, the number of results, the mode and the weights. Answers for more than 100 results are never kept. The cache is lost when the service restarts, and each Kubernetes pod has its own. A shared cache such as Redis would fix that, and I describe it as the upgrade but did not build it. More in [Caching](#caching).
+The cache is **in-process**: each running copy of the service keeps the last 1,024 answers in its own memory. A question is the product, the number of results, the mode and the weights. Answers for more than 100 results are never kept. The cache is lost when the service restarts, and each Kubernetes pod has its own. A shared cache such as Redis would fix that, and I describe it as the upgrade but did not build it. More in [Caching](#8-the-cache).
 
 Notebook: [13 Caching, section 2 One request: a miss against a hit](notebooks/13_caching.ipynb). Numbers: [`cache_benchmark.json`](results/cache_benchmark.json).
 
@@ -346,7 +336,7 @@ I had also written down 24 facts from a first quick look at the data, such as "3
 
 *Notebook: [01 Data exploration, section 8, Categories](notebooks/01_data_exploration.ipynb).*
 
-**10. Nearly every product has pictures.** 29,998 products have image links, most have about four, and about 99% of a 300-link sample worked. I checked the pictures themselves later (see [Image sample check](#image-sample-check)).
+**10. Nearly every product has pictures.** 29,998 products have image links, most have about four, and about 99% of a 300-link sample worked. I checked the pictures themselves later (see [Image sample check](#1-pictures)).
 
 ![Image links per product](screenshots/eda/10_image_links.png)
 
@@ -436,7 +426,7 @@ The raw file is never changed. It is read in place, and each step below turns th
 **8. Rating and price**
 - **What I did:** kept the rating together with the review count, so I can tell a rating that real reviews back from one that nothing backs. I kept the price in two forms, the raw price and its log (see [Data exploration](#data-exploration-eda), finding 3).
 - **Example:** a vest has a rating of 1.0, but its page says "Be the first to review this item", so nobody has reviewed it. 6,571 products are like this.
-- **Why:** a rating with no reviews behind it cannot be trusted, so the rating only gets a small influence on the score (the weights are tuned later, see [Hybrid search](#hybrid-search)).
+- **Why:** a rating with no reviews behind it cannot be trusted, so the rating only gets a small influence on the score (the weights are tuned later, see [Hybrid search](#3-the-mix-hybrid-search)).
 - **Used in the final search:** yes, both, each with a small weight. **Price** is compared by closeness on a log scale (a 10 times difference scores 0). Its default weight among the attributes is 0.10, which is about 3.5% of the final score. **Rating** is compared by closeness in stars (4 stars apart scores 0). Its default weight is 0.05, which is about 1.8% of the final score.
 
 ![Review state and the shape of the log price](screenshots/preprocessing/08_rating_price.png)
@@ -510,7 +500,7 @@ The weights then count only in proportion (they are divided by their sum), which
 
 *Notebook: [08 Hybrid search, sections 2 and 5, and the conclusion](notebooks/08_hybrid_search.ipynb) (choosing the weights, the five starting points and the 5-fold cross-validation). Code: [`tuning.py`](src/product_similarity/tuning.py). Numbers: [`hybrid_tuning.json`](results/hybrid_tuning.json) and [`coordinate_ascent_trace.json`](results/coordinate_ascent_trace.json), made by [`trace_coordinate_ascent.py`](experiments/trace_coordinate_ascent.py).*
 
-Inside the attributes group, the split between the seven attributes (category 7.0%, brand, audience and price 3.5% each, colour, weight and rating 1.8% each) uses my own starting ratios, and it is **not tuned**. I tried tuning all ten weights separately, and it scored lower (nDCG@10 0.764 against 0.806 for the four-weight version), so I kept the four tuned weights. Details: [Hybrid search](#hybrid-search), and [notebook 08, sections 2, 5, 6 and 7](notebooks/08_hybrid_search.ipynb).
+Inside the attributes group, the split between the seven attributes (category 7.0%, brand, audience and price 3.5% each, colour, weight and rating 1.8% each) uses my own starting ratios, and it is **not tuned**. I tried tuning all ten weights separately, and it scored lower (nDCG@10 0.764 against 0.806 for the four-weight version), so I kept the four tuned weights. Details: [Hybrid search](#3-the-mix-hybrid-search), and [notebook 08, sections 2, 5, 6 and 7](notebooks/08_hybrid_search.ipynb).
 
 **How good is each part on its own** (the same 30 development products and the same rating pool):
 
@@ -848,18 +838,40 @@ Open http://127.0.0.1:5055, click **Model training** at the top left, and open t
 - One person rated, so the labels reflect one judgment.
 - Only 30 products were rated, so small differences cannot be told apart.
 
-## Image sample check
+## What I tried, and what I kept
 
-Before downloading images in bulk, I checked a sample of 100 (kept locally, never committed). Details are in [`results/image_sample_report.md`](results/image_sample_report.md).
+![What I tried, and what I kept: each idea, its result, and the decision](screenshots/experiments.png)
 
-- **First images are good product photos.** 99 of 100 downloaded, and the one failure is a link that no longer exists (error 404).
-- **Pictures shared by several products** could have been size charts, which would make unrelated products look alike. The check on the whole catalogue (below) found almost none.
-- **Polite downloading.** One request at a time, at most 4 per second, https only, one allowed host, a time limit and a size limit, and no redirects followed.
-- **Full download:** done, see the section on the whole catalogue below.
+*Each idea I tested, what I found, and whether I kept it. Kept ideas are olive, ideas I only used to compare or to look at are tan, and dropped ideas are grey.*
 
-## Image similarity (small test)
+I did not pick a method by guessing. Each idea was tested, against my own ratings for quality and against the exact search for speed, and I kept or dropped it based on the numbers. The table is the whole story in one place, and the sub-sections below explain each experiment. nDCG@10 and Precision@10 are explained in [Results at a glance](#results-at-a-glance). **Recall@10**, used for the speed tests, is how many of the exact top 10 a fast method also finds.
 
-I turned the pictures of the 708 development products (the 30 test products and the results I had rated) into **vectors**, which are lists of numbers. Pictures that look alike get vectors that are close together. I used two ready-made models as they are, with no training: ResNet and CLIP. For each of the 30 test products, I found the 10 closest pictures, rated the new results myself, and scored everything with the same ratings.
+| # | What I tried | What I found | Why I decided so | Details |
+|---|---|---|---|---|
+| 1 | **Pictures:** ResNet-50 against CLIP | CLIP scored nDCG@10 0.695 and ResNet 0.569 | **Kept CLIP, dropped ResNet.** It was clearly better on the same pictures and ratings. | [Pictures](#1-pictures), [05](notebooks/05_image_similarity.ipynb), [06](notebooks/06_clip_whole_catalogue.ipynb) |
+| 2 | **Titles:** sentence vectors against TF-IDF | meaning scored 0.659 and words 0.498 | **Kept both.** Meaning counts most, because it sees that different words can mean the same thing. | [Titles](#2-titles-sentence-vectors), [07](notebooks/07_sentence_vectors_on_titles.ipynb) |
+| 3 | **The mix:** a hybrid with 4 weights against 10 | 4 weights scored 0.806 and 10 weights 0.764, on products the weights had not seen | **Kept 4 weights.** Fewer weights means less chance of fitting my 30 products by luck. | [The mix](#3-the-mix-hybrid-search), [08](notebooks/08_hybrid_search.ipynb) |
+| 4 | **Fast search:** FAISS HNSW, IVF and Annoy against the exact search | HNSW was about 60 times faster and found 97% of the exact top 10 | **Kept HNSW.** IVF and Annoy were only for comparison. | [Fast search](#4-fast-search), [09](notebooks/09_fast_vector_search.ipynb) |
+| 5 | **Shorter vectors:** PCA to 256, 128 and 64 numbers | at 128 numbers it kept only 71% (pictures) and 82% (sentences) of the exact top 10 | **Dropped.** It lost too much recall for a small saving. | [Shorter vectors](#5-shorter-vectors-pca), [10](notebooks/10_shorter_vectors_pca.ipynb) |
+| 6 | **Drawing the vectors:** t-SNE | a picture to look at, not a search method | **Used only to look.** | [Drawing the vectors](#6-drawing-the-vectors-t-sne), [11](notebooks/11_tsne_picture_vectors.ipynb) |
+| 7 | **The final search:** exact mode and fast mode | the same quality, and fast is about 15 times faster | **Both kept.** Exact is the default. | [The final search](#7-the-final-search), [12](notebooks/12_final_search.ipynb) |
+| 8 | **A cache** for repeated questions | a hit takes 0.77 ms against 9.6 ms for a new search | **Kept** (in-process). Redis is described, not built. | [The cache](#8-the-cache), [13](notebooks/13_caching.ipynb) |
+| 9 | **The final test** on 20 locked products | Precision@10 0.87 for both modes | **The result I report.** | [The final test](#9-the-final-test), [14](notebooks/14_final_test.ipynb) |
+| 10 | **Brand guessed from the title** | right 98.2% on products that have a brand, not checked on products that lack one | **Built, but not used.** | [Preprocessing, step 7](#preprocessing-cleaning-the-data), [02, section 9](notebooks/02_preprocessing.ipynb) |
+
+Every experiment was recorded in MLflow, so the runs can be compared side by side. The screenshots below come from it.
+
+### 1. Pictures
+
+**What I did.**
+1. **Checked a sample first.** Before downloading in bulk, I checked 100 pictures (kept locally, never committed). 99 of 100 downloaded, and the one failure is a link that no longer exists (error 404). The downloads are polite: one request at a time, at most 4 per second, https only, one allowed host, a time limit and a size limit, and no redirects followed. Details: [`results/image_sample_report.md`](results/image_sample_report.md).
+2. **Small test, two models.** I turned the pictures of the 708 development products (the 30 test products and the results I had already rated) into vectors with two ready-made models, used as they are with no training: ResNet-50 and CLIP. For each of the 30 test products, I found the 10 closest pictures.
+3. **Whole catalogue.** I downloaded the first picture of almost every product (29,107 pictures, 763 MB), turned them all into CLIP vectors (512 numbers each, in under 8 minutes), and searched the whole catalogue. 134 links no longer exist. None of the 20 locked products were downloaded.
+4. **Shared pictures.** 231 pictures are used by two or more products. I looked at all of them: 229 are normal product photos of the same item listed more than once, 2 are not product photos (a shop logo and a sewing-pattern drawing, left out), and I found no size charts.
+5. **One copy per item.** Results that use the same picture, or a nearly identical one, count as the same item, and I show only one. Every method gets the same rule, so the comparison stays fair.
+6. **Rating.** For each test product, CLIP found 10 results. 44 of the 300 already had my rating, and I rated the other 256 without seeing which method found them.
+
+**What I found.** On the small test (708 pictures):
 
 | Method | nDCG@10 | Precision@10 |
 |---|---|---|
@@ -869,47 +881,7 @@ I turned the pictures of the 708 development products (the 30 test products and 
 | Title only | 0.545 | 0.55 |
 | Attributes only | 0.445 | 0.62 |
 
-- CLIP is as good as my best text method. The gap is too small to call a winner.
-- CLIP is clearly better than ResNet, and ResNet is worse than my text method.
-- Pictures alone find good matches, so combining text and picture vectors is worth trying next.
-- **Limits:** image search only looked at 708 pictures that the text methods had already picked, which helps it. There were 30 test products and one rater. The full table is in [`results/dev_image_evaluation_report.md`](results/dev_image_evaluation_report.md).
-
-The runs are saved in MLflow. This is its comparison page for the two image methods:
-
-![MLflow comparing the image_resnet and image_clip runs: nDCG@10 and precision@10 side by side](evaluation/mlflow_image_runs.png)
-
-### Reproduce it
-
-The pictures and vectors stay on my computer and are not in Git.
-
-```bash
-pip install -e ".[dev,experiments,images]"
-python experiments/download_dev_images.py      # about 700 pictures, one request at a time
-python experiments/extract_image_features.py   # ResNet and CLIP vectors
-python experiments/run_image_search.py         # finds results, writes the rating page for new ones
-```
-
-Open `evaluation/judgments/dev_review_images.html`, rate the cards, press **Download my ratings (CSV)**, and save the file as `evaluation/judgments/dev_grades_images.csv`. Then score everything together:
-
-```bash
-python experiments/run_image_evaluation.py
-```
-
-## Image similarity over the whole catalogue
-
-In the small test I only looked at 708 products. Here I downloaded the first picture of almost every product, turned them all into CLIP vectors, and searched the whole catalogue.
-
-- **Download.** 29,107 pictures (763 MB), one request at a time and at most 4 per second. 134 links no longer exist (error 404). None of the 20 locked products were downloaded. The pictures stay on my computer.
-- **Shared pictures.** 231 pictures are used by two or more products. I looked at all of them. 229 are normal product photos of the same item listed more than once, for example in other sizes or colours. 2 are not product photos (a shop logo and a sewing-pattern drawing), so I left them out. I found no size charts.
-- **One copy per item.** Results that use the same picture, or a nearly identical one, count as the same item, and I show only one of them. Copies of the searched product are not shown. Every method gets the same rule, so the comparison stays fair.
-- **Vectors.** CLIP turned all 29,107 pictures into 512 numbers each in under 8 minutes.
-- **Rating.** For each of the 30 test products, CLIP found the 10 closest items. 44 of the 300 results already had my rating, and I rated the other 256 without seeing which method found them.
-
-### Conclusion
-
-**What I wanted to know:** do product pictures help me find similar products? This time I searched the whole catalogue.
-
-**What I did.** I took about 29,000 product pictures and turned each one into a list of numbers with CLIP. Pictures that look alike get numbers that are close together. For my 30 test products I found the 10 most similar items. I rated the new results myself, without knowing which method found them. I used one set of my ratings to check every method, so the comparison is fair, and I show only one copy of each item.
+On the whole catalogue:
 
 | Method | nDCG@10 | Precision@10 |
 |---|---|---|
@@ -919,56 +891,46 @@ In the small test I only looked at 708 products. Here I downloaded the first pic
 | Title only | 0.507 | 0.54 |
 | Attributes only | 0.427 | 0.62 |
 
-Precision@10 is how many of the top 10 I rated 1 or 2.
+- CLIP is clearly better than ResNet, and ResNet is worse than my text method.
+- Over the whole catalogue, CLIP beats title only and attributes only, and the gap is real. It is ahead of my text baseline too, but with only 30 products I can't be sure it is really better.
+- CLIP did better on the whole catalogue than on only 708 pictures. The small test helped it, because those pictures had already been picked by the text methods.
 
-**What I found**
+**Decision.** I kept CLIP and dropped ResNet. Pictures and text each find good matches on their own, which is why I then mixed them (see [The mix](#3-the-mix-hybrid-search)).
 
-- CLIP beats title only and attributes only. The gap is real.
-- CLIP is ahead of my text baseline too, but with only 30 products I can't be sure it is really better.
-- When CLIP searched the whole catalogue, it did better than when it searched only 708 pictures.
-- Pictures and text both find good matches on their own, so I want to try using them together.
+**Limits.** 30 test products and one rater. Precision@10 is how many of the top 10 I rated 1 or 2.
 
-**What I can't say yet**
+*References: A. Radford et al., "[Learning Transferable Visual Models From Natural Language Supervision](https://proceedings.mlr.press/v139/radford21a.html)," ICML 2021 (model: [`clip-vit-base-patch32`](https://huggingface.co/openai/clip-vit-base-patch32)); K. He et al., "[Deep Residual Learning for Image Recognition](https://doi.org/10.1109/CVPR.2016.90)," CVPR 2016. Notebooks: [05 Image similarity, sections 1 to 3](notebooks/05_image_similarity.ipynb) and [06 CLIP over the whole catalogue, sections 1 to 6](notebooks/06_clip_whole_catalogue.ipynb). Numbers: [`dev_image_evaluation_report.md`](results/dev_image_evaluation_report.md) and [`dev_full_image_evaluation_report.md`](results/dev_full_image_evaluation_report.md).*
 
-- I tested only 30 products, and I was the only person rating.
-- I haven't touched my 20 final test products.
+![MLflow comparing the image_resnet and image_clip runs: nDCG@10 and precision@10 side by side](evaluation/mlflow_image_runs.png)
 
-**What I do next.** I will mix text, CLIP and attributes into one hybrid search, then make it fast with an index.
+![MLflow comparing the five methods on the whole catalogue: nDCG@10 and precision@10 side by side](evaluation/mlflow_full_image_runs.png)
 
-The five runs are saved in MLflow. This is its comparison page:
+<details>
+<summary>Reproduce it</summary>
 
-![MLflow comparing the five methods: nDCG@10 and precision@10 side by side](evaluation/mlflow_full_image_runs.png)
-
-The full table is in [`results/dev_full_image_evaluation_report.md`](results/dev_full_image_evaluation_report.md), and the walk-through is in [notebook 06](notebooks/06_clip_whole_catalogue.ipynb).
-
-### Reproduce it
+The pictures and vectors stay on my computer and are not in Git.
 
 ```bash
 pip install -e ".[dev,experiments,images]"
-python experiments/download_images.py             # about 29,000 pictures, one request at a time
-python experiments/extract_all_image_features.py  # CLIP vectors for all pictures
-python experiments/run_full_image_search.py       # finds results, writes the rating page
+python experiments/download_dev_images.py       # about 700 pictures, one request at a time
+python experiments/extract_image_features.py    # ResNet and CLIP vectors
+python experiments/run_image_search.py          # finds results, writes the rating page for new ones
+python experiments/download_images.py           # about 29,000 pictures, one request at a time
+python experiments/extract_all_image_features.py   # CLIP vectors for all pictures
+python experiments/run_full_image_search.py     # finds results, writes the rating page
 ```
 
-Open `evaluation/judgments/dev_review_full_images.html`, rate the cards, press **Download my ratings (CSV)**, and save the file as `evaluation/judgments/dev_grades_full_images.csv`. Then score everything together:
+Open the rating page, rate the cards, press **Download my ratings (CSV)**, save the file in `evaluation/judgments/`, and then score everything together with `python experiments/run_image_evaluation.py` and `python experiments/run_full_image_evaluation.py`.
 
-```bash
-python experiments/run_full_image_evaluation.py
-```
+</details>
 
-## Sentence vectors on titles
+### 2. Titles (sentence vectors)
 
 TF-IDF only matches words. Here I tried a model that understands the meaning of a title, so that "kurta" and "kurti" count as similar.
 
-- **Model.** `all-MiniLM-L6-v2` from Hugging Face. It is small (about 90 MB), free to use (Apache-2.0 licence) and turns a sentence into 384 numbers. Its authors trained it on over a billion sentence pairs, such as questions with answers, so that pairs which belong together get close vectors. It is meant for search and finding similar sentences, and it cuts text longer than 256 word pieces. My titles are much shorter. It was not trained on shopping titles, so it may be weaker on brand names and size words. I used it as it is, with no training.
-- **Vectors.** All 29,529 titles became vectors in 31.5 seconds, with no failures.
-- **Search.** For each of the 30 test products the model found the 10 closest titles. The 20 locked products can never be returned. 153 of the 300 results already had my rating, and I rated the other 147 without seeing which method found them.
+**What I did.** I took a ready-made sentence model, `all-MiniLM-L6-v2` from Hugging Face (about 90 MB, Apache-2.0 licence), which turns a sentence into 384 numbers. Its authors trained it on over a billion sentence pairs, such as questions with answers, so that pairs which belong together get close vectors. I used it as it is, with no training. All 29,529 titles became vectors in 31.5 seconds, with no failures. For each of the 30 test products, the model found the 10 closest titles (the 20 locked products can never be returned). 153 of the 300 results already had my rating, and I rated the other 147 without seeing which method found them.
 
-### Conclusion
-
-**What I wanted to know:** does a model that understands the meaning of titles find better matches than TF-IDF, which only matches words?
-
-**What I did.** I took a ready-made sentence model, `all-MiniLM-L6-v2`, and turned all 29,529 product titles into lists of numbers. Titles with similar meaning get numbers that are close together. I used the model as it is, with no training. For my 30 test products I found the 10 closest titles. I rated the new results myself, without knowing which method found them. I used one set of my ratings to check every method, so the comparison is fair, and I show only one copy of each item.
+**What I found.**
 
 | Method | nDCG@10 | Precision@10 |
 |---|---|---|
@@ -978,55 +940,40 @@ TF-IDF only matches words. Here I tried a model that understands the meaning of 
 | TF-IDF, title only | 0.500 | 0.55 |
 | Attributes only | 0.422 | 0.62 |
 
-Precision@10 is how many of the top 10 I rated 1 or 2.
-
-**What I found**
-
 - Sentence vectors are clearly better than TF-IDF on titles. Understanding meaning helps more than matching words.
-- Sentence vectors and my baseline score about the same. With only 30 products I can't say which is better.
-- CLIP is still the highest, but its gap over sentence vectors is small enough to be luck.
-- Pictures and titles each find good matches on their own, so I want to try using them together.
+- Sentence vectors and my baseline score about the same, and CLIP is still the highest, but with only 30 products I can't say which of those gaps is real.
 
-**What I can't say yet**
+**Decision.** I kept sentence vectors, and in the final mix they count for the most (45.7%). TF-IDF stays, with a small weight.
 
-- I tested only 30 products, and I was the only person rating.
-- The model was trained on questions, answers and captions, not on shopping titles, so it may miss brand names and size words.
-- I haven't touched my 20 final test products.
+**Limits.** 30 test products and one rater. The model was trained on questions, answers and captions, not on shopping titles, so it may miss brand names and size words.
 
-**What I do next.** I will mix text, CLIP and attributes into one hybrid search, and tune the weights using my ratings.
-
-The five runs are saved in MLflow. This is its comparison page:
+*References: N. Reimers and I. Gurevych, "[Sentence-BERT](https://doi.org/10.18653/v1/D19-1410)," EMNLP-IJCNLP 2019; W. Wang et al., "[MiniLM](https://papers.nips.cc/paper/2020/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html)," NeurIPS 2020 (model: [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)). Notebook: [07 Sentence vectors on titles, sections 1 to 5](notebooks/07_sentence_vectors_on_titles.ipynb). Numbers: [`dev_text_vector_evaluation_report.md`](results/dev_text_vector_evaluation_report.md).*
 
 ![MLflow comparing the five methods: nDCG@10 and precision@10 side by side](evaluation/mlflow_text_vector_runs.png)
 
-The full table is in [`results/dev_text_vector_evaluation_report.md`](results/dev_text_vector_evaluation_report.md), and the walk-through is in [notebook 07](notebooks/07_sentence_vectors_on_titles.ipynb).
-
-### Reproduce it
+<details>
+<summary>Reproduce it</summary>
 
 ```bash
 pip install -e ".[dev,experiments,images,text]"
 python experiments/extract_text_features.py     # downloads the model once, makes the title vectors
 python experiments/run_text_vector_search.py    # finds results, writes the rating page
+python experiments/run_text_vector_evaluation.py   # after rating, scores everything together
 ```
 
-Open `evaluation/judgments/dev_review_text_vectors.html`, rate the cards, press **Download my ratings (CSV)**, and save the file as `evaluation/judgments/dev_grades_text_vectors.csv`. Then score everything together:
+</details>
 
-```bash
-python experiments/run_text_vector_evaluation.py
-```
+### 3. The mix (hybrid search)
 
-## Hybrid search
+So far I tested each part on its own. Here I mix them into one **hybrid search** and choose how much each part counts (its weight) from my ratings. How the weights are found, with coordinate ascent and 5-fold cross-validation, is explained in [Features in detail](#how-much-each-part-counts).
 
-So far I tested each part on its own. Here I mix them into one **hybrid search** and choose how much each part counts (its weight) from my ratings.
+**What I did.**
+1. **Ten parts,** each scoring a pair from 0 to 1: the TF-IDF title, the sentence-vector title, the CLIP picture, category, brand, audience, price, colour, weight and rating. The weighted sum is the final score. If a value is missing, that part is skipped and the other weights are scaled up. The sentence and picture scores are cosine similarities shifted so that 0 means "as similar as two random products".
+2. **Two mixes.** One with 10 weights (one for each part), and one with 4 weights (TF-IDF title, sentence title, picture, and all attributes together).
+3. **First try.** The tuned weights did not beat my untuned baseline on unseen products (0.614 for 10 weights and 0.635 for 4 weights, against 0.637). The hybrid had found 107 new results that were not in my ratings yet, which made the tuning unfair.
+4. **Rating the new results.** I rated those 107 results myself on a blind page (shuffled for each product, no method names), and tuned again. The 20 locked products were never used.
 
-- **The parts.** The TF-IDF title, the sentence-vector title, the CLIP picture, category, brand, audience, price, colour, weight and rating. Each gives a score from 0 to 1 for a pair of products, and a weighted sum of the scores is the final score (a weighted linear combination, as used for hybrid retrieval by Bruch et al., 2023). If a value is missing, that part is skipped and the other weights are scaled up. The sentence and picture scores are cosine similarities shifted so that 0 means "as similar as two random products".
-- **Choosing the weights: coordinate ascent.** It changes one weight at a time, keeps the value with the best nDCG@10 on my ratings, and repeats until a full round changes nothing (Metzler and Croft, 2007). I started it from five starting points and kept the best result.
-- **Checking for luck: 5-fold cross-validation.** I tuned on 24 of my 30 development products and scored the 6 left out, five times. So every hybrid score below comes from products the weights had not seen (an out-of-fold score).
-- **Two mixes.** One with 10 weights (one for each part), and one with 4 weights (TF-IDF title, sentence title, picture, and all attributes together).
-- **First try.** The tuned weights did not beat my untuned baseline on unseen products (0.614 for 10 weights and 0.635 for 4 weights, against 0.637). The hybrid had found 107 new results that were not in my ratings yet, which made the tuning unfair.
-- **Rating the new results.** I rated the 107 results myself on a blind page (shuffled for each product, no method names), and tuned again. The 20 locked products were never used.
-
-### Results
+**What I found.**
 
 | Method | nDCG@10 | Precision@10 |
 |---|---|---|
@@ -1038,63 +985,22 @@ So far I tested each part on its own. Here I mix them into one **hybrid search**
 | TF-IDF, title only | 0.498 | 0.55 |
 | Attributes only | 0.420 | 0.62 |
 
-**Final weights of the 4-weight mix:** sentence title 46%, picture 29%, attributes together 23%, TF-IDF title 3%. When I remove one part at a time from the 10-weight mix (an ablation), the sentence vectors and the picture cost the most (about 0.165 of nDCG@10 each), and category is the most useful attribute.
-
-### Conclusion
-
-**What I wanted to know:** if I mix all the parts into one search, is it better than each part on its own?
-
-**What I did.** I took ten parts: the TF-IDF title, the sentence title, the CLIP picture, category, brand, audience, price, colour, weight and rating. Each part scores a pair of products. I added the scores with weights (a weighted linear combination), and a weight says how much a part counts.
-
-To choose the weights, I used **coordinate ascent**. I change one weight at a time, keep the change if nDCG@10 goes up, and repeat until nothing improves. I started from several starting points and kept the best.
-
-To make sure the weights are not just lucky for my 30 products, I used **5-fold cross-validation**. I tuned the weights on 24 products and tested them on the 6 I had left out, five times. All the hybrid scores below come from products the weights had not seen.
-
-I tried two mixes: one with 10 weights, and one with only 4 weights (TF-IDF title, sentence title, picture, and all attributes together).
-
-My first try did not beat my baseline, because the hybrid found 107 new results that were not in my ratings yet. I rated those myself, without knowing which mix found them, and tuned again. I used one set of my ratings to check every method, so the comparison is fair, and I show only one copy of each item.
-
-| Method | nDCG@10 | Precision@10 |
-|---|---|---|
-| Hybrid, 4 weights | 0.806 | 0.87 |
-| Hybrid, 10 weights | 0.764 | 0.82 |
-| CLIP (pictures) | 0.750 | 0.85 |
-| Sentence vectors (titles) | 0.659 | 0.76 |
-| Title (TF-IDF) and attributes (my baseline) | 0.637 | 0.74 |
-| TF-IDF, title only | 0.498 | 0.55 |
-| Attributes only | 0.420 | 0.62 |
-
-Precision@10 is how many of the top 10 I rated 1 or 2.
-
-**What I found**
-
-- The 4-weight hybrid is clearly better than my baseline, the sentence vectors, TF-IDF and the attributes alone.
-- It is ahead of CLIP, but with only 30 products I can't be sure it is really better.
+- The 4-weight hybrid is clearly better than my baseline, the sentence vectors, TF-IDF and the attributes alone. It is ahead of CLIP, but with only 30 products I can't be sure it is really better.
 - The mix with 4 weights did better than the one with 10, because fewer weights means less chance of fitting my 30 products by luck.
-- Sentence vectors and pictures matter most. If I remove either one, the score drops by about 0.165. Category is the most useful attribute.
+- **Which parts matter.** When I remove one part at a time from the 10-weight mix (an ablation), the sentence vectors and the picture cost the most (about 0.165 of nDCG@10 each), and category is the most useful attribute. The final 4-weight mix is: sentence title 46%, picture 29%, attributes together 23%, TF-IDF title 3%.
 
-**What I can't say yet**
+**Decision.** I kept the 4-weight hybrid.
 
-- I tested only 30 products, and I was the only person rating.
-- I tuned the weights on these 30 products, so I tested them once on my 20 final products at the end (notebook 14).
+**Limits.** 30 test products and one rater. I tuned the weights on these 30 products, so I tested them once on my 20 locked products at the end (see [The final test](#9-the-final-test)).
 
-**What I do next.** I will make the search fast with an index (FAISS, HNSW, Annoy) and test making the vectors smaller with PCA.
+*References: D. Metzler and W. B. Croft, "[Linear feature-based models for information retrieval](https://doi.org/10.1007/s10791-006-9019-z)," Information Retrieval, 2007; S. Bruch, S. Gai and A. Ingber, "[An Analysis of Fusion Functions for Hybrid Retrieval](https://doi.org/10.1145/3596512)," ACM Transactions on Information Systems, 2023. Notebook: [08 Hybrid search, sections 2 to 9](notebooks/08_hybrid_search.ipynb). Numbers: [`dev_hybrid_evaluation_report.md`](results/dev_hybrid_evaluation_report.md) and [`hybrid_tuning.json`](results/hybrid_tuning.json).*
 
-### Recorded in MLflow
-
-The check for luck from the first try (untuned, 10 weights, 4 weights, on all 30 products and on unseen products):
-
-![MLflow comparing the untuned, 10-weight and 4-weight mixes](evaluation/mlflow_hybrid_tuning_runs.png)
-
-All seven methods side by side:
+![MLflow comparing the untuned, 10-weight and 4-weight mixes (the check for luck)](evaluation/mlflow_hybrid_tuning_runs.png)
 
 ![MLflow comparing the seven methods: nDCG@10 and precision@10](evaluation/mlflow_hybrid_runs.png)
 
-The full table is in [`results/dev_hybrid_evaluation_report.md`](results/dev_hybrid_evaluation_report.md), the weights and the cross-validation folds are in [`results/hybrid_tuning.json`](results/hybrid_tuning.json), and the walk-through is in [notebook 08](notebooks/08_hybrid_search.ipynb).
-
-References: Metzler and Croft, [Linear feature-based models for information retrieval](https://link.springer.com/content/pdf/10.1007/s10791-006-9019-z.pdf) (2007); Bruch, Gai and Ingber, [An Analysis of Fusion Functions for Hybrid Retrieval](https://arxiv.org/abs/2210.11934) (2023).
-
-### Reproduce it
+<details>
+<summary>Reproduce it</summary>
 
 ```bash
 pip install -e ".[dev,experiments,images,text]"
@@ -1102,28 +1008,21 @@ python experiments/tune_hybrid_weights.py     # coordinate ascent and 5-fold cro
 python experiments/run_hybrid_search.py       # finds results that have no rating, writes the rating page
 ```
 
-Open `evaluation/judgments/dev_review_hybrid.html`, rate the cards, press **Download my ratings (CSV)**, and save the file as `evaluation/judgments/dev_grades_hybrid.csv`. Then tune again and score everything together:
+Rate the cards, save the CSV as `evaluation/judgments/dev_grades_hybrid.csv`, then run `python experiments/tune_hybrid_weights.py` again and `python experiments/run_hybrid_evaluation.py`.
 
-```bash
-python experiments/tune_hybrid_weights.py
-python experiments/run_hybrid_evaluation.py
-```
+</details>
 
-## Fast vector search
+### 4. Fast search
 
 To find similar products I compare one product with all the others. That is fine for 29,500 products, but a bigger catalogue needs a faster way. Here I time the exact search first, then compare fast **approximate nearest-neighbour** indexes with it.
 
-- **One rule for every method.** 1,000 random products, picked with seed 2020, never a locked product and never one of my 30 development products. Each product is searched 5 times and the fastest run is kept. The time is the median of the 1,000. Recall@10 is the average over the same 1,000 products. One thread, one query at a time.
-- **Recall@10.** How many of the exact top 10 a fast method also finds. The exact top 10 comes from the brute-force search by cosine similarity. A different member of a tie is not counted as a miss. Recall@10 does not use my ratings. My ratings are used for nDCG@10.
-- **The baseline.** The exact search takes about 0.85 ms for the sentence vectors and 1.5 ms for the picture vectors, among about 29,500 products. The record is [`results/ann_exact_baseline.json`](results/ann_exact_baseline.json).
-- **The fast methods** (all settings are in [`results/ann_benchmark.json`](results/ann_benchmark.json)): FAISS Flat (exact), FAISS HNSW (a graph search, Malkov and Yashunin, 2018), FAISS IVF (a search over groups) and Annoy (random trees, from Spotify).
-- **Inside the hybrid.** A fast index picks 200 candidates from the combined sentence and picture vectors, and the hybrid with 4 weights picks the final 10. The record is [`results/ann_hybrid_check.json`](results/ann_hybrid_check.json).
+**What I did.**
+1. **One rule for every method.** 1,000 random products, picked with seed 2020, never a locked product and never one of my 30 development products. Each product is searched 5 times and the fastest run is kept. The time is the median of the 1,000. Recall@10 is the average over the same 1,000 products, and it does not use my ratings.
+2. **The exact search** is the baseline: about 0.85 ms for the sentence vectors and 1.5 ms for the picture vectors, among about 29,500 products.
+3. **The fast methods:** FAISS Flat (exact), FAISS HNSW (a graph search), FAISS IVF (a search over groups) and Annoy (random trees, from Spotify). All settings are in [`results/ann_benchmark.json`](results/ann_benchmark.json).
+4. **Inside the hybrid.** A fast index picks 200 candidates from the combined sentence and picture vectors, and the hybrid with 4 weights picks the final 10.
 
-### Conclusion
-
-**What I wanted to know:** can I make the similarity search faster without losing much quality, and does it matter at my size?
-
-**What I did.** I used one rule for every method. I took 1,000 random products, picked with seed 2020 and never a locked product. For each product I ran the search 5 times and kept the fastest run, and I report the median time of the 1,000. Recall@10 is the average over the same 1,000 products. I counted how many of the exact top 10 each fast method found. The exact top 10 comes from the brute-force search, which compares a product with all the others by cosine similarity. I tried FAISS HNSW, FAISS IVF and Annoy on the picture vectors (CLIP) and on the sentence vectors. I recorded every setting in MLflow, one run for each. Then I used the fast index inside my hybrid search: the index picks 200 candidates, and the hybrid with 4 weights picks the final 10.
+**What I found.** For each fast method I show its fastest setting that still finds at least 95% of the exact top 10.
 
 | Method (sentence vectors, 384 numbers) | Time per query | Memory | Recall@10 |
 |---|---|---|---|
@@ -1139,44 +1038,28 @@ To find similar products I compare one product with all the others. That is fine
 | FAISS IVF | 0.12 ms | 60.7 MB | 99% |
 | Annoy | 1.4 ms | 104.9 MB | 97% |
 
-For each fast method I show its fastest setting that still finds at least 95% of the exact top 10.
-
-| Hybrid with the fast index | nDCG@10 | Top 10 shared with the exact hybrid |
+| Early test: the hybrid with a fast index | nDCG@10 | Top 10 shared with the exact hybrid |
 |---|---|---|
 | Exact hybrid (scores all products, 6.3 ms) | 0.808 | 100% |
 | HNSW picks 200 candidates, then the hybrid (0.07 ms for the candidates) | 0.784 | 94% |
 | Exact search picks 200 candidates, then the hybrid | 0.807 | 97% |
 
-**What I found**
-
 - The exact search is already fast at my size: about 1 ms for one product among 29,500, with 45 to 60 MB of memory.
-- HNSW is about 60 times faster than the exact search and still finds 97% of the exact top 10. It needs about 10% more memory and 6 to 7 seconds to build. IVF is about 8 times faster with almost no extra memory. Annoy was not faster than the exact search at this size and needs more memory.
-- Inside the hybrid, the fast index costs a little quality: nDCG@10 goes from 0.808 to 0.784 with HNSW. The cost comes from the candidates it misses, because exact candidates lose almost nothing (0.807).
-- I chose HNSW (Malkov and Yashunin, 2018) because it gave the best speed for the recall.
+- **HNSW** is about 60 times faster than the exact search and still finds 97% of the exact top 10. It needs about 10% more memory and 6 to 7 seconds to build. **IVF** is about 8 times faster with almost no extra memory. **Annoy** was not faster than the exact search at this size and needs more memory.
+- In the early test, the fast index cost a little quality: nDCG@10 went from 0.808 to 0.784 with HNSW, because of the candidates it misses (exact candidates lose almost nothing, 0.807). The final fast mode uses a different design, two indexes with 100 candidates each, and it loses almost nothing (see [The final search](#7-the-final-search)).
 
-**What I can't say yet**
+**Decision.** I kept HNSW, because it gave the best speed for the recall.
 
-- I tested only about 29,500 products. At this size the exact search is already fast, so the gain from a fast index will matter more for a much larger catalogue. I did not test that.
-- The timings are from one laptop, one thread, one query at a time. I did not time the final reranking of the 200 candidates with the hybrid.
+**Limits.** I tested only about 29,500 products. At this size the exact search is already fast, so a fast index will matter more for a much larger catalogue, which I did not test. The timings are from one laptop, one thread, one query at a time.
 
-**What I do next.** I test whether shortening the vectors with PCA helps the memory and the speed (next section).
+*References: Y. A. Malkov and D. A. Yashunin, "[Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs](https://doi.org/10.1109/TPAMI.2018.2889473)," IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 42, no. 4, pp. 824-836, 2020; J. Johnson, M. Douze and H. Jégou, "[Billion-Scale Similarity Search with GPUs](https://doi.org/10.1109/TBDATA.2019.2921572)," IEEE Transactions on Big Data, vol. 7, no. 3, pp. 535-547, 2021; [Annoy](https://github.com/spotify/annoy) from Spotify. Notebook: [09 Fast vector search, sections 1 to 4](notebooks/09_fast_vector_search.ipynb). Numbers: [`ann_exact_baseline.json`](results/ann_exact_baseline.json), [`ann_benchmark.json`](results/ann_benchmark.json) and [`ann_hybrid_check.json`](results/ann_hybrid_check.json).*
 
-### Recorded in MLflow
-
-Every setting of every method is one run in the experiment `ann-benchmark` (50 runs). The ten runs tagged `headline` are the exact search and the fastest setting of each method that finds at least 95% of the exact top 10:
-
-![MLflow comparing the exact search and the fast methods on the sentence and picture vectors](evaluation/mlflow_ann_benchmark_runs.png)
-
-The fast index inside the hybrid is the experiment `ann-hybrid-check`:
+![MLflow comparing the exact search and the fast methods on the sentence and picture vectors (50 runs, the ten headline runs)](evaluation/mlflow_ann_benchmark_runs.png)
 
 ![MLflow comparing the exact hybrid with the fast pipelines](evaluation/mlflow_ann_hybrid_runs.png)
 
-The walk-through, with every table and chart, is in [notebook 09](notebooks/09_fast_vector_search.ipynb).
-
-
-References: Y. A. Malkov and D. A. Yashunin, "[Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs](https://doi.org/10.1109/TPAMI.2018.2889473)," *IEEE Transactions on Pattern Analysis and Machine Intelligence*, vol. 42, no. 4, pp. 824-836, 1 April 2020 (HNSW); J. Johnson, M. Douze and H. Jégou, "[Billion-Scale Similarity Search with GPUs](https://doi.org/10.1109/TBDATA.2019.2921572)," *IEEE Transactions on Big Data*, vol. 7, no. 3, pp. 535-547, 1 July 2021 (FAISS); [Annoy](https://github.com/spotify/annoy) from Spotify.
-
-### Reproduce it
+<details>
+<summary>Reproduce it</summary>
 
 ```bash
 pip install -e ".[dev,experiments,images,text,ann,notebooks]"
@@ -1186,20 +1069,15 @@ python experiments/ann_hybrid_check.py       # the fast index inside the hybrid
 python experiments/log_ann_benchmark.py      # records the runs in MLflow
 ```
 
-## Shorter vectors (PCA)
+</details>
 
-HNSW already finds 97% of the exact top 10. Here I test one more idea: make the vectors **shorter** with PCA (it keeps the directions in which the products differ most), so that they take less memory and the search has less to compute.
+### 5. Shorter vectors (PCA)
 
-- **Same rule as before.** The same 1,000 random products (seed 2020, never a locked product), 5 runs each with the fastest kept, the median time, one thread.
-- **What I ran.** PCA trained on all the vectors, keeping 256, 128 or 64 numbers (instead of 512 for pictures and 384 for sentences). Then the exact search, HNSW, IVF and Annoy on the shorter vectors, with the same settings as in notebook 09. The record is [`results/ann_pca.json`](results/ann_pca.json).
-- **Recall@10** is measured against the exact top 10 on the **full** vectors, so it shows what PCA and the index lose together.
-- **Extra cost.** A query must first be turned into its short version. I timed that as well.
+HNSW already finds 97% of the exact top 10. Here I tested one more idea: make the vectors **shorter** with PCA (it keeps the directions in which the products differ most), so that they take less memory and the search has less to compute.
 
-### Conclusion
+**What I did.** I trained PCA on all the vectors and kept 256, 128 or 64 numbers instead of 512 (pictures) or 384 (sentences). I ran the exact search, HNSW, IVF and Annoy on the shorter vectors, with the same rule as in the fast-search test (the same 1,000 random products, seed 2020, the fastest of 5 runs, the median time, one thread). Recall@10 is measured against the exact top 10 on the **full** vectors, so it shows what PCA and the index lose together. A query must first be turned into its short version, and I timed that too.
 
-**What I wanted to know:** can I make the vectors shorter with PCA, so that they take less memory and the search is faster, without losing much recall?
-
-**What I did.** I trained PCA on all the vectors and kept 256, 128 or 64 numbers instead of 512 (pictures) or 384 (sentences). I ran the exact search, FAISS HNSW, FAISS IVF and Annoy on the shorter vectors, with the same rule as in notebook 09: the same 1,000 random products (seed 2020, never a locked product), each searched 5 times with the fastest run kept, the median time, one thread. Recall@10 is measured against the exact top 10 on the full vectors, so it shows what PCA and the index lose together. I also timed the extra step of turning a query into its short version, and I recorded every setting in MLflow (experiment `ann-pca`, 148 runs).
+**What I found.**
 
 | Picture vectors | Time per query | Memory | Recall@10 |
 |---|---|---|---|
@@ -1217,109 +1095,88 @@ HNSW already finds 97% of the exact top 10. Here I test one more idea: make the 
 | HNSW + PCA, 128 numbers | 0.011 ms | 23.1 MB | 82% |
 | HNSW + PCA, 64 numbers | 0.009 ms | 15.6 MB | 72% |
 
-**What I found**
-
 - PCA makes the vectors and the index smaller: with 128 numbers the picture index goes from 64 MB to 19 MB.
 - The recall drops a lot. With 128 numbers, the picture vectors find 71% of the exact top 10 and the sentence vectors 82%, against 97% for HNSW on the full vectors.
 - The loss comes from PCA itself. For a given length, the exact search, HNSW, IVF and Annoy all end up within about one point of each other, so a better index does not win it back.
-- The speed-up is small and not real. Turning a query into its short version takes about 0.009 ms, which is about as much as the HNSW search itself (0.010 to 0.018 ms). With that step, the total is about the same as HNSW on the full vectors or higher (the only case a little lower, 0.016 ms against 0.018 ms, is the picture vectors with 64 numbers, at 62% recall).
+- The speed-up is small and not real. Turning a query into its short version takes about 0.009 ms, which is about as much as the HNSW search itself (0.010 to 0.018 ms), so the total is about the same as HNSW on the full vectors or higher.
 
-**Decision.** I drop PCA. The search keeps the full vectors with HNSW, which finds 97% of the exact top 10 in 0.014 to 0.018 ms. At my size, memory is not a problem (about 50 to 65 MB per index).
+**Decision.** I dropped PCA. The search keeps the full vectors with HNSW, which finds 97% of the exact top 10 in 0.014 to 0.018 ms. At my size, memory is not a problem (about 50 to 65 MB per index).
 
-**What I can't say yet**
+**Limits.** I tested only about 29,500 products. For millions of products the memory saving could matter, and a milder cut (more than 256 numbers) could be worth testing. I did not test that. I trained PCA on all the vectors, including the test products, which is fine for a comparison of methods, but a real system would train it on a separate sample. The timings are from one laptop, one thread, one query at a time.
 
-- I tested only about 29,500 products. For millions of products, the memory saving of PCA could matter, and a milder cut (more than 256 numbers) or a better trained reduction could be worth testing. I did not test that.
-- I trained PCA on all the vectors, including the test products. This is fine for a comparison of methods, but a real system would train it on a separate sample.
-- The timings are from one laptop, one thread, one query at a time.
+*References: I. T. Jolliffe and J. Cadima, "[Principal component analysis: a review and recent developments](https://doi.org/10.1098/rsta.2015.0202)," Philosophical Transactions of the Royal Society A, 2016. Notebook: [10 Shorter vectors with PCA, sections 1 to 5](notebooks/10_shorter_vectors_pca.ipynb). Numbers: [`ann_pca.json`](results/ann_pca.json).*
 
-**What I do next.** I will make the service stronger (checks on the input and proper error codes), and then add caching, Kubernetes and the weights page.
+![MLflow comparing the full vectors with the PCA vectors (148 runs, the ten headline runs)](evaluation/mlflow_ann_pca_runs.png)
 
-### Recorded in MLflow
-
-Every setting on the shorter vectors is one run in the experiment `ann-pca` (148 runs). The ten runs tagged `headline` are the exact search and HNSW without PCA, and HNSW with 256, 128 and 64 numbers (sentence vectors on the left, picture vectors on the right):
-
-![MLflow comparing the full vectors with the PCA vectors](evaluation/mlflow_ann_pca_runs.png)
-
-The walk-through, with every table and chart, is in [notebook 10](notebooks/10_shorter_vectors_pca.ipynb).
-
-
-References: Jolliffe and Cadima, [Principal component analysis: a review and recent developments](https://doi.org/10.1098/rsta.2015.0202) (2016) (PCA).
-
-### Reproduce it
+<details>
+<summary>Reproduce it</summary>
 
 ```bash
 python experiments/ann_pca.py                # PCA, then every method on the shorter vectors
 python experiments/log_ann_pca.py            # records the runs in MLflow
 ```
 
-## A picture of the vectors (t-SNE)
+</details>
 
-The picture vectors are long lists of numbers, which nobody can look at. t-SNE squeezes each one into two numbers, so that every product becomes a dot on a flat picture and similar products land close together (van der Maaten and Hinton, 2008). It is only for looking: it does not change any result and the search does not use it. I took 3,000 random products and drew them three times: with the full 512 numbers, and after PCA to 128 and to 64 numbers. The eight biggest categories are coloured.
+### 6. Drawing the vectors (t-SNE)
+
+The picture vectors are long lists of numbers, which nobody can look at. t-SNE squeezes each one into two numbers, so that every product becomes a dot on a flat picture and similar products land close together. It is only for looking: it does not change any search.
 
 ![t-SNE of 3,000 picture vectors, full and after PCA](evaluation/tsne_picture_vectors.png)
 
-### Conclusion
-
-**What I wanted to know:** do the picture vectors put similar products close together, and does PCA keep that?
-
-**What I found**
-
+**What I found.**
 - Products of the same category sit together: men's T-shirts, kurtas, sarees and caps and hats each form their own area. The picture vectors capture the kind of product, which is why a search over them works.
-- The three pictures look almost the same. The big groups stay together in the same places, even with 64 numbers. So PCA keeps the overall shape.
-- What PCA loses is the fine detail. Inside one big group there are many similar products, and which ones are the closest 10 changes a little when the vectors are cut. That is probably why the recall dropped in notebook 10.
+- The three pictures (the full vectors and two PCA cuts) look almost the same. The big groups stay together in the same places, even with 64 numbers. So PCA keeps the overall shape.
+- What PCA loses is the fine detail. Inside one big group there are many similar products, and which ones are the closest 10 changes a little when the vectors are cut. That is probably why the recall dropped in the PCA test.
 
-**What I can't say yet.** The picture is a rough view: distances in it are not exact, and it shows 3,000 products out of about 29,500. It does not replace the recall numbers. The walk-through is in [notebook 11](notebooks/11_tsne_picture_vectors.ipynb).
+**Decision.** t-SNE is only for looking, so it is not part of the search.
 
-References: van der Maaten and Hinton, [Visualizing data using t-SNE](https://www.jmlr.org/papers/v9/vandermaaten08a.html) (2008) (t-SNE).
+**Limits.** The picture is a rough view: distances in it are not exact, and it shows 3,000 products out of about 29,500. It does not replace the recall numbers.
 
-## The final search: exact mode and fast mode
+*References: L. van der Maaten and G. Hinton, "[Visualizing Data using t-SNE](https://www.jmlr.org/papers/v9/vandermaaten08a.html)," Journal of Machine Learning Research, 2008. Notebook: [11 t-SNE, section 1](notebooks/11_tsne_picture_vectors.ipynb).*
 
-The tuned hybrid is now in the real search (`HybridEngine` in [`src/product_similarity/hybrid.py`](src/product_similarity/hybrid.py)). It uses the 4-weight mix from the hybrid step: sentence vectors 46%, picture vectors 29%, the seven attributes 23% together, and the TF-IDF title 3%. The vectors were computed once, offline, so the search never loads a model.
+### 7. The final search
 
-- **Two modes, one hybrid.** Both score every shortlisted product with all ten parts, with the same weights and the same rescaling when a part is missing. They differ only in how the two vector parts are searched.
-- **Exact mode** (the default). Compares the sentence and picture vectors with every product.
-- **Fast mode.** An HNSW index for the sentence vectors and one for the picture vectors each return the 100 nearest products, and only those are scored. A product without a picture is found through its sentence vector.
-- **A switch.** The mode can be chosen for each search, and `PS_SEARCH_MODE` sets the default (`exact`, `fast`, or `baseline` when the vectors are missing). The page and the API will get a `mode` option.
+The tuned hybrid is in the real search (`HybridEngine` in [`hybrid.py`](src/product_similarity/hybrid.py)). It uses the 4-weight mix: sentence vectors 46%, picture vectors 29%, the seven attributes 23% together, and the TF-IDF title 3%.
+
+**What I did.** Two modes, one hybrid. Both score every shortlisted product with all ten parts, with the same weights and the same rescaling when a part is missing. They differ only in how the two vector parts are searched.
+- **Exact mode** (the default) compares the sentence and picture vectors with every product.
+- **Fast mode** uses an HNSW index for the sentence vectors and one for the picture vectors. Each returns the 100 nearest products, and only those are scored. A product without a picture is found through its sentence vector.
+- **A switch.** The mode can be chosen for each search, and `PS_SEARCH_MODE` sets the default. The API and the page have a `mode` option.
 - **One copy of each item.** Both modes skip the same item shown twice (the same picture, for example another size), the same rule that my ratings use.
-- **Checked against the notebooks.** The exact mode gives the same top 10, in the same order, for all 30 development products ([`results/final_search_check.json`](results/final_search_check.json)).
-- **The truth is my ratings, for both modes.** I rated the 26 new results that the two modes brought up. nDCG@10, precision@10 and the counts of results rated 2, 1 and 0 come from them ([`results/final_search_ratings.json`](results/final_search_ratings.json)). Time is the whole search, with the same rule as before, on the 30 development products ([`results/fast_vs_exact_check.json`](results/fast_vs_exact_check.json)).
+- **Checked against the notebooks.** The exact mode gives the same top 10, in the same order, for all 30 development products ([`final_search_check.json`](results/final_search_check.json)).
+- **The truth is my ratings, for both modes.** I rated the 26 new results that the two modes brought up ([`final_search_ratings.json`](results/final_search_ratings.json)).
 
-### Conclusion
-
-**What I did.** I put the tuned hybrid into the real search, with two modes. Both are the same hybrid, with all ten parts and the same weights. The **exact mode** compares the sentence and picture vectors with every product. The **fast mode** uses HNSW only to speed up those two parts: it takes the 100 nearest products from an index of the sentence vectors and from an index of the picture vectors, and scores only those. First I checked that the real search gives the same results as my notebooks (30 of 30 products). Then I took **my own ratings as the source of truth** for both modes (I rated the 26 new results first) and compared them on the 30 development products, with nDCG@10, precision@10 and the time of one search.
+**What I found.**
 
 | 30 development products | nDCG@10 | Precision@10 | Time per search |
 |---|---|---|---|
 | Exact mode | 0.8105 | 0.8767 | 8.5 ms |
 | Fast mode (HNSW, 100 from each index) | 0.8095 | 0.8767 | 0.58 ms |
 
-**What I found**
+- By my ratings, the two modes are almost the same. Of the 300 results of each mode, I rated 221 with a 2, 42 with a 1 and 37 with a 0 for the exact mode, and 220, 43 and 37 for the fast mode. On 27 of the 30 products the two modes score the same.
+- The fast mode is much faster: 0.58 ms against 8.5 ms, about 15 times.
 
-- By my ratings, the two modes are almost the same. nDCG@10 is 0.8105 and 0.8095, and precision@10 is the same. Of the 300 results of each mode, I rated 221 with a 2, 42 with a 1 and 37 with a 0 for the exact mode, and 220, 43 and 37 for the fast mode.
-- The fast mode is much faster: 0.58 ms against 8.5 ms, about 15 times. This is the advantage of HNSW.
+**Decision.** The exact mode is the default, and the fast mode is a switch. I built the page and the API option to choose between them and to see the time of each search (see [The page](#the-page)).
 
-**Decision.** The exact mode is the default. I will create a page where I can choose between the default (exact) mode and the HNSW (fast) mode, see the time of each search, and tune the weights as well.
+**The two indexes.** Fast mode keeps two HNSW indexes in memory:
+1. One HNSW index for the sentence vectors, built on the title meaning (384 numbers per product).
+2. One HNSW index for the picture vectors, built on the CLIP pictures (512 numbers per product).
 
-**Limitations**
+| Index | Memory |
+|---|---|
+| Index for sentence vectors | about 49.6 MB |
+| Index for picture vectors | about 64.4 MB |
+| Together | about 114 MB |
 
-- HNSW needs a little more memory, because its two indexes (114 MB) are kept on top of the vectors (166 MB), and building them takes about 13 seconds, once.
-- If a picture vector or a sentence vector is missing, the search works the same in both modes: that part is skipped and the other weights are scaled up. I checked this in a small test, not on the 30 products, because all of them have both vectors.
-- I tested only 30 products, with my ratings as the truth.
-- My weights were tuned on these same 30 products, so the scores are optimistic. The final test on the 20 locked products is in notebook 14.
-- The fast mode makes its shortlist from the title meaning and the picture only, so a product that matches the query only through its attributes (brand, category, price) may not be on it.
-- I did not test a much bigger catalogue, where the fast mode would matter most. The timings are from one laptop, one thread, one query at a time.
+**Limits.** HNSW needs a little more memory, because the two indexes (114 MB) are kept on top of the vectors (166 MB), and building them takes about 13 seconds, once. If a picture vector or a sentence vector is missing, the search works the same in both modes (that part is skipped), which I checked in a small test, not on the 30 products. The fast mode makes its shortlist from the title meaning and the picture only, so a product that matches the query only through its attributes may not be on it. I did not test a much bigger catalogue. My weights were tuned on these same 30 products, so the scores are optimistic, and the final test on the locked products is next.
 
-**What I do next.** The stronger API (input checks, error codes and the `mode` option), then Kubernetes and the CI/CD improvements, then the page with the weights and the mode switch, and the final cleanup.
-
-### Recorded in MLflow
-
-Each run is recorded in the experiment `final-search` (5 runs). The two runs tagged `headline` are the exact mode and the fast mode with 100 nearest products from each index:
+*Notebook: [12 The final search, sections 1 to 5](notebooks/12_final_search.ipynb). Numbers: [`final_search_ratings.json`](results/final_search_ratings.json), [`fast_vs_exact_check.json`](results/fast_vs_exact_check.json).*
 
 ![MLflow comparing the exact mode and the fast mode of the final search](evaluation/mlflow_final_search_runs.png)
 
-The walk-through, with every table, is in [notebook 12](notebooks/12_final_search.ipynb).
-
-### Reproduce it
+<details>
+<summary>Reproduce it</summary>
 
 ```bash
 python experiments/check_final_search.py       # the real search against the notebooks
@@ -1329,82 +1186,74 @@ python experiments/check_fast_vs_exact.py      # exact mode against fast mode: t
 python experiments/log_final_search.py         # records the runs in MLflow
 ```
 
-## Caching
+</details>
+
+### 8. The cache
 
 A search takes about 10 ms, and the same question often comes again. So the service keeps the answers of recent questions and gives them back without searching.
 
-- **An in-process cache.** It lives in the memory of the service. It keeps 1,024 answers by default (`PS_CACHE_SIZE`, and 0 turns it off), and when it is full it drops the answer that was used least recently. It is safe when many requests arrive at once.
-- **The question.** The product and the number of results. Another product or another number is another question, and an old ID and the product that was kept share one entry. The mode and the weights will be added when the API gets them. Only answers of up to 100 results are cached, and a product that does not exist is never saved.
+**What I did.** An **in-process cache**: it lives in the memory of the service. It keeps 1,024 answers by default (`PS_CACHE_SIZE`, and 0 turns it off), and when it is full it drops the answer that was used least recently. It is safe when many requests arrive at once.
+- **The question** is the product, the number of results, the mode and the weights. Another product, number, mode or weights is another question, and an old ID and the product that was kept share one entry. Only answers of up to 100 results are cached.
 - **What the API shows.** The plain endpoint has an `X-Cache` header (`hit` or `miss`). The details endpoint has a `cached` field. `GET /cache` reports the entries, the hits, the misses and the hit rate.
-- **The record** is [`results/cache_benchmark.json`](results/cache_benchmark.json), made by `experiments/measure_cache.py`.
 
-### Conclusion
-
-**What I did.** I added caching to the service. It remembers the answers to the last 1,024 questions, so a question that comes again is answered from memory, without searching.
+**What I found.**
 
 | One request | Time |
 |---|---|
 | Not remembered (miss) | 9.6 ms |
 | Remembered (hit) | 0.77 ms |
 
-**What I found.** A remembered answer is about 12 times faster, and it is the same answer. In a simulation where a few products are asked for often, the cache answers about half of the requests, and the average time drops from 10.3 ms to 5.5 ms.
+A remembered answer is about 12 times faster, and it is the same answer. In a simulation where a few products are asked for often, the cache answers about half of the requests, and the average time drops from 10.3 ms to 5.5 ms.
 
-**Limitation.** The cache is lost when the service restarts. With several copies of the service (Kubernetes), each copy has its own cache, so fewer requests are answered from memory. A shared cache such as Redis would fix this. I did not build it.
+**Decision.** I kept the in-process cache. It is simple and needs nothing else to run.
 
-**What I do next.** The stronger API, then Kubernetes and CI/CD, then the page, and the final cleanup.
+**Limits.** The cache is lost when the service restarts. With several copies of the service (Kubernetes), each copy has its own cache, so fewer requests are answered from memory. A shared cache such as Redis would fix this. I describe it as the upgrade, and I did not build it.
 
-### Recorded in MLflow
-
-Each measurement is a run in the experiment `caching` (6 runs): one request that is not in the cache, one that is, and the traffic simulation for each cache size.
+*Notebook: [13 Caching, sections 1 to 4](notebooks/13_caching.ipynb). Numbers: [`cache_benchmark.json`](results/cache_benchmark.json), made by `experiments/measure_cache.py`.*
 
 ![MLflow comparing a cache miss, a cache hit and the traffic simulation](evaluation/mlflow_cache_runs.png)
 
-The walk-through, with every table and chart, is in [notebook 13](notebooks/13_caching.ipynb).
-
-### Reproduce it
+<details>
+<summary>Reproduce it</summary>
 
 ```bash
 python experiments/measure_cache.py   # miss against hit, and the traffic simulation
 python experiments/log_cache.py       # records the runs in MLflow
 ```
 
-## The final test on the 20 locked products
+</details>
+
+### 9. The final test
 
 Since the start, 20 of my 50 test products have been locked: I never rated their results or used them in tuning. All the weights and settings were chosen with the other 30. This is the one test of the finished search on products it has never seen, and I changed nothing after seeing the result.
 
-- **The pool.** The top 10 of both modes of the final search (exact, and fast with HNSW), put into one blind page of 204 results, shuffled, with no method names ([`experiments/run_final_test_rating.py`](experiments/run_final_test_rating.py)).
-- **The truth is my ratings.** I rated every result 0, 1 or 2 ([`evaluation/judgments/final_grades.csv`](evaluation/judgments/final_grades.csv)). Each mode is scored from its own top 10 with nDCG@10 and precision@10, and the whole search is timed ([`results/final_test_scores.json`](results/final_test_scores.json)).
+**What I did.** I put the top 10 of both modes (exact, and fast with HNSW) into one blind page of 204 results, shuffled, with no method names ([`run_final_test_rating.py`](experiments/run_final_test_rating.py)). I rated every result 0, 1 or 2 ([`final_grades.csv`](evaluation/judgments/final_grades.csv)), and scored each mode from its own top 10.
 
-### Conclusion
-
-**What I did.** I tested the finished search once, on the 20 products that were locked from the start. I rated the top 10 results of both modes (exact and fast), 204 results in all, and scored each mode from my ratings.
+**What I found.**
 
 | 20 locked products | nDCG@10 | Precision@10 | Time per search |
 |---|---|---|---|
 | Exact mode | 0.9659 | 0.87 | 7.0 ms |
 | Fast mode (HNSW) | 0.9657 | 0.87 | 0.42 ms |
 
-**What I found.** On products it had never seen, both modes work: precision@10 is 0.87 for both, close to 0.877 on the development products. The fast mode gives the same quality and is about 17 times faster.
+On products it had never seen, both modes work: Precision@10 is 0.87 for both, close to 0.877 on the development products. The fast mode gives the same quality and is about 17 times faster.
 
-**Limitation.** The nDCG@10 here (0.97) cannot be compared with 0.81 on the development products, because the rated results come only from this one system. Precision@10 is the number to compare. It is only 20 products, rated by me, and the test was used once.
+**Limits.** The nDCG@10 here (0.97) cannot be compared with 0.81 on the development products, because the rated results come only from this one system. Precision@10 is the number to compare. It is only 20 products, rated by me, and the test was used once.
 
-**What I do next.** The stronger API, then Kubernetes and CI/CD, then the page, and the final cleanup.
-
-### Recorded in MLflow
-
-Each mode is a run in the experiment `final-test` (2 runs):
+*Notebook: [14 The final test, sections 1 to 3](notebooks/14_final_test.ipynb) (section 3 explains how to read the nDCG@10 here). Numbers: [`final_test_scores.json`](results/final_test_scores.json).*
 
 ![MLflow comparing the exact mode and the fast mode on the 20 locked products](evaluation/mlflow_final_test_runs.png)
 
-The walk-through, with the product-by-product table, is in [notebook 14](notebooks/14_final_test.ipynb).
-
-### Reproduce it
+<details>
+<summary>Reproduce it</summary>
 
 ```bash
 python experiments/run_final_test_rating.py   # the blind rating page (used once)
 python experiments/score_final_test.py        # scores both modes with my ratings
 python experiments/log_final_test.py          # records the runs in MLflow
 ```
+
+</details>
 
 ## Where the numbers come from
 
