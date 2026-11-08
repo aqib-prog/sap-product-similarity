@@ -8,6 +8,7 @@ The project is built for the SAP technical exercise. The original task descripti
 
 - [What it does](#what-it-does)
 - [Architecture](#architecture)
+- [Tech stack](#tech-stack)
 - [How this answers the brief (code)](#how-this-answers-the-brief-code)
 - [Results at a glance](#results-at-a-glance)
 - [Data exploration (EDA)](#data-exploration-eda)
@@ -65,6 +66,26 @@ Each feature gives a similarity score, and a weightage says how much that featur
 There is no answer key, so I rated results myself on blind pages ([04, section 1 The ratings](notebooks/04_evaluation_baseline.ipynb)). I tuned the weightage on those ratings, one weight at a time, and checked it with 5-fold cross-validation. I shuffled my 30 development products with a fixed seed into 5 groups, tuned on 4 groups, and scored the group left out, five times. So the scores come from products the weights had not seen ([08, section 2 Choosing the weights](notebooks/08_hybrid_search.ipynb)). The 20 locked products were kept aside for the final test ([14, section 1 How the test was done](notebooks/14_final_test.ipynb)).
 
 A search runs in one of two modes. Exact compares with every product. Fast uses an HNSW index to pick about 100 close products first ([09, section 3 The fast methods](notebooks/09_fast_vector_search.ipynb), [10, section 2 Results: every method, with and without PCA](notebooks/10_shorter_vectors_pca.ipynb), [11, section 1 How I did it](notebooks/11_tsne_picture_vectors.ipynb), [12, section 1 How the final search works](notebooks/12_final_search.ipynb)). Repeated questions are answered from a cache ([13, section 1 How my cache works](notebooks/13_caching.ipynb)). The service is a FastAPI app with the cache and a page ([15, sections 1 to 5](notebooks/15_stronger_api.ipynb)), packaged as a Docker image and run on Kubernetes with 2 pods. Prometheus and Grafana show how it behaves.
+
+## Tech stack
+
+The Architecture picture shows the flow, and this table names the tool behind each box. The versions are the ones pinned in [`requirements.txt`](requirements.txt) and [`pyproject.toml`](pyproject.toml).
+
+| Area | Tool | Used for |
+|---|---|---|
+| Language | Python 3.10 (3.9 or newer works) | everything |
+| Data and maths | numpy 2.0.2, scipy 1.13.1, scikit-learn 1.6.1 | loading, scoring, TF-IDF, PCA and t-SNE |
+| Title features | TF-IDF (scikit-learn); the `all-MiniLM-L6-v2` sentence model from Hugging Face, through `sentence-transformers` | title words and title meaning |
+| Picture features | CLIP (`openai/clip-vit-base-patch32`, through `transformers` and PyTorch); ResNet as the comparison | picture vectors |
+| Vector search | FAISS 1.13.0 (Flat, HNSW and IVF); Annoy 1.17.1 for the benchmark | the fast mode and the speed tests |
+| **Experiment tracking** | **MLflow** (2.16 or newer) | every experiment run is recorded with its settings, the weights, the data fingerprint and its scores (nDCG@10, Precision@10 and time), so runs can be compared side by side. The screenshots in this README come from it. The MLflow databases stay on my computer and are not in Git, and the service never uses MLflow. |
+| Service | FastAPI 0.128.8 and uvicorn 0.39.0 | the endpoint and the page |
+| Packaging and deployment | Docker (`python:3.10-slim`) and Kubernetes | the image, 2 pods, a Service, probes and a rolling update |
+| Automation | GitHub Actions | tests, Docker and Kubernetes checks and the security scans, on every push |
+| Monitoring | Prometheus 2.55 and Grafana 11.3 (with `prometheus-client` 0.21.1 in the service) | the numbers on `/metrics`, the dashboard and the alert rules |
+| Quality | pytest, ruff, pip-audit and Trivy | tests, code style and security scans |
+
+**What is in the Docker image, and what is not.** The image holds only what the service needs: FastAPI, uvicorn, numpy, scipy, scikit-learn, FAISS, `prometheus-client`, and the half-size vector files. PyTorch, `transformers`, `sentence-transformers`, MLflow, Annoy and the notebooks are used offline, to build the vectors and run the experiments, and they are not in the image.
 
 ## How this answers the brief (code)
 
