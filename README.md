@@ -31,6 +31,81 @@ There is no answer key, so I rated results myself on blind pages ([04](notebooks
 
 A search runs in one of two modes. Exact compares with every product. Fast uses an HNSW index to pick about 100 close products first ([09](notebooks/09_fast_vector_search.ipynb), [10](notebooks/10_shorter_vectors_pca.ipynb), [11](notebooks/11_tsne_picture_vectors.ipynb), [12](notebooks/12_final_search.ipynb)). Repeated questions are answered from a cache ([13](notebooks/13_caching.ipynb)). The service is a FastAPI app with the cache and a page ([15](notebooks/15_stronger_api.ipynb)), packaged as a Docker image and run on Kubernetes with 2 pods. Prometheus and Grafana show how it behaves.
 
+## Results at a glance
+
+I scored every method against my own ratings (0, 1 or 2) on the 30 development products, then ran a final test on 20 products I had locked away from the start. I rated each result on a blind page: a card with the picture and 0, 1 and 2 buttons, with no method names shown. How the ratings work is in [notebook 04](notebooks/04_evaluation_baseline.ipynb).
+
+![The rating page: each result is a card with a picture and 0, 1, 2 buttons](evaluation/rating_page.png)
+
+**Which products?** I picked 50 products with a fixed seed, so anyone gets the same 50. They come from seven groups, so they are not all alike:
+
+| Group | Products |
+|---|---|
+| Common categories | 12 |
+| Rare categories | 6 |
+| Sparse data (many fields missing) | 8 |
+| Complete data | 8 |
+| Repeated titles | 8 |
+| Low prices | 4 |
+| High prices | 4 |
+
+30 of them are the **development products**, which I used to compare the methods and tune the weights. The other 20 are **locked**: I never used them for tuning or for choosing a method until the final test. The full list is in [`evaluation/queries.json`](evaluation/queries.json), and the details are in [How the results were evaluated](#how-the-results-were-evaluated).
+
+Two scores are used. **Precision@10** is how many of the 10 results I returned were relevant (rated 1 or 2). The rest are noise (rated 0). A precision of 0.87 means about 8.7 relevant results in 10. **nDCG@10** also rewards putting the best results first. Higher is better for both. Compare rows inside one table only, because each table was rated on its own pool of results.
+
+**1. Which features matter** (30 development products)
+
+| Method | nDCG@10 | Precision@10 |
+|---|---|---|
+| **Hybrid, 4 weights (final)** | **0.806** | **0.87** |
+| Hybrid, 10 weights | 0.764 | 0.82 |
+| Picture only (CLIP) | 0.750 | 0.85 |
+| Title meaning only (sentence vectors) | 0.659 | 0.76 |
+| First baseline (title words and attributes) | 0.637 | 0.74 |
+| Title words only (TF-IDF) | 0.498 | 0.55 |
+| Attributes only | 0.420 | 0.62 |
+
+The hybrid is my approach of combining everything into one score. **4 weights** means four features: title words, title meaning, picture and attributes (the seven attributes counted together). **10 weights** means ten features: title words, title meaning, picture, and each of the seven attributes (category, brand, audience, price, colour, weight and rating) on its own. The hybrid scores come from products the weights had not seen (5-fold cross-validation). Combining everything beats every single feature, and four weights beat ten.
+
+Notebook: [08 Hybrid search](notebooks/08_hybrid_search.ipynb). Numbers: [`dev_hybrid_scoreboard.csv`](results/dev_hybrid_scoreboard.csv).
+
+**2. Exact against fast** (30 development products)
+
+| Mode | How it works | nDCG@10 | Precision@10 | Time per search |
+|---|---|---|---|---|
+| Exact | compares your product with all 29,529 products (the 30,000 records after merging the 471 repeats) | 0.8105 | 0.877 | 8.5 ms |
+| Fast | uses the HNSW approach: an index picks about 100 close products first | 0.8095 | 0.877 | 0.58 ms |
+
+Nearly the same quality, about 15 times faster.
+
+Notebook: [12 Final search](notebooks/12_final_search.ipynb). Numbers: [`fast_vs_exact_check.json`](results/fast_vs_exact_check.json).
+
+**3. The final test** (20 locked products, rated once)
+
+| Mode | nDCG@10 | Precision@10 | Time per search |
+|---|---|---|---|
+| Exact | 0.9659 | 0.87 | 7.0 ms |
+| Fast (HNSW) | 0.9657 | 0.87 | 0.42 ms |
+
+Of the 200 results I rated, 174 were relevant (rated 1 or 2) and 26 were noise (rated 0), which is a precision of 0.87, the same as on the development products. The fast mode is about 17 times faster with the same precision.
+
+The nDCG is near 1 here for a simple reason. nDCG asks how close my top 10 is to the best top 10 I could build from all the results I rated. In the earlier tables the rated results came from many methods, some good and some bad. In this test I only rated results from the final system, so there was nothing better to compare against, and the score comes out high. So in this table, trust Precision@10.
+
+Notebook: [14 Final test](notebooks/14_final_test.ipynb). Numbers: [`final_test_scores.json`](results/final_test_scores.json).
+
+**4. The cache**
+
+| | Time |
+|---|---|
+| A new search | 9.6 ms |
+| The same search again (cache hit) | 0.77 ms |
+
+About 12 times faster.
+
+The cache is **in-process**: each running copy of the service keeps the last 1,024 answers in its own memory. A question is the product, the number of results, the mode and the weights. Answers for more than 100 results are never kept. The cache is lost when the service restarts, and each Kubernetes pod has its own. A shared cache such as Redis would fix that, and I describe it as the upgrade but did not build it. More in [Caching](#caching).
+
+Notebook: [13 Caching](notebooks/13_caching.ipynb). Numbers: [`cache_benchmark.json`](results/cache_benchmark.json).
+
 ## What I did so far
 
 I work in small steps. After each step I check the result, and I write down what I found. I build on a `dev` branch and merge into `main` with a pull request.
