@@ -1448,28 +1448,133 @@ The cluster is deleted when the job ends. See [Tests and CI/CD](#tests-and-cicd)
 
 ## Monitoring
 
-The service shows its own numbers (requests, time, cache hits, errors) on `/metrics`. Prometheus collects them and Grafana draws them as a dashboard. The files are in [`monitoring/`](monitoring/), and CI checks that it works.
+### What monitoring is, and why I added it
 
-The screenshot is from a run on my laptop with 2,052 test searches. The memory panel is empty because only Linux shows memory.
+Once a service is running, I need to see how it is doing without reading its log: how many searches it answers, how long they take, how often the cache helps, and whether errors appear. That is **monitoring**. It uses three tools, each with one job:
+
+| Tool | Its job |
+|---|---|
+| **The service** (`/metrics`) | Counts what it does and shows the counts as plain text |
+| **Prometheus** | Reads `/metrics` of every pod every 5 seconds and stores the numbers over time. It also checks the two alert rules |
+| **Grafana** | Draws the stored numbers as a dashboard |
+
+The files are in [`monitoring/`](monitoring/).
 
 ![The Grafana dashboard](monitoring/screenshots/grafana-dashboard.png)
+
+*The screenshot is from a run on my laptop with 2,052 test searches. The memory panel is empty because only Linux shows memory.*
+
+### What the service counts
+
+The code is in [`metrics.py`](src/product_similarity/metrics.py). Every number starts with `ps_`.
+
+| Number | What it counts |
+|---|---|
+| `ps_http_requests_total` | Requests answered, by endpoint and status code |
+| `ps_http_request_seconds` | How long a request took, by endpoint |
+| `ps_searches_total` | Searches, by mode (exact or fast) and by cache (hit or miss) |
+| `ps_search_seconds` | The time of a search that was really run, not answered from the cache |
+| `ps_errors_total` | Errors, by error code |
+| `ps_cache_entries` | How many answers the cache holds |
+| `ps_ready` | 1 when the data is loaded, otherwise 0 |
+
+### The dashboard
+
+The dashboard ([`dashboard.json`](monitoring/dashboard.json)) has eight panels. Grafana reads it from a file, so nobody has to click it together.
+
+1. **Searches per second, by status code:** how busy the service is, and whether some requests fail.
+2. **Search time (p50 and p95):** the typical time and the slow end. p95 means that 95 of 100 searches are faster than this number.
+3. **Cache hit rate:** how many searches the cache answered.
+4. **Exact and fast searches per second:** which mode is used.
+5. **Errors per second, by code:** which errors happen.
+6. **Pods that are up:** how many pods Prometheus can reach.
+7. **Answers kept in the cache** (limit 1,024).
+8. **Memory of each pod** (Linux only).
+
+### The alerts
+
+Two rules in [`alerts.yml`](monitoring/alerts.yml) turn a warning light on in Prometheus:
+
+| Alert | When it fires | Why this rule |
+|---|---|---|
+| `HighErrorRate` (critical) | More than 5 in 100 requests end in a server error (5xx) for 5 minutes | A wrong input from a caller (422 or 404) is not the service's fault, so those are not counted |
+| `SlowSearch` (warning) | The slowest 5 in 100 searches take longer than 100 ms for 5 minutes | A normal search takes about 10 ms |
+
+### How to run it
+
+**On my laptop** (no Docker needed): install Prometheus and Grafana with `brew install prometheus grafana`, start the service, then:
+
+```bash
+bash monitoring/run_local.sh               # starts Prometheus (9090) and Grafana (3000)
+python monitoring/send_traffic.py          # sends some searches, so the panels fill
+```
+
+Open Grafana at `http://localhost:3000` (no login needed) and Prometheus at `http://localhost:9090`. The numbers are kept in a temporary folder that is deleted when you stop the script.
+
+**In Kubernetes:** one command applies both tools, and Prometheus finds the pods by itself:
+
+```bash
+kubectl apply -k monitoring/
+```
+
+### What CI tests
+
+The `kubernetes` job ([`ci.yml`](.github/workflows/ci.yml)) checks the monitoring files, deploys Prometheus and Grafana on the temporary cluster, sends traffic, and checks that Prometheus reads both pods and that Grafana shows the dashboard. The docker job checks that `/metrics` reports the numbers that its own requests caused. See [Tests and CI/CD](#tests-and-cicd).
+
+### Limits
+
+- The alerts show in Prometheus. I did not set up a place to send them to (such as an email or a chat message), because there is nobody to receive them.
+- I run the dashboard on my laptop and on the temporary cluster in CI. I did not run it on a real cluster.
+- The memory panel works only on Linux, so it is empty on my Mac.
 
 ## Tests and CI/CD
 
 ### Tests
 
-There are 282 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
+There are **283 tests**: 274 unit tests and 9 integration tests. They run with one command:
+
+```bash
+pytest
+```
+
+| Group | What it checks |
+|---|---|
+| Unit tests (`tests/unit/`) | Small pieces on their own: loading and cleaning the data, scoring and ranking, the hybrid search and the weights, the fast vector search, the cache, the API and its errors, the page, the metrics, the Kubernetes files, the vector files, the rating tools, MLflow logging and the image and text code |
+| Integration tests (`tests/integration/`) | The real dataset and the real API, end to end |
+
+The code style is checked with `ruff` (`ruff check .` and `ruff format --check .`). The `Makefile` has the shortcuts `make lint` and `make test`.
 
 ### CI/CD with GitHub Actions
 
-On every push and pull request, GitHub Actions runs four jobs:
+**CI** (continuous integration) means that every time I push, a computer at GitHub builds the project and runs all the checks, so a mistake shows up in minutes. The file is [`.github/workflows/ci.yml`](.github/workflows/ci.yml). It runs on every push and every pull request, in four jobs.
 
-1. **test:** installs the project (with FAISS, so the fast-mode tests run), checks the code style with ruff, and runs all the tests.
-2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks the same question three times and prints the result of each (request 1: `X-Cache: miss`, request 2: `X-Cache: hit` with an identical answer, request 3 on the details endpoint: `cached: true`), checks that `/cache` reports 2 hits and 1 miss, checks that the fast mode and the weights work (for five searches it prints the mode asked and the mode that ran, the weights set and the weights used, the response time, whether it came from the cache, and the three most similar titles; it checks that picture-only, title-only and a mix give three different lists), checks that eight kinds of bad input give a 422, checks that an unknown ID returns 404, checks that `/metrics` reports the numbers that these steps caused, checks that the page is served at `/`, checks that the container does not run as root, and scans the image with Trivy, a security test of the image.
-3. **security:** runs `pip-audit`, a security test of the packages of the service.
-4. **kubernetes:** checks the Kubernetes files against the official schemas, builds the image, starts a temporary cluster (kind) and deploys the two pods and the Service. It checks that both pods are ready and that a search through the Service works, deletes one pod and checks that 20 requests still return 200, and runs a rolling update while sending requests to check that none fails. Then it runs the same API checks as the docker job against one pod (the cache requests miss, hit, hit; the five settings; the eight bad inputs; the unknown product). Last, it checks the monitoring files, deploys Prometheus and Grafana, sends traffic, and checks that Prometheus reads both pods and that Grafana shows the dashboard.
+| Job | What it checks | Stops the pipeline? |
+|---|---|---|
+| **test** | Installs the project (with FAISS, so the fast-mode tests run), checks the code style with ruff, and runs all 283 tests | Yes |
+| **docker** | Builds the image, starts the container, and tests the running service (see below) | Yes, except the Trivy scan, which is a warning |
+| **security** | Runs `pip-audit` on the packages of the service, looking for known vulnerabilities | No, a warning only |
+| **kubernetes** | Checks the Kubernetes files, then deploys them on a temporary cluster and tests them (see below) | Yes |
 
-The docker and kubernetes jobs only start if the test job passes. I merge into `main` through a pull request. I do not deploy to a real cluster (see "Kubernetes"); CI shows that the files work in a temporary one.
+The docker and kubernetes jobs start only if the test job passes, so a broken change does not waste their time.
+
+**What the docker job checks.** It starts the container and waits until it is ready, then checks that:
+- it runs the final search (`/ready` says `hybrid`);
+- the same question asked three times gives `X-Cache: miss`, then `hit`, then `cached: true` on the details endpoint, with an identical answer, and `/cache` reports 2 hits and 1 miss;
+- the fast mode and the weights work (picture-only, title-only and a mix give three different lists);
+- eight kinds of bad input give a 422, and an unknown ID gives a 404;
+- `/metrics` reports the numbers that these steps caused;
+- the page is served at `/`, and the container does not run as root;
+- the image has no known serious vulnerabilities (a scan with Trivy, a warning only).
+
+**What the kubernetes job checks.** It checks the files against the official Kubernetes schemas, builds the image, starts a temporary cluster (kind) and deploys the two pods and the Service. Then it checks that both pods are ready and that a search through the Service works. It deletes one pod and checks that 20 requests still return 200, and it runs a rolling update while sending requests to check that none fails. It runs the same API checks as the docker job against one pod. Last, it checks the monitoring files, deploys Prometheus and Grafana, sends traffic, and checks that Prometheus reads both pods and that Grafana shows the dashboard. See [Kubernetes](#kubernetes) and [Monitoring](#monitoring).
+
+### Why Docker and Kubernetes are tested here
+
+I do not have Docker on my own computer, so CI is where the image is built and run for real. This is also why the pipeline tests so much of the running service: the checks are the proof that the image and the Kubernetes files work.
+
+### What CI/CD does not do
+
+The pipeline is mostly CI. It builds the image and tests it, but it does not **deploy** (the "CD" part): it does not push the image to a registry and does not update a real cluster, because I have no cluster to deploy to (see [Kubernetes](#kubernetes)). I merge into `main` through a pull request after the checks pass.
 
 ## Getting started (yet to review)
 
