@@ -221,7 +221,7 @@ I had also written down 24 facts from a first quick look at the data, such as "3
 
 ![Weight is mostly missing](screenshots/eda/04_weight_missing.png)
 
-**5. Colour is a list of options, not the product's colour.** A shirt listed as "Black, Blue, Grey" does not say which one is in the photo, and only about 20% of products have a colour value at all. So I read the colour from the title and treat the colour field as weak evidence.
+**5. Colour is a list of options, not the product's colour.** The data has a colour field for only about 20% of products, and it holds a list of everything the product comes in, for example "Black, Blue, Grey". It is not the colour of the item you see in the photo, so from that field alone I cannot tell which colour this particular product is. What I do instead is read the colour from the title, using a fixed list of colour words (for example "Navy Blue Kurta" gives navy blue). The listed colours are kept only as weak evidence.
 
 ![Colour is a list of options, not one colour](screenshots/eda/05_colour_options.png)
 
@@ -233,7 +233,7 @@ I had also written down 24 facts from a first quick look at the data, such as "3
 
 ![471 rows are repeat copies of the same product](screenshots/eda/07_repeat_copies.png)
 
-**8. Many products share a title.** 10,147 products (34%) share an exact title with another product, so titles alone would give ties. I combine the title with the picture and the attributes, and break any remaining ties with a fixed rule.
+**8. Many products share a title.** 10,147 products (34%) share an exact title with another product, so titles alone would give ties. I combine the title with the picture and the attributes. If two products still get the same score, the one with the smaller product ID goes first. Scores are rounded to 6 decimals first, so tiny computer rounding errors cannot change the order. The same question always gives the same list.
 
 ![34% of products share a title with another product](screenshots/eda/08_shared_titles.png)
 
