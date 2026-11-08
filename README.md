@@ -23,9 +23,8 @@ The project is built for the SAP technical exercise. The original task descripti
 - [Kubernetes](#kubernetes)
 - [Monitoring](#monitoring)
 - [Tests and CI/CD](#tests-and-cicd)
-- [Getting started (yet to review)](#getting-started-yet-to-review)
-- [Run the service (yet to review)](#run-the-service-yet-to-review)
-- [Limits so far](#limits-so-far)
+- [Getting started](#getting-started)
+- [Limits and improvements](#limits-and-improvements)
 - [Project layout](#project-layout)
 - [License](#license)
 
@@ -1202,7 +1201,7 @@ The cache question is the product, the number of results, the mode and the weigh
 
 ## Example
 
-Here is the service answering real requests. I started it on my computer (`localhost:8000`, see [Getting started](#getting-started-yet-to-review)) and copied what it returned. Times change from machine to machine. The product is a saree blouse fabric, and its ID is `26d41bdc1495de290bc8e6062d927729`.
+Here is the service answering real requests. I started it on my computer (`localhost:8000`, see [Getting started](#getting-started)) and copied what it returned. Times change from machine to machine. The product is a saree blouse fabric, and its ID is `26d41bdc1495de290bc8e6062d927729`.
 
 ### 1. The required call
 
@@ -1444,7 +1443,7 @@ The cluster is deleted when the job ends. See [Tests and CI/CD](#tests-and-cicd)
 
 - I do not deploy to a real cluster, because I have no cluster to deploy to.
 - I do not push the image to a registry (an online store for images, such as Docker Hub), so `deployment.yaml` names a local image, `product-similarity:latest`.
-- For a real deployment I would push the image to a registry, put its name in `deployment.yaml`, and run `kubectl apply -f k8s/`. When I run the service on my own computer, I run it with `uvicorn` (see [Getting started](#getting-started-yet-to-review)).
+- For a real deployment I would push the image to a registry, put its name in `deployment.yaml`, and run `kubectl apply -f k8s/`. When I run the service on my own computer, I run it with `uvicorn` (see [Getting started](#getting-started)).
 
 ## Monitoring
 
@@ -1576,49 +1575,110 @@ I do not have Docker on my own computer, so CI is where the image is built and r
 
 The pipeline is mostly CI. It builds the image and tests it, but it does not **deploy** (the "CD" part): it does not push the image to a registry and does not update a real cluster, because I have no cluster to deploy to (see [Kubernetes](#kubernetes)). I merge into `main` through a pull request after the checks pass.
 
-## Getting started (yet to review)
+## Getting started
 
-> **Yet to review:** written early, before the page, Docker, Kubernetes and monitoring existed. It will be merged with "Run the service" into one "Getting started" section.
+You need Python 3.9 or newer. I tested a fresh clone of the repository on Python 3.9, CI uses Python 3.10, and the Docker image uses Python 3.10. Everything below runs from the folder of the repository.
 
-Requires Python 3.9 or newer (CI runs Python 3.10).
+### 1. Run the service
 
 ```bash
+git clone https://github.com/aqib-prog/sap-product-similarity.git
+cd sap-product-similarity
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev,notebooks]"
-make test
-make lint
-```
-
-Optional extras: `experiments` (MLflow) and `images` (ResNet and CLIP). Neither is needed to run the service or the tests.
-
-To open the notebooks:
-
-```bash
-jupyter lab notebooks/
-```
-
-## Run the service (yet to review)
-
-> **Yet to review:** needs the page at `/`, `PS_PREBUILD_FAST=1`, the Docker command and the Dashboard.
-
-```bash
+pip install --upgrade pip
+pip install -r requirements.txt
 PYTHONPATH=src uvicorn app:app --port 8000
 ```
+
+Wait a few seconds until the log says "Application startup complete", then open [http://localhost:8000](http://localhost:8000) for the page, or try the API:
 
 ```bash
 curl "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=5"
 ```
 
-The response is a JSON list of product IDs. An unknown ID returns 404, invalid input returns 422, and `/live` and `/ready` report service health. `/find_similar_products/details` returns the same search with titles, prices, scores and timing.
+The response is a JSON list of product IDs (more examples are in [Example](#example)). The dataset and the half-size vectors are in the repository, so nothing else needs to be downloaded.
 
-## Limits so far
+- **The first fast search is slow** (about 13 seconds on my laptop), because the fast indexes are built then. To build them at start instead, run with `PS_PREBUILD_FAST=1`, as the Docker image does.
+- **The service is ready when `/ready` says so.** The page shows the same in its green badge.
 
-- One person rated the results, so the labels reflect one judgment.
-- Only 30 development products have been used, so small differences cannot be told apart.
-- The hybrid weights were tuned on the same 30 products that I report on. The cross-validation scores come from products the weights had not seen, but the 20 locked products gave the honest final test (notebook 14).
+The settings are environment variables:
+
+| Variable | What it does | Default |
+|---|---|---|
+| `PS_SEARCH_MODE` | The mode when a request does not say one (`exact` or `fast`) | `exact` |
+| `PS_MAX_RESULTS` | The most results one request may ask for | 1,000 |
+| `PS_CACHE_SIZE` | How many answers the cache keeps (0 turns it off) | 1,024 |
+| `PS_PREBUILD_FAST` | Build the fast indexes at start (`1`) | off |
+| `PS_REQUIRE_VECTORS` | Stop with an error if the vectors are missing (`1`) | off (the Docker image sets it) |
+
+### 2. Run it with Docker
+
+```bash
+docker build -t product-similarity .
+docker run -p 8000:8000 product-similarity
+```
+
+The service is then at the same address. See [The service and Docker](#the-service-and-docker) for what is in the image.
+
+### 3. Run the tests
+
+```bash
+pip install -e ".[dev]" faiss-cpu==1.13.0
+pytest
+```
+
+On a fresh clone this gives 281 passed and 1 skipped. The skipped test needs MLflow (`pip install -e ".[experiments]"`). `make lint` checks the code style, and `make test` runs the tests.
+
+### 4. Open the notebooks
+
+```bash
+pip install -e ".[dev,notebooks]"
+jupyter lab notebooks/
+```
+
+The notebooks read the results that are in the repository. To run an experiment again, add the extras it needs: `experiments` (MLflow), `images` (ResNet and CLIP), `text` (the sentence model) and `ann` (FAISS and Annoy). The commands for each experiment are under "Reproduce it" in [What I tried, and what I kept](#what-i-tried-and-what-i-kept). The product pictures, the full-size vectors and the MLflow databases are not in Git, so the experiments that need them create them on your computer first.
+
+### 5. See the monitoring
+
+Start the service, then follow [Monitoring](#how-to-run-it) to open Prometheus and Grafana, and [Kubernetes](#kubernetes) to deploy to a cluster.
+
+## Limits and improvements
+
+### Limits
+
+**How I measured**
+- One person (me) rated the results, so the labels reflect one judgment.
+- Only 30 development products were used to compare methods, so a small gap between two methods may be chance. I call only the large gaps real, and I say "ahead, but I can't be sure" for small ones such as CLIP against the hybrid.
+- The hybrid weights were tuned on the same 30 products that I report on, so the development scores are a little optimistic. The cross-validation scores come from products the weights had not seen, and the 20 locked products gave the honest final test (see [The final test](#9-the-final-test)).
+- The final test used only 20 products, rated by me, and I used it once. Its nDCG@10 (0.97) cannot be compared with the development one (0.81), because the rated results come only from this one system. Precision@10 (0.87) is the number to compare.
+
+**The data and the models**
+- The attribute weights are fixed starting ratios. Only the four group weights were tuned (see [Features in detail](#how-much-each-part-counts)).
 - The sentence model was not trained on shopping titles, so it may be weaker on brand names and size words.
-- The 20 locked final products were rated once, for the final test (notebook 14). They were never used for tuning.
-- The attribute weights are untuned starting values.
+- Many products share a title (34%), and the dataset has little information on weight, colour and rating, so those parts carry little influence (see [Data exploration](#data-exploration-eda)).
+- Guessing a missing brand from the title is built and tested, but not used (see [Preprocessing](#preprocessing-cleaning-the-data)).
+
+**The service**
+- I tested about 29,500 products. At this size the exact search is already fast, so the fast mode and shorter vectors would matter more for a much larger catalogue, which I did not test. The timings are from one laptop, one thread, one query at a time.
+- The fast mode makes its shortlist from the title meaning and the picture only, so a product that matches only through its attributes may not be on it.
+- The cache is lost when the service restarts, and each pod has its own.
+- I do not deploy to a real cluster or push the image to a registry. The pipeline shows that the files work on a temporary cluster.
+- The alerts show in Prometheus, but I did not set up where to send them.
+- The product pictures on the page load from the dataset's links, so a dead link shows "No photo".
+
+### Improvements
+
+What I would do next, and why. I described these and did not build them.
+
+| Improvement | Why |
+|---|---|
+| **A shared cache (Redis)** | One cache for all pods, kept when a pod restarts, so a question asked on one pod is a hit on the other (see [The cache](#8-the-cache)) |
+| **Deploy to a real cluster** | Push the image to a registry, put its name in `deployment.yaml`, and run `kubectl apply -f k8s/`, then `kubectl apply -k monitoring/` (see [Kubernetes](#kubernetes)) |
+| **Send the alerts somewhere** | An email or chat message when `HighErrorRate` or `SlowSearch` fires, so someone is told (see [Monitoring](#the-alerts)) |
+| **More raters and more rated products** | Less dependence on one person's judgment, and gaps that are big enough to trust |
+| **Tune each attribute on its own** | With more ratings, the seven attribute weights could be tuned too, without the weights just memorising a few products |
+| **A title model made for shopping text** | Better handling of brand names and size words |
+| **Test a much bigger catalogue** | See whether the fast mode and a milder PCA cut pay off at millions of products (see [Fast search](#4-fast-search) and [Shorter vectors](#5-shorter-vectors-pca)) |
 
 ## Project layout
 
