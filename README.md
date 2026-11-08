@@ -1380,28 +1380,71 @@ The header links to the API docs (`/docs`), the metrics (`/metrics`), the health
 
 ## Kubernetes
 
-Docker packs the service into one image. Kubernetes runs several copies of that image (called pods) and looks after them: it restarts a pod that breaks, it sends requests only to pods that are ready, and it replaces the pods one at a time when I change something. The files are in [`k8s/`](k8s/).
+### What Kubernetes is, and why I used it
+
+Docker packs the service into one image (see [The service and Docker](#the-service-and-docker)). **Kubernetes** runs that image for you, in several copies, and looks after them. Each copy is called a **pod**. You tell Kubernetes what you want ("2 pods of this image") in files, and it keeps it that way:
+- if a pod breaks, it starts a new one;
+- it sends requests only to pods that are ready;
+- when I release a new version, it replaces the pods one at a time, so the service never goes down.
+
+One container on one machine has none of this. If it stops, the service is down until someone starts it again. That is why a service that must stay available runs on Kubernetes.
+
+The files are in [`k8s/`](k8s/).
 
 | File | What it says |
 |---|---|
-| [`deployment.yaml`](k8s/deployment.yaml) | Run 2 pods of the image, with the probes, the memory and CPU limits, a non-root user, and the rolling-update rule |
-| [`service.yaml`](k8s/service.yaml) | One fixed address in front of the pods. It sends each request to a pod that is ready |
-| [`pdb.yaml`](k8s/pdb.yaml) | While a machine is being updated or drained, keep at least 1 pod running |
+| [`deployment.yaml`](k8s/deployment.yaml) | Run 2 pods of the image, with the health checks, the memory and CPU limits, a non-root user, and the rolling-update rule |
+| [`service.yaml`](k8s/service.yaml) | One fixed address (port 80) in front of the pods. It sends each request to a pod that is ready. It is reachable inside the cluster only |
+| [`pdb.yaml`](k8s/pdb.yaml) | While a machine is being updated or emptied, keep at least 1 pod running |
 
-- **Two pods, both serving.** Both pods answer requests at the same time. If one stops, the other keeps answering, so each is the other's backup. I did not make one pod wait idle, because that would use the memory of a whole pod for nothing.
-- **The probes.** A probe is a question that Kubernetes asks each pod every few seconds. There are three, and they use the two endpoints the API already has.
+### Two pods, both serving
+
+Both pods answer requests at the same time. If one stops, the other keeps answering, so each is the other's backup. I did not make one pod wait idle, because that would use the memory of a whole pod for nothing. Kubernetes also prefers to put the two pods on different machines, so one broken machine does not take both down.
+
+### The health checks (probes)
+
+A probe is a question that Kubernetes asks each pod every few seconds. There are three, and they use the two endpoints the API already has (see [The service and Docker](#what-the-service-is)).
 
 | Probe | Endpoint | Question | If the answer is no |
 |---|---|---|---|
 | Startup | `/ready` | Have you finished loading (about 15 seconds)? | The other two probes wait, for up to 200 seconds |
-| Readiness | `/ready` | Can you answer searches now? | The pod gets no traffic, but keeps running |
+| Readiness | `/ready` | Can you answer searches now? | The pod gets no requests, but keeps running |
 | Liveness | `/live` | Are you stuck? | Kubernetes restarts the pod |
 
-- **Deployment strategy: rolling update** (`maxSurge: 1`, `maxUnavailable: 0`). Kubernetes starts a third pod with the new version, waits until it is ready, and only then stops an old pod. There is never a moment with fewer than 2 ready pods. If the new version never becomes ready, the rollout stops and the old pods keep serving.
-- **Memory and CPU.** Each pod asks for 1,280 MB and 0.25 CPU, and may use at most 2 GB and 1 CPU. I measured about 1.06 GB with the vectors and both fast indexes loaded. A pod that goes over its memory limit is restarted, which protects the other pods.
-- **The cache is per pod.** The cache lives inside the process (see "Caching"), so each pod has its own. The same question can be a miss on one pod and a hit on the other, and a new pod starts with an empty cache. A cache shared by all pods (for example Redis) would fix that, and I did not build it.
-- **What CI tests.** The `kubernetes` job starts a temporary cluster (kind) on the GitHub machine, loads the image, applies the files, and checks that: both pods become ready; a search through the Service works; when one pod is deleted, 20 requests in a row still return 200; and during a rolling update no request fails (84 requests, 0 failures in the run I checked). The cluster is deleted when the job ends.
-- **What I did not do.** I do not deploy to a real cluster, and I do not push the image to a registry (an online store for images, such as Docker Hub), because I have no cluster to deploy to. For a real deployment I would push the image to a registry, put its name in `deployment.yaml`, and run `kubectl apply -f k8s/`. When I run the service on my own computer, I run it with `uvicorn`.
+### How a new version is released (rolling update)
+
+The deployment strategy is a **rolling update** (`maxSurge: 1`, `maxUnavailable: 0`). When I release a new version, Kubernetes:
+1. starts a third pod with the new version;
+2. waits until that pod is ready;
+3. only then stops one old pod, and repeats for the other one.
+
+So there is never a moment with fewer than 2 ready pods, and users do not notice the release. If the new version never becomes ready, the rollout stops and the old pods keep serving. The other common choice, stopping all old pods and then starting the new ones, would leave the service down for the 15 seconds the new pods need to load.
+
+### Memory, CPU and safety
+
+- **Memory and CPU.** Each pod asks for 1,280 MB and 0.25 CPU, and may use at most 2 GB and 1 CPU. I measured about 1.06 GB with the vectors and both fast indexes loaded. A pod that goes over its memory limit is restarted, which protects the other pod.
+- **Safety.** The pod runs as a user that is not root, it cannot gain more rights, and all extra Linux capabilities are dropped.
+- **Settings.** The pods run the exact mode by default (`PS_SEARCH_MODE=exact`) and keep 1,024 cached answers (`PS_CACHE_SIZE=1024`).
+
+### The cache is per pod
+
+The cache lives inside the process (see [The cache](#8-the-cache)), so each pod has its own. The same question can be a miss on one pod and a hit on the other, and a new pod starts with an empty cache. A cache shared by all pods (for example Redis) would fix that. I described it and did not build it.
+
+### What CI tests
+
+The `kubernetes` job in [`ci.yml`](.github/workflows/ci.yml) starts a temporary cluster (kind) on the GitHub machine, loads the image, applies the files, and checks that:
+- both pods become ready;
+- a search through the Service works;
+- when one pod is deleted, 20 requests in a row still return 200;
+- during a rolling update no request fails (84 requests, 0 failures in the run I checked).
+
+The cluster is deleted when the job ends. See [Tests and CI/CD](#tests-and-cicd).
+
+### What I did not do
+
+- I do not deploy to a real cluster, because I have no cluster to deploy to.
+- I do not push the image to a registry (an online store for images, such as Docker Hub), so `deployment.yaml` names a local image, `product-similarity:latest`.
+- For a real deployment I would push the image to a registry, put its name in `deployment.yaml`, and run `kubectl apply -f k8s/`. When I run the service on my own computer, I run it with `uvicorn` (see [Getting started](#getting-started-yet-to-review)).
 
 ## Monitoring
 
