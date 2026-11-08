@@ -9,7 +9,6 @@ The project is built for the SAP technical exercise. The original task descripti
 - [What it does](#what-it-does)
 - [Architecture](#architecture)
 - [Results at a glance](#results-at-a-glance)
-- [What I did so far](#what-i-did-so-far)
 - [Getting started](#getting-started)
 - [Run the service](#run-the-service)
 - [Data exploration (EDA)](#data-exploration-eda)
@@ -140,33 +139,6 @@ About 12 times faster.
 The cache is **in-process**: each running copy of the service keeps the last 1,024 answers in its own memory. A question is the product, the number of results, the mode and the weights. Answers for more than 100 results are never kept. The cache is lost when the service restarts, and each Kubernetes pod has its own. A shared cache such as Redis would fix that, and I describe it as the upgrade but did not build it. More in [Caching](#caching).
 
 Notebook: [13 Caching, section 2 One request: a miss against a hit](notebooks/13_caching.ipynb). Numbers: [`cache_benchmark.json`](results/cache_benchmark.json).
-
-## What I did so far
-
-I work in small steps. After each step I check the result, and I write down what I found. I build on a `dev` branch and merge into `main` with a pull request.
-
-1. **Looked at the data.** I read all 30,000 products and checked the columns, missing values, repeated products and prices. ([notebook 01](notebooks/01_data_exploration.ipynb))
-2. **Cleaned the data.** One record per product, with every ID still valid. ([notebook 02](notebooks/02_preprocessing.ipynb))
-3. **Built a first similarity search.** It compares titles and attributes and returns product IDs, with a FastAPI service and a Docker image on top. ([notebook 03](notebooks/03_baseline_examples.ipynb))
-4. **Made a fair way to measure it.** There is no answer key, so I made one from my own ratings, and I record every run in MLflow. ([notebook 04](notebooks/04_evaluation_baseline.ipynb))
-5. **Checked the pictures.** I tested 100 sample images before any bulk download.
-6. **Tried pictures for similarity.** I turned pictures into vectors with ResNet and CLIP and scored them with the same ratings. ([notebook 05](notebooks/05_image_similarity.ipynb))
-7. **Tested pictures on the whole catalogue.** I downloaded about 29,000 pictures, turned them into CLIP vectors, rated the new results and scored them next to the text methods. ([notebook 06](notebooks/06_clip_whole_catalogue.ipynb))
-8. **Tried a sentence model on the titles.** I turned all titles into vectors with a ready-made sentence model and scored it with my ratings next to TF-IDF and CLIP. ([notebook 07](notebooks/07_sentence_vectors_on_titles.ipynb))
-9. **Mixed everything into one hybrid search.** I combined the title (TF-IDF and sentence vectors), the CLIP picture and the attributes into one score, tuned the weights with coordinate ascent and checked them with 5-fold cross-validation. ([notebook 08](notebooks/08_hybrid_search.ipynb))
-10. **Made the search faster.** I timed the exact search, compared FAISS HNSW and IVF and Annoy with it, and used the fast index inside the hybrid. ([notebook 09](notebooks/09_fast_vector_search.ipynb))
-11. **Tested shorter vectors.** I cut the vectors with PCA, ran every search method on them and compared time, memory and recall. ([notebook 10](notebooks/10_shorter_vectors_pca.ipynb))
-12. **Drew the vectors.** I squeezed the picture vectors into two numbers with t-SNE to look at them, before and after PCA. ([notebook 11](notebooks/11_tsne_picture_vectors.ipynb))
-13. **Put the tuned hybrid into the real search.** The search now has an exact mode and a fast mode (HNSW picks the candidates). I checked that it gives the same results as my notebooks, and I compared the two modes with my ratings, with time and memory. ([notebook 12](notebooks/12_final_search.ipynb))
-14. **Added a cache.** The service keeps the answers of the last 1,024 questions in its memory, says whether an answer came from the cache, and I measured a hit against a miss and a simulation of traffic. ([notebook 13](notebooks/13_caching.ipynb))
-15. **Ran the final test.** I rated the results of the final search on the 20 products that had been locked from the start, and scored both modes. ([notebook 14](notebooks/14_final_test.ipynb))
-16. **Made the API stronger.** Clear input checks and error codes, a `mode` option (exact or fast), a `weights` option (the simple way with 4 names, or the advanced way with 10), and `GET /weights` for the page. ([notebook 15](notebooks/15_stronger_api.ipynb))
-17. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
-18. **Ran it on Kubernetes.** The image runs as 2 pods behind one Service, with liveness and readiness probes and a rolling update. CI starts a temporary cluster on every push and tests it. (See "Kubernetes".)
-19. **Added monitoring.** The service reports its own numbers on `/metrics`. Prometheus collects them, Grafana draws them, and two alert rules judge them. (See "Monitoring".)
-20. **Built a page.** A page at `/` where I choose a product, the mode and the weights, and see the similar products with the time of each search. (See "The page".)
-
-The sections below explain each step: what I did, why, and what I found.
 
 ## Getting started
 
