@@ -217,7 +217,7 @@ The raw file is never changed. It is read in place, and each step below turns th
 **Goal:** clean the raw data so products can be compared fairly, without changing SAP's original file.
 
 **1. Repeated products**
-- **What I did:** the same product appears in several rows, because the data was collected from Amazon more than once. I kept one row per product, the one collected most recently (and the one with the lowest ID if they tie). All 30,000 old IDs still work, because each old ID points to the row I kept. 471 rows (1.6%) were repeat copies.
+- **What I did:** the same product shows up in several rows because it was collected more than once. I keep the newest row (and the one with the lowest ID if they tie), and every old ID points to it, so all 30,000 IDs still work. 471 rows (1.6%) were repeat copies.
 - **Example:** a Captain America T-shirt appears 3 times. I keep the newest one.
 - **Why:** so the same product can't show up twice in the results, and a product can never match itself.
 
@@ -226,8 +226,8 @@ The raw file is never changed. It is read in place, and each step below turns th
 *Notebook: [02 Preprocessing, section 1, Repeated products](notebooks/02_preprocessing.ipynb).*
 
 **2. Weight**
-- **What I did:** treated the fake number `999999999` as "unknown", converted units to grams, and removed values that cannot be real: anything under 1 g or over 5 kg. The notebook prints a table of every removed value (9 products), so nothing is hidden.
-- **Example:** stockings listed as "136 Kilograms" are removed (I spotted it in that table). "1.4 Kg" becomes 1,400 g.
+- **What I did:** treated the fake number `999999999` as "unknown" and converted units to grams. The weight code rejects any value under 1 g or over 5 kg, and the notebook prints a table of every rejected value (9 products). I printed every weight the code rejected and read through them.
+- **Example:** stockings listed as "136 Kilograms" are removed. That table is where I saw them. "1.4 Kg" becomes 1,400 g.
 - **Why:** only about 1 in 5 products (20.9%) has a real weight, so it will matter very little.
 
 ![Only about 1 in 5 products has a usable weight](screenshots/preprocessing/02_weight.png)
