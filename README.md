@@ -492,6 +492,44 @@ These shares are not set by hand. I found them by tuning against my own ratings:
 2. I checked the result with **5-fold cross-validation**: the weights were tuned on some products and scored on products they had not seen.
 3. The result: title words 2.9%, title meaning 45.7%, picture 28.6%, attributes 22.9%.
 
+**How coordinate ascent works, with real numbers.** The four weights are tuned like this:
+1. Start with some weights and score them: nDCG@10 on my ratings.
+2. Take the **first weight only**. Try each value on the grid (0, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6) while the others stay as they are, and keep the one that gives the highest nDCG@10.
+3. Do the same for the second weight, then the third and the fourth. That is one round.
+4. Repeat the rounds. **Stop when a whole round changes nothing.**
+
+Here is round 1 from my first starting point (title words 0.35, title meaning 0, picture 0, attributes 0.65, which scores nDCG@10 0.637):
+
+| Weight tried | Best value on the grid | nDCG@10 after the change |
+|---|---|---|
+| Title words | 0.40 | 0.640 |
+| Title meaning | 0.20 | 0.658 |
+| Picture | 0.20 | 0.740 |
+| Attributes | 0.60 | 0.742 |
+
+Round 2 improved it again (to 0.7525), and round 3 changed nothing, so it stopped. But this start got **stuck at 0.7525**. That is why I started the tuning from **five different starting points** and kept the best result, so that one unlucky start does not decide it:
+
+| Start | Starting weights (title words, title meaning, picture, attributes) | Where it ended | nDCG@10 | Rounds |
+|---|---|---|---|---|
+| 1 (my first guess) | 0.35, 0, 0, 0.65 | 0.3, 0.25, 0.2, 0.6 | 0.7525 | 3 |
+| 2 | 0.2, 0.2, 0.2, 0.4 | 0.025, 0.6, 0.4, 0.3 | 0.8071 | 5 |
+| 3 | 0.25, 0.25, 0.25, 0.25 | 0.025, 0.6, 0.4, 0.3 | 0.8071 | 5 |
+| 4 (random) | 0.4, 0.4, 0.05, 0.5 | 0.025, 0.5, 0.3, 0.25 | 0.8086 | 4 |
+| 5 (random) | 0.2, 0.5, 0.3, 0.1 | 0.025, 0.4, 0.25, 0.2 | **0.8105** | 2 |
+
+Start 5 won. These scores come from re-running the tuning on my final set of ratings, so they are a little higher than the 0.806 in [Results at a glance](#results-at-a-glance), which was measured earlier on a smaller set. The weights are the same.
+
+**From the tuned weights to the shares.** Only the proportions matter, so the weights are divided by their sum to get shares that add up to 100%. For the winning weights the sum is 0.025 + 0.4 + 0.25 + 0.2 = 0.875:
+
+| Weight | Tuned value | ÷ 0.875 | Share |
+|---|---|---|---|
+| Title words | 0.025 | 0.0286 | 2.9% |
+| Title meaning | 0.4 | 0.4571 | 45.7% |
+| Picture | 0.25 | 0.2857 | 28.6% |
+| Attributes | 0.2 | 0.2286 | 22.9% |
+
+Doubling every weight would give the same shares, which is why the numbers can be read as "how much each part counts compared with the others".
+
 Inside the attributes group, the split between the seven attributes (category 7.0%, brand, audience and price 3.5% each, colour, weight and rating 1.8% each) uses my own starting ratios, and it is **not tuned**. I tried tuning all ten weights separately, and it scored lower (nDCG@10 0.764 against 0.806 for the four-weight version), so I kept the four tuned weights. Details: [Hybrid search](#hybrid-search), and [notebook 08, sections 2, 5, 6 and 7](notebooks/08_hybrid_search.ipynb).
 
 **How good is each part on its own** (the same 30 development products and the same rating pool):
