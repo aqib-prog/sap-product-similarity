@@ -486,7 +486,7 @@ These shares are not set by hand. I found them by tuning against my own ratings:
 1. Start with some weights, for example title words 0.30, title meaning 0.30, picture 0.30, attributes 0.10, and score them: nDCG@10 on my ratings.
 2. Take the **first weight only**. Try each value on the grid while the others stay as they are, and keep the one that gives the highest nDCG@10.
 3. Do the same for the second weight, then the third and the fourth. That is one round.
-4. Repeat the rounds. **Stop when a whole round changes nothing.** I did this from five different starting points and kept the best result, so that one lucky or unlucky start does not decide it.
+4. Repeat the rounds. **Stop when a whole round changes nothing.** I did this from five different starting points and kept the best result, so that one bad starting point does not decide the result.
 
 The weights then count only in proportion (they are divided by their sum), which is how they become the shares in the table above. For example, the best weights I found were 0.025, 0.4, 0.25 and 0.2, which add up to 0.875:
 
@@ -628,7 +628,7 @@ The data has no answer key saying which products are similar, so I made one. A m
 | Title only | 0.57 | 0.48 to 0.67 | 0.55 |
 | Attributes only | 0.48 | 0.38 to 0.56 | 0.62 |
 
-The baseline beats each part alone by more than luck. Title only and attributes only cannot be told apart with 30 products. The full table, with limitations, is in [`results/dev_evaluation_report.md`](results/dev_evaluation_report.md).
+The baseline beats each part alone by a gap big enough to trust. Title only and attributes only cannot be told apart with 30 products. The full table, with limitations, is in [`results/dev_evaluation_report.md`](results/dev_evaluation_report.md).
 
 ### Recorded in MLflow (text methods)
 
@@ -683,7 +683,7 @@ I did not pick a method by guessing. Each idea was tested, against my own rating
 |---|---|---|---|---|
 | 1 | **Pictures:** ResNet-50 against CLIP | CLIP scored nDCG@10 0.695 and ResNet 0.569 | **Kept CLIP, dropped ResNet.** It was clearly better on the same pictures and ratings. | [Pictures](#1-pictures), [05](notebooks/05_image_similarity.ipynb), [06](notebooks/06_clip_whole_catalogue.ipynb) |
 | 2 | **Titles:** sentence vectors against TF-IDF | meaning scored 0.659 and words 0.498 | **Kept both.** Meaning counts most, because it sees that different words can mean the same thing. | [Titles](#2-titles-sentence-vectors), [07](notebooks/07_sentence_vectors_on_titles.ipynb) |
-| 3 | **The mix:** a hybrid with 4 weights against 10 | 4 weights scored 0.806 and 10 weights 0.764, on products the weights had not seen | **Kept 4 weights.** Fewer weights means less chance of fitting my 30 products by luck. | [The mix](#3-the-mix-hybrid-search), [08](notebooks/08_hybrid_search.ipynb) |
+| 3 | **The mix:** a hybrid with 4 weights against 10 | 4 weights scored 0.806 and 10 weights 0.764, on products the weights had not seen | **Kept 4 weights.** Fewer weights means less chance that the weights just memorise my 30 products. | [The mix](#3-the-mix-hybrid-search), [08](notebooks/08_hybrid_search.ipynb) |
 | 4 | **Fast search:** FAISS HNSW, IVF and Annoy against the exact search | HNSW was about 60 times faster and found 97% of the exact top 10 | **Kept HNSW.** IVF and Annoy were only for comparison. | [Fast search](#4-fast-search), [09](notebooks/09_fast_vector_search.ipynb) |
 | 5 | **Shorter vectors:** PCA to 256, 128 and 64 numbers | at 128 numbers it kept only 71% (pictures) and 82% (sentences) of the exact top 10 | **Dropped.** It lost too much recall for a small saving. | [Shorter vectors](#5-shorter-vectors-pca), [10](notebooks/10_shorter_vectors_pca.ipynb) |
 | 6 | **Drawing the vectors:** t-SNE | a picture to look at, not a search method | **Used only to look.** | [Drawing the vectors](#6-drawing-the-vectors-t-sne), [11](notebooks/11_tsne_picture_vectors.ipynb) |
@@ -819,7 +819,7 @@ So far I tested each part on its own. Here I mix them into one **hybrid search**
 | Attributes only | 0.420 | 0.62 |
 
 - The 4-weight hybrid is clearly better than my baseline, the sentence vectors, TF-IDF and the attributes alone. It is ahead of CLIP, but with only 30 products I can't be sure it is really better.
-- The mix with 4 weights did better than the one with 10, because fewer weights means less chance of fitting my 30 products by luck.
+- The mix with 4 weights did better than the one with 10, because fewer weights means less chance that the weights just memorise my 30 products.
 - **Which parts matter.** When I remove one part at a time from the 10-weight mix (an ablation), the sentence vectors and the picture cost the most (about 0.165 of nDCG@10 each), and category is the most useful attribute. The final 4-weight mix is: sentence title 46%, picture 29%, attributes together 23%, TF-IDF title 3%.
 
 **Decision.** I kept the 4-weight hybrid.
@@ -828,7 +828,7 @@ So far I tested each part on its own. Here I mix them into one **hybrid search**
 
 *References: D. Metzler and W. B. Croft, "[Linear feature-based models for information retrieval](https://doi.org/10.1007/s10791-006-9019-z)," Information Retrieval, 2007; S. Bruch, S. Gai and A. Ingber, "[An Analysis of Fusion Functions for Hybrid Retrieval](https://doi.org/10.1145/3596512)," ACM Transactions on Information Systems, 2023. Notebook: [08 Hybrid search, sections 2 to 9](notebooks/08_hybrid_search.ipynb). Numbers: [`dev_hybrid_evaluation_report.md`](results/dev_hybrid_evaluation_report.md) and [`hybrid_tuning.json`](results/hybrid_tuning.json).*
 
-![MLflow comparing the untuned, 10-weight and 4-weight mixes (the check for luck)](evaluation/mlflow_hybrid_tuning_runs.png)
+![MLflow comparing the untuned, 10-weight and 4-weight mixes (the check on products the weights had not seen)](evaluation/mlflow_hybrid_tuning_runs.png)
 
 ![MLflow comparing the seven methods: nDCG@10 and precision@10](evaluation/mlflow_hybrid_runs.png)
 
@@ -1102,7 +1102,7 @@ How to read the table:
 | [01 Data exploration](notebooks/01_data_exploration.ipynb) | Checks the 30,000 products and charts each attribute (24 figures recomputed). Name, category and image are almost always there, weight is mostly a placeholder, a third of the products share a title, and 471 rows are repeats | – |
 | [02 Preprocessing](notebooks/02_preprocessing.ipynb) | Cleans the data step by step with before-and-after charts. One record per product, every ID still valid, missing categories filled from the same shelf (about 97% right in a hide-and-guess check). Guessing brands from titles is built but switched off | – |
 | [03 Baseline examples](notebooks/03_baseline_examples.ipynb) | Runs the first `find_similar_products` on five real queries and explains each score. About 6 ms per search. Two weaknesses: near-copies in the results, and products with little data scoring too high | – |
-| [04 Evaluation of the baseline](notebooks/04_evaluation_baseline.ipynb) | Scores three text methods against my ratings. Title plus attributes beats either alone, and both gaps are larger than luck | [`dev_scoreboard.csv`](results/dev_scoreboard.csv), [`dev_evaluation_report.md`](results/dev_evaluation_report.md) |
+| [04 Evaluation of the baseline](notebooks/04_evaluation_baseline.ipynb) | Scores three text methods against my ratings. Title plus attributes beats either alone, and both gaps are big enough to trust | [`dev_scoreboard.csv`](results/dev_scoreboard.csv), [`dev_evaluation_report.md`](results/dev_evaluation_report.md) |
 | [05 Image similarity](notebooks/05_image_similarity.ipynb) | ResNet and CLIP on the 708 development pictures. CLIP scores nDCG@10 0.695 and ResNet 0.569 | [`dev_image_scoreboard.csv`](results/dev_image_scoreboard.csv), [`dev_image_evaluation_report.md`](results/dev_image_evaluation_report.md) |
 | [06 CLIP over the whole catalogue](notebooks/06_clip_whole_catalogue.ipynb) | Every picture turned into a CLIP vector. CLIP scores highest (0.757), clearly above title only and attributes only | [`dev_full_image_scoreboard.csv`](results/dev_full_image_scoreboard.csv), [`dev_full_image_evaluation_report.md`](results/dev_full_image_evaluation_report.md) |
 | [07 Sentence vectors on titles](notebooks/07_sentence_vectors_on_titles.ipynb) | Sentence vectors (0.662) are clearly better than TF-IDF on titles (0.500) | [`dev_text_vector_scoreboard.csv`](results/dev_text_vector_scoreboard.csv), [`dev_text_vector_evaluation_report.md`](results/dev_text_vector_evaluation_report.md) |
