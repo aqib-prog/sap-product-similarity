@@ -10,38 +10,6 @@ Give it a product ID and it returns the most similar products (you choose how ma
 
 Each candidate gets one score from 10 parts: the title words (TF-IDF), the title meaning (sentence vectors), the picture (CLIP), and seven attributes (category, brand, audience, price, colour, weight and rating). The parts are mixed with tuned weights into a weighted average, and a part that is missing for a product is skipped. The exact mode compares your product with every product. The fast mode first picks about 100 close products with an HNSW index and then ranks them with the same score. A search takes a few milliseconds, and the service runs as a FastAPI app, in Docker and in Kubernetes, with a page at `/`.
 
-## Status
-
-| Area | State |
-|---|---|
-| Data loading and validation (reads the archive in place, integrity check) | Done, tested |
-| Exploratory data analysis notebook (6 explained charts, 24 reproduced figures) | Done |
-| Preprocessing pipeline (cleaning, repeated products, derived fields) | Done, tested |
-| Baseline similarity function `find_similar_products` (title and attributes, untuned weights) | Done, tested |
-| Evaluation: 50 test products, blind rating page, scoring, MLflow tracking | Done: the 30 development products for tuning, and the 20 locked products for the final test (notebook 14) |
-| Image sample check (100 images) | Done: 99 of 100 downloaded |
-| Picture download for the whole catalogue | Done: 29,107 pictures (134 broken links) |
-| Fast vector search (FAISS HNSW and IVF, Annoy) | Done: HNSW is about 60 times faster than the exact search with 97% recall@10; the exact search is already fast at this size |
-| Shorter vectors with PCA | Done: at 128 numbers PCA keeps only 71% (pictures) and 82% (sentences) of the exact top 10, so it is not used |
-| The final search (exact and fast mode) | [12](notebooks/12_final_search.ipynb) | [`final_search_check.json`](results/final_search_check.json), [`fast_vs_exact_check.json`](results/fast_vs_exact_check.json), [`dev_final_search_coverage.json`](results/dev_final_search_coverage.json), [`dev_final_search_fast_coverage.json`](results/dev_final_search_fast_coverage.json) | `final-search` |
-| The cache (hit against miss, traffic) | [13](notebooks/13_caching.ipynb) | [`cache_benchmark.json`](results/cache_benchmark.json) | `caching` |
-| The final test (20 locked products) | [14](notebooks/14_final_test.ipynb) | [`final_test_scores.json`](results/final_test_scores.json), [`final_test_coverage.json`](results/final_test_coverage.json), my ratings in [`final_grades.csv`](evaluation/judgments/final_grades.csv) | `final-test` |
-| The half-size vectors in the Docker image | (no notebook; see "The vectors in the image") | [`vector_files_check.json`](results/vector_files_check.json) | none |
-| Final search: the tuned hybrid in the real search, with an exact and a fast mode | Done and checked on the 30 development products: same results as the notebooks; the fast mode only speeds up the sentence and picture parts, gives nearly the same quality (nDCG@10 0.810 against 0.811) and is about 15 times faster; the final test on the locked products is in notebook 14 |
-| In-process cache for repeated questions | Done: a request in the cache takes 0.77 ms against 9.6 ms for a new search (about 12 times faster) |
-| Final test on the 20 locked products (both modes, rated once) | Done: precision@10 0.87 for both modes (0.877 on the development products), and the fast mode is about 17 times faster |
-| Hybrid search (weights tuned by coordinate ascent, 5-fold cross-validation) | Done: the 4-weight hybrid scores highest (nDCG@10 0.806); the final test on the locked products is in notebook 14 |
-| Sentence vectors on titles | Done: clearly better than TF-IDF on titles, about the same as my baseline; combining everything is next |
-| Image similarity with CLIP vectors | Done on the whole catalogue: CLIP scores highest on the 30 development products; combining it with text is next |
-| FastAPI service | Done, tested |
-| API: input checks, error codes, `mode` and `weights` options | Done: clear 422, 404 and 503 errors, and an exact or fast mode and your own weights for each search |
-| Docker image | Done: built and tested in CI. It runs the final search with the vectors inside the image (half-size numbers, two files under 50 MB), and it stops with an error if they are missing |
-| CI: lint, tests, Docker build and smoke test on every push | Done, passing |
-| Vector search benchmarks (FAISS Flat and HNSW, Annoy) | Planned |
-| Kubernetes files (2 pods, a Service, probes, a rolling update) | Done: deployed and tested in a temporary cluster in CI on every push |
-| Monitoring (`/metrics`, Prometheus, Grafana, two alert rules) | Done: checked in CI, and a dashboard screenshot from a local run |
-| The page at `/` | Done: choose a product, the mode and the weights, and see the results with the time of each search |
-
 ## What I did so far
 
 I work in small steps. After each step I check the result, and I write down what I found. I build on a `dev` branch and merge into `main` with a pull request.
