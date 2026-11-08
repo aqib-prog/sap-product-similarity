@@ -220,7 +220,7 @@ I scored every method against my own ratings (0, 1 or 2) on the 30 development p
 
 30 of them are the **development products**, which I used to compare the methods and tune the weights. The other 20 are **locked**: I never used them for tuning or for choosing a method until the final test. The full list is in [`evaluation/queries.json`](evaluation/queries.json), and the details are in [How the results were evaluated](#how-the-results-were-evaluated).
 
-Two scores are used. **Precision@10** is how many of the 10 results I returned were relevant (rated 1 or 2). The rest are noise (rated 0). A precision of 0.87 means about 8.7 relevant results in 10. **nDCG@10** also rewards putting the best results first. Higher is better for both. Compare rows inside one table only, because each table was rated on its own pool of results.
+Two scores are used. **Precision@10** is how many of the 10 results I returned were relevant (rated 1 or 2). The rest are noise (rated 0). A precision of 0.87 means about 8.7 relevant results in 10. **nDCG@10** also rewards putting the best results first (K. Järvelin and J. Kekäläinen, "[Cumulated gain-based evaluation of IR techniques](https://doi.org/10.1145/582415.582418)," *ACM Transactions on Information Systems*, 2002). Higher is better for both. Compare rows inside one table only, because each table was rated on its own pool of results.
 
 **1. Which features matter** (30 development products)
 
