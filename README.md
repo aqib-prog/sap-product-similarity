@@ -1,6 +1,6 @@
 # Product Similarity Search
 
-Find similar products by mixing three signals: what the title says, what the picture looks like, and the product's attributes. It runs on the Amazon Fashion 2020 dataset (30,000 products). The mix is weighted, and the weights are tuned against ratings I made myself.
+Find similar products by mixing three kinds of features: what the title says, what the picture looks like, and the product's attributes. It runs on the Amazon Fashion 2020 dataset (30,000 products). The mix is weighted, and the weights are tuned against ratings I made myself.
 
 The project is built for the SAP technical exercise. The original task description is in the [assignment repository](https://github.com/punitmishra/sap-cxii-tech-ex-01).
 
@@ -9,6 +9,27 @@ The project is built for the SAP technical exercise. The original task descripti
 Give it a product ID and it returns the most similar products (you choose how many). The details endpoint also returns each product's title, price and score.
 
 Each candidate gets one score from 10 parts: the title words (TF-IDF), the title meaning (sentence vectors), the picture (CLIP), and seven attributes (category, brand, audience, price, colour, weight and rating). The parts are mixed with tuned weights into a weighted average, and a part that is missing for a product is skipped. The exact mode compares your product with every product. The fast mode first picks about 100 close products with an HNSW index and then ranks them with the same score. A search takes a few milliseconds, and the service runs as a FastAPI app, in Docker and in Kubernetes, with a page at `/`.
+
+## Architecture
+
+![How a search works: the data is explored and cleaned, turned into features, scored with tuned weights, searched in exact or fast mode, and served by a FastAPI app that runs in Docker and Kubernetes](screenshots/architecture.png)
+
+*From the zip to a running service. The vectors and the tuned weights are built once, offline, and the service only loads them.*
+
+I started by exploring the data ([notebook 01](notebooks/01_data_exploration.ipynb)) and cleaning it ([02](notebooks/02_preprocessing.ipynb)): 471 repeated rows were merged, so the 30,000 records became 29,529 products.
+
+Then I turned every product into features:
+
+- **Title words (TF-IDF):** two titles are similar when they share rare words, and common words count less ([03](notebooks/03_baseline_examples.ipynb)).
+- **Title meaning (sentence vectors):** titles with a similar meaning get close numbers, even with different words ([07](notebooks/07_sentence_vectors_on_titles.ipynb)).
+- **Picture (CLIP vectors):** pictures that look alike get close numbers ([05](notebooks/05_image_similarity.ipynb), [06](notebooks/06_clip_whole_catalogue.ipynb)).
+- **Attributes:** category, brand, audience, price, colour, weight and rating, each compared in its own way ([03](notebooks/03_baseline_examples.ipynb)).
+
+Each feature gives a similarity score, and a weightage says how much that feature counts in the final score.
+
+There is no answer key, so I rated results myself on blind pages ([04](notebooks/04_evaluation_baseline.ipynb)). I tuned the weightage on those ratings, one weight at a time, and checked it with 5-fold cross-validation. I shuffled my 30 development products with a fixed seed into 5 groups, tuned on 4 groups, and scored the group left out, five times. So the scores come from products the weights had not seen ([08](notebooks/08_hybrid_search.ipynb)). The 20 locked products were kept aside for the final test ([14](notebooks/14_final_test.ipynb)).
+
+A search runs in one of two modes. Exact compares with every product. Fast uses an HNSW index to pick about 100 close products first ([09](notebooks/09_fast_vector_search.ipynb), [10](notebooks/10_shorter_vectors_pca.ipynb), [11](notebooks/11_tsne_picture_vectors.ipynb), [12](notebooks/12_final_search.ipynb)). Repeated questions are answered from a cache ([13](notebooks/13_caching.ipynb)). The service is a FastAPI app with the cache and a page ([15](notebooks/15_stronger_api.ipynb)), packaged as a Docker image and run on Kubernetes with 2 pods. Prometheus and Grafana show how it behaves.
 
 ## What I did so far
 
