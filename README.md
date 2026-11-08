@@ -10,7 +10,7 @@ The project is built for the SAP technical exercise. The original task descripti
 - [Architecture](#architecture)
 - [Results at a glance](#results-at-a-glance)
 - [Data exploration (EDA)](#data-exploration-eda)
-- [Cleaning the data](#cleaning-the-data)
+- [Preprocessing (cleaning the data)](#preprocessing-cleaning-the-data)
 - [How the first similarity search works](#how-the-first-similarity-search-works)
 - [The service and Docker](#the-service-and-docker)
 - [Example](#example)
@@ -210,15 +210,90 @@ I had also written down 24 facts from a first quick look at the data, such as "3
 
 Notebook: [01 Data exploration](notebooks/01_data_exploration.ipynb), the findings in its conclusion.
 
-## Cleaning the data
+## Preprocessing (cleaning the data)
 
-The cleaning pipeline works step by step, with before-and-after charts in [notebook 02](notebooks/02_preprocessing.ipynb):
+The raw file is never changed. It is read in place, and each step below turns the raw rows into cleaned product records, with before-and-after charts in [notebook 02](notebooks/02_preprocessing.ipynb). The logic lives in the package (`data.py` and `preprocessing.py`), and the notebook only runs it and plots the results. A few numbers differ slightly from the exploration section, because here they are counted on the 29,529 products left after the repeats are removed.
 
-- **Repeated products.** The 471 repeated rows are merged: I keep the newest crawl, and the lowest ID if they tie. All 30,000 original IDs still resolve to a product, so asking about an old ID still works.
-- **Titles and brands.** Broken text characters are repaired, and brand spellings are tidied into one form. Guessing a missing brand from the title is built but switched off, because I could not show that it helps.
-- **Weight.** The placeholder value is treated as missing, not as a real weight.
-- **Categories.** A missing category is filled from products on the same shelf. In a hide-and-guess check, about 97% matched.
-- **Other fields.** Audience (men, women, kids) is derived from the title and category, colours are extracted from the text, and price and review fields are cleaned.
+**Goal:** clean the raw data so products can be compared fairly, without changing SAP's original file.
+
+**1. Repeated products**
+- **What I did:** kept one copy of each product, the newest crawl (and the lowest ID if tied). All 30,000 IDs still work. 1.6% of the rows were repeat copies.
+- **Example:** a Captain America T-shirt appears 3 times. I keep the newest one.
+- **Why:** so the same product can't show up twice in the results.
+
+![Repeat copies are a small share of the rows](screenshots/preprocessing/01_repeat_copies.png)
+
+*Notebook: [02 Preprocessing, section 1, Repeated products](notebooks/02_preprocessing.ipynb).*
+
+**2. Weight**
+- **What I did:** treated the fake number `999999999` as "unknown", converted units to grams, and removed impossible weights (outside 1 g to 5 kg).
+- **Example:** stockings listed as "136 Kilograms" are removed. "1.4 Kg" becomes 1,400 g.
+- **Why:** only about 1 in 5 products (20.9%) has a real weight, so it will matter very little.
+
+![Only about 1 in 5 products has a usable weight](screenshots/preprocessing/02_weight.png)
+
+*Notebook: [02 Preprocessing, section 2, Weight](notebooks/02_preprocessing.ipynb).*
+
+**3. Brand**
+- **What I did:** merged different spellings of the same brand and treated "Unknown" as missing. The distinct brand names dropped from 6,458 to 6,294. Nothing is guessed.
+- **Example:** "Print Mafias", "Print mafias" and "print mafias" become one brand.
+- **Why:** so products from the same brand count as matching.
+
+![Distinct brand names before and after merging spellings](screenshots/preprocessing/03_brand.png)
+
+*Notebook: [02 Preprocessing, section 3, Brand](notebooks/02_preprocessing.ipynb).*
+
+**4. Category**
+- **What I did:** when a category was missing, I copied the most common category of products on the same Amazon shelf.
+- **Example:** "Pepe Jeans Boy's T-Shirt" had no category, so it got `BoysT_Shirts` from its shelf.
+- **How I checked:** I covered up categories I already knew and guessed them back. It was right 96.6% of the time (about 97 in 100). The misses were mostly close categories, like a T-shirt filed as a top.
+- **Why:** category is our strongest signal, and now 98.8% of products have one.
+
+![Category guesses compared with the real category](screenshots/preprocessing/04_category.png)
+
+*Notebook: [02 Preprocessing, section 4, Category](notebooks/02_preprocessing.ipynb).*
+
+**5. Colour**
+- **What I did:** the colour column lists every option, so I also read colour words from the title. Coverage rose from 19% to 44%. On the 529 products that have both, the title colour is among the listed options 83.4% of the time.
+- **Example:** a saree titled "Blue Sari" lists orange, pink and red, so the two sources can disagree.
+- **Why:** colour is only a weak hint.
+
+![Title colour against the listed options](screenshots/preprocessing/05_colour.png)
+
+*Notebook: [02 Preprocessing, section 5, Colour](notebooks/02_preprocessing.ipynb).*
+
+**6. Audience (men, women, boys, girls, baby)**
+- **What I did:** worked it out from the category, then the title. They agree 89.4% of the time on the 23,670 products where both give an answer. 99.1% of products have an audience.
+- **Example:** a boys' bow tie is filed under men's, so the label is wrong.
+- **Why:** I use it as a hint that raises the score without blocking other products, not as a strict filter.
+
+![Audience from the category against the title](screenshots/preprocessing/06_audience.png)
+
+*Notebook: [02 Preprocessing, section 6, Audience](notebooks/02_preprocessing.ipynb).*
+
+**7. Guessing a missing brand from the title (switched off)**
+- **What I did:** built it and tested it on products whose brand I already know. It was right 98.2% of the time when it named a brand.
+- **Example:** "Puma Unisex T-Shirt" has no brand, and the title starts with "Puma". But a Florsheim belt with "Stacy Adams" in its title would be wrong.
+- **Why it's off:** I haven't verified it on products that really lack a brand.
+
+![Brand from the title, tested on products that already have a brand](screenshots/preprocessing/07_brand_from_title.png)
+
+*Notebook: [02 Preprocessing, section 9, Brand recovery from titles (switched off)](notebooks/02_preprocessing.ipynb).*
+
+**8. Rating and price**
+- **What I did:** kept the rating in three forms (the raw rating, the page rating and the review count) and the price in two (raw and log).
+- **Example:** a vest is rated 1.0, but its page says "Be the first to review this item". 6,571 products are like this.
+- **Why:** so that experiments can decide how to use them. The weights are tuned later (see Hybrid search).
+
+![Review state and the shape of the log price](screenshots/preprocessing/08_rating_price.png)
+
+*Notebook: [02 Preprocessing, sections 7 and 8, Reviews and rating, Price](notebooks/02_preprocessing.ipynb).*
+
+**What the cleaned records contain.** The data is strong on name, image, category, audience and price, and weak on weight, colour and rating. So the first group leads. Missing information stays missing, and two products are compared only on what both have.
+
+![What the cleaned records contain](screenshots/preprocessing/09_coverage.png)
+
+*Notebook: [02 Preprocessing, section 10, Coverage after cleaning](notebooks/02_preprocessing.ipynb).*
 
 ## How the first similarity search works
 
