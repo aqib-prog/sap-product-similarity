@@ -209,41 +209,61 @@ I had also written down 24 facts from a first quick look at the data, such as "3
 
 ![Name, category and image are nearly always present](screenshots/eda/01_name_category_image.png)
 
+*Notebook: [01 Data exploration, section 3, Missing values](notebooks/01_data_exploration.ipynb).*
+
 **2. Brand and price have gaps.** 27.1% of products have no brand and 9.6% have no price. I compare two products only on what they both have, and I never fill a gap with a made-up value.
 
 ![Brand and price have gaps](screenshots/eda/02_brand_price_gaps.png)
+
+*Notebook: [01 Data exploration, section 3, Missing values](notebooks/01_data_exploration.ipynb).*
 
 **3. Price is skewed.** The median is 590 INR (the mean is 862), but a few products cost nearly 10,000 and would dominate the comparison. So I compare prices by ratio, on a log scale: 300 against 600 counts the same as 3,000 against 6,000.
 
 ![Price is skewed, so I compare it by ratio](screenshots/eda/03_price_skew.png)
 
+*Notebook: [01 Data exploration, section 4, Price](notebooks/01_data_exploration.ipynb).*
+
 **4. Weight is mostly missing.** Only about 21% of products have a real weight. The rest hold the placeholder `999999999`, and the real weights are mostly round defaults like 200 g. So the placeholder counts as missing, and weight gets very little influence.
 
 ![Weight is mostly missing](screenshots/eda/04_weight_missing.png)
+
+*Notebook: [01 Data exploration, section 6, Weight](notebooks/01_data_exploration.ipynb).*
 
 **5. Colour is a list of options, not the product's colour.** The data has a colour field for only about 20% of products, and it holds a list of everything the product comes in, for example "Black, Blue, Grey". It is not the colour of the item you see in the photo, so from that field alone I cannot tell which colour this particular product is. What I do instead is read the colour from the title, using a fixed list of colour words (for example "Navy Blue Kurta" gives navy blue). The listed colours are kept only as weak evidence.
 
 ![Colour is a list of options, not one colour](screenshots/eda/05_colour_options.png)
 
+*Notebook: [01 Data exploration, section 11, Conclusion (the fifth finding)](notebooks/01_data_exploration.ipynb).*
+
 **6. Rating is unreliable.** A product with one review is a perfect 5.0 half of the time, while products with 100 or more reviews never are. And 6,611 products show a rating but have no reviews. So rating gets a small influence.
 
 ![Perfect 5.0 ratings come from products with few reviews](screenshots/eda/06_rating_reviews.png)
+
+*Notebook: [01 Data exploration, section 5, Rating and review volume](notebooks/01_data_exploration.ipynb).*
 
 **7. The same product appears more than once.** 471 rows are re-collected copies, so the 30,000 records are 29,529 distinct products. I keep one record per product, every old ID still works, and a product is never returned as its own match.
 
 ![471 rows are repeat copies of the same product](screenshots/eda/07_repeat_copies.png)
 
+*Notebook: [01 Data exploration, section 7, Repeated titles and ASINs](notebooks/01_data_exploration.ipynb).*
+
 **8. Many products share a title.** 10,147 products (34%) share an exact title with another product, so titles alone would give ties. I combine the title with the picture and the attributes. If two products still get the same score, the one with the smaller product ID goes first. Scores are rounded to 6 decimals first, so tiny computer rounding errors cannot change the order. The same question always gives the same list.
 
 ![34% of products share a title with another product](screenshots/eda/08_shared_titles.png)
+
+*Notebook: [01 Data exploration, section 7, Repeated titles and ASINs](notebooks/01_data_exploration.ipynb).*
 
 **9. Many categories are tiny.** 144 of the 218 categories have fewer than 20 products, so a strict category filter would leave too few results. Category is a strong hint, not a hard filter.
 
 ![144 of 218 categories have fewer than 20 products](screenshots/eda/09_small_categories.png)
 
+*Notebook: [01 Data exploration, section 8, Categories](notebooks/01_data_exploration.ipynb).*
+
 **10. Nearly every product has pictures.** 29,998 products have image links, most have about four, and about 99% of a 300-link sample worked. I checked the pictures themselves later (see [Image sample check](#image-sample-check)).
 
 ![Image links per product](screenshots/eda/10_image_links.png)
+
+*Notebook: [01 Data exploration, section 9, Images](notebooks/01_data_exploration.ipynb).*
 
 **Overall.** The data is complete enough to build similarity around the title, the category and the picture, with brand and price as support. Weight, colour and rating are too incomplete or unreliable to lead, so they carry little influence. Repeated products, repeated titles and missing values are the main risks, and each has a fix, which the next section covers. The data tells me how much to trust each attribute, but not which products shoppers consider similar, so I measured that with my own ratings (see [Results at a glance](#results-at-a-glance)).
 
