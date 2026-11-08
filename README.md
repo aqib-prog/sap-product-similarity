@@ -291,10 +291,25 @@ The raw file is never changed. It is read in place, and each step below turns th
 - **What I did:** kept the rating together with the review count, so I can tell a rating that real reviews back from one that nothing backs. I kept the price in two forms, the raw price and its log (see [Data exploration](#data-exploration-eda), finding 3).
 - **Example:** a vest has a rating of 1.0, but its page says "Be the first to review this item", so nobody has reviewed it. 6,571 products are like this.
 - **Why:** a rating with no reviews behind it cannot be trusted, so the rating only gets a small influence on the score (the weights are tuned later, see [Hybrid search](#hybrid-search)).
+- **Used in the final search:** yes, both, each with a small weight. **Price** is compared by closeness on a log scale (a 10 times difference scores 0). Its default weight among the attributes is 0.10, which is about 3.5% of the final score. **Rating** is compared by closeness in stars (4 stars apart scores 0). Its default weight is 0.05, which is about 1.8% of the final score.
 
 ![Review state and the shape of the log price](screenshots/preprocessing/08_rating_price.png)
 
 *Notebook: [02 Preprocessing, sections 7 and 8, Reviews and rating, Price](notebooks/02_preprocessing.ipynb).*
+
+**What I added and what I only cleaned.** A cleaned record has 17 fields. Seven of them did not exist in the raw data as such, and I created them:
+
+| Field I created | How |
+|---|---|
+| Audience | worked out from the category, then the title |
+| Title colour | colour words read from the title (kept next to the listed colours) |
+| Log price | the log of the price, so a few very expensive items don't dominate |
+| Category source | records where the category came from (the category field, or filled from the shelf) |
+| Review state | "counted", "none" or "unknown", from the rating and the review count |
+| Page rating | the rating read from the product page, kept next to the raw rating |
+| Review count | the number of reviews, read from the page |
+
+Three fields were cleaned, not created: the **brand** (spellings merged), the **weight** (the fake `999999999` removed and the units changed to grams) and the **category** (filled in when it was missing).
 
 **What the cleaned records contain.** The chart below shows the final result, measured once after all the cleaning steps: the share of the 29,529 products that have a usable value for each field. These are the fields I carry into the next step, where they become the features of the search. The data is strong on name, image, category, audience and price, and weak on weight, colour and rating. So the first group leads. Missing information stays missing, and two products are compared only on what both have.
 
