@@ -265,15 +265,16 @@ The raw file is never changed. It is read in place, and each step below turns th
 - **What I did:** worked it out from the category, then the title. They agree 89.4% of the time on the 23,670 products where both give an answer. 99.1% of products have an audience.
 - **Example:** a boys' bow tie is filed under men's, so the label is wrong.
 - **Why:** I use it as a hint that raises the score without blocking other products, not as a strict filter.
+- **Used in the final search:** yes. Audience is one of the seven attributes, it is compared as same or different, and it counts with its own weight.
 
 ![Audience from the category against the title](screenshots/preprocessing/06_audience.png)
 
 *Notebook: [02 Preprocessing, section 6, Audience](notebooks/02_preprocessing.ipynb).*
 
-**7. Guessing a missing brand from the title (switched off)**
-- **What I did:** many titles start with the brand, so I built a way to fill a missing brand from the first words of the title. I tested it on products whose brand I already know (hide the brand, guess it from the title), and it was right 98.2% of the time when it named a brand.
-- **Example:** "Puma Unisex T-Shirt" has no brand, and the title starts with "Puma", so the guess is Puma. But a Florsheim belt with "Stacy Adams" in its title would get the wrong brand.
-- **Why it's off:** products with no brand may be different from the ones I tested on (for example unbranded items), and I haven't checked it on them. So the missing brands stay missing.
+**7. Guessing a missing brand from the title (built, tested, but not used)**
+- **What I did:** built a way to fill a missing brand from the first words of the title, and tested it on products that already have a brand. It was right 98.2% of the time.
+- **Example:** "Puma Unisex T-Shirt" has no brand, so the guess is Puma. But a Florsheim belt with "Stacy Adams" in its title would get the wrong brand.
+- **Why I don't use it:** products with no brand may be different from the ones I tested on, and I haven't checked it on them. So missing brands stay missing.
 
 ![Brand from the title, tested on products that already have a brand](screenshots/preprocessing/07_brand_from_title.png)
 
