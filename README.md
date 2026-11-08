@@ -558,8 +558,17 @@ They come from the cleaned fields (see [Preprocessing](#preprocessing-cleaning-t
 - **Why it counts for little (1.8%):** only 20.9% of products have a real weight, and most of those are round default numbers like 200 g.
 
 **10. Rating**
-- **What I did:** compare the two ratings in stars. The score is 1 minus the gap in stars divided by 4, and never below 0.
-- **Example:** 4.5 stars against 3.5 stars is a gap of 1, so the score is 1 − 1 ÷ 4 = 0.75. 5 stars against 1 star scores 0.
+- **What I did:** compare the two ratings in stars. Ratings go from 1 to 5, so the biggest possible gap is 4 stars. The same rating scores 1, a gap of 4 stars scores 0, and in between each star of gap loses 0.25 (the formula is `1 − gap ÷ 4`, never below 0).
+- **Example:**
+
+| Gap between the two ratings | Example | Score |
+|---|---|---|
+| 0 stars | 4.0 against 4.0 | 1.00 |
+| 1 star | 4.5 against 3.5 | 0.75 |
+| 2 stars | 5.0 against 3.0 | 0.50 |
+| 3 stars | 4.5 against 1.5 | 0.25 |
+| 4 stars | 5.0 against 1.0 | 0.00 |
+
 - **Why it counts for little (1.8%):** a rating with no reviews behind it cannot be trusted (6,571 products are like this).
 
 *Notebooks: [03 Baseline examples, section 2](notebooks/03_baseline_examples.ipynb) (what each attribute adds to a score), [02 Preprocessing](notebooks/02_preprocessing.ipynb) (where the fields come from) and [08 Hybrid search, sections 2, 6 and 7](notebooks/08_hybrid_search.ipynb) (the weights).*
