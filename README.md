@@ -51,24 +51,24 @@ Each candidate gets one score from 10 parts: the title words (TF-IDF), the title
 
 *From the zip to a running service. The vectors and the tuned weights are built once, offline, and the service only loads them.*
 
-I started by exploring the data ([notebook 01](notebooks/01_data_exploration.ipynb)) and cleaning it ([02](notebooks/02_preprocessing.ipynb)): 471 repeated rows were merged, so the 30,000 records became 29,529 products.
+I started by exploring the data ([notebook 01, section 11 Conclusion](notebooks/01_data_exploration.ipynb)) and cleaning it ([02, section 1 Repeated products](notebooks/02_preprocessing.ipynb)): 471 repeated rows were merged, so the 30,000 records became 29,529 products.
 
 Then I turned every product into features:
 
-- **Title words (TF-IDF):** two titles are similar when they share rare words, and common words count less ([03](notebooks/03_baseline_examples.ipynb)).
-- **Title meaning (sentence vectors):** titles with a similar meaning get close numbers, even with different words ([07](notebooks/07_sentence_vectors_on_titles.ipynb)).
-- **Picture (CLIP vectors):** pictures that look alike get close numbers ([05](notebooks/05_image_similarity.ipynb), [06](notebooks/06_clip_whole_catalogue.ipynb)).
-- **Attributes:** category, brand, audience, price, colour, weight and rating, each compared in its own way ([03](notebooks/03_baseline_examples.ipynb)).
+- **Title words (TF-IDF):** two titles are similar when they share rare words, and common words count less ([03, section 2 Why each product is similar](notebooks/03_baseline_examples.ipynb)).
+- **Title meaning (sentence vectors):** titles with a similar meaning get close numbers, even with different words ([07, section 1 The model](notebooks/07_sentence_vectors_on_titles.ipynb)).
+- **Picture (CLIP vectors):** pictures that look alike get close numbers ([05, section 2 Turning pictures into vectors](notebooks/05_image_similarity.ipynb), [06, section 3 Turning all pictures into vectors](notebooks/06_clip_whole_catalogue.ipynb)).
+- **Attributes:** category, brand, audience, price, colour, weight and rating, each compared in its own way ([03, section 2 Why each product is similar](notebooks/03_baseline_examples.ipynb)).
 
 Each feature gives a similarity score, and a weightage says how much that feature counts in the final score.
 
-There is no answer key, so I rated results myself on blind pages ([04](notebooks/04_evaluation_baseline.ipynb)). I tuned the weightage on those ratings, one weight at a time, and checked it with 5-fold cross-validation. I shuffled my 30 development products with a fixed seed into 5 groups, tuned on 4 groups, and scored the group left out, five times. So the scores come from products the weights had not seen ([08](notebooks/08_hybrid_search.ipynb)). The 20 locked products were kept aside for the final test ([14](notebooks/14_final_test.ipynb)).
+There is no answer key, so I rated results myself on blind pages ([04, section 1 The ratings](notebooks/04_evaluation_baseline.ipynb)). I tuned the weightage on those ratings, one weight at a time, and checked it with 5-fold cross-validation. I shuffled my 30 development products with a fixed seed into 5 groups, tuned on 4 groups, and scored the group left out, five times. So the scores come from products the weights had not seen ([08, section 2 Choosing the weights](notebooks/08_hybrid_search.ipynb)). The 20 locked products were kept aside for the final test ([14, section 1 How the test was done](notebooks/14_final_test.ipynb)).
 
-A search runs in one of two modes. Exact compares with every product. Fast uses an HNSW index to pick about 100 close products first ([09](notebooks/09_fast_vector_search.ipynb), [10](notebooks/10_shorter_vectors_pca.ipynb), [11](notebooks/11_tsne_picture_vectors.ipynb), [12](notebooks/12_final_search.ipynb)). Repeated questions are answered from a cache ([13](notebooks/13_caching.ipynb)). The service is a FastAPI app with the cache and a page ([15](notebooks/15_stronger_api.ipynb)), packaged as a Docker image and run on Kubernetes with 2 pods. Prometheus and Grafana show how it behaves.
+A search runs in one of two modes. Exact compares with every product. Fast uses an HNSW index to pick about 100 close products first ([09, section 3 The fast methods](notebooks/09_fast_vector_search.ipynb), [10, section 2 Results: every method, with and without PCA](notebooks/10_shorter_vectors_pca.ipynb), [11, section 1 How I did it](notebooks/11_tsne_picture_vectors.ipynb), [12, section 1 How the final search works](notebooks/12_final_search.ipynb)). Repeated questions are answered from a cache ([13, section 1 How my cache works](notebooks/13_caching.ipynb)). The service is a FastAPI app with the cache and a page ([15, sections 1 to 5](notebooks/15_stronger_api.ipynb)), packaged as a Docker image and run on Kubernetes with 2 pods. Prometheus and Grafana show how it behaves.
 
 ## Results at a glance
 
-I scored every method against my own ratings (0, 1 or 2) on the 30 development products, then ran a final test on 20 products I had locked away from the start. I rated each result on a blind page: a card with the picture and 0, 1 and 2 buttons, with no method names shown. How the ratings work is in [notebook 04](notebooks/04_evaluation_baseline.ipynb).
+I scored every method against my own ratings (0, 1 or 2) on the 30 development products, then ran a final test on 20 products I had locked away from the start. I rated each result on a blind page: a card with the picture and 0, 1 and 2 buttons, with no method names shown. How the ratings work is in [notebook 04, section 1 The ratings](notebooks/04_evaluation_baseline.ipynb).
 
 ![The rating page: each result is a card with a picture and 0, 1, 2 buttons](evaluation/rating_page.png)
 
@@ -102,7 +102,7 @@ Two scores are used. **Precision@10** is how many of the 10 results I returned w
 
 The hybrid is my approach of combining everything into one score. **4 weights** means four features: title words, title meaning, picture and attributes (the seven attributes counted together). **10 weights** means ten features: title words, title meaning, picture, and each of the seven attributes (category, brand, audience, price, colour, weight and rating) on its own. The hybrid scores come from products the weights had not seen (5-fold cross-validation). Combining everything beats every single feature, and four weights beat ten.
 
-Notebook: [08 Hybrid search](notebooks/08_hybrid_search.ipynb). Numbers: [`dev_hybrid_scoreboard.csv`](results/dev_hybrid_scoreboard.csv).
+Notebook: [08 Hybrid search, section 8 Scoreboard](notebooks/08_hybrid_search.ipynb). Numbers: [`dev_hybrid_scoreboard.csv`](results/dev_hybrid_scoreboard.csv).
 
 **2. Exact against fast** (30 development products)
 
@@ -113,7 +113,7 @@ Notebook: [08 Hybrid search](notebooks/08_hybrid_search.ipynb). Numbers: [`dev_h
 
 Nearly the same quality, about 15 times faster.
 
-Notebook: [12 Final search](notebooks/12_final_search.ipynb). Numbers: [`fast_vs_exact_check.json`](results/fast_vs_exact_check.json).
+Notebook: [12 Final search, section 3 The comparison: exact mode against fast mode, and section 5 Time](notebooks/12_final_search.ipynb). Numbers: [`fast_vs_exact_check.json`](results/fast_vs_exact_check.json).
 
 **3. The final test** (20 locked products, rated once)
 
@@ -126,7 +126,7 @@ Of the 200 results I rated, 174 were relevant (rated 1 or 2) and 26 were noise (
 
 The nDCG is near 1 here for a simple reason. nDCG asks how close my top 10 is to the best top 10 I could build from all the results I rated. In the earlier tables the rated results came from many methods, some good and some bad. In this test I only rated results from the final system, so there was nothing better to compare against, and the score comes out high. So in this table, trust Precision@10.
 
-Notebook: [14 Final test](notebooks/14_final_test.ipynb). Numbers: [`final_test_scores.json`](results/final_test_scores.json).
+Notebook: [14 Final test, section 2 Product by product, and section 3 How to read the nDCG@10 here](notebooks/14_final_test.ipynb). Numbers: [`final_test_scores.json`](results/final_test_scores.json).
 
 **4. The cache**
 
@@ -139,7 +139,7 @@ About 12 times faster.
 
 The cache is **in-process**: each running copy of the service keeps the last 1,024 answers in its own memory. A question is the product, the number of results, the mode and the weights. Answers for more than 100 results are never kept. The cache is lost when the service restarts, and each Kubernetes pod has its own. A shared cache such as Redis would fix that, and I describe it as the upgrade but did not build it. More in [Caching](#caching).
 
-Notebook: [13 Caching](notebooks/13_caching.ipynb). Numbers: [`cache_benchmark.json`](results/cache_benchmark.json).
+Notebook: [13 Caching, section 2 One request: a miss against a hit](notebooks/13_caching.ipynb). Numbers: [`cache_benchmark.json`](results/cache_benchmark.json).
 
 ## What I did so far
 
