@@ -1,6 +1,6 @@
 # Product Similarity Search
 
-A multimodal product similarity engine for the Amazon Fashion 2020 dataset (30,000 products). Given a product's `uniq_id`, it returns the most similar products using structured attributes, product titles and product images.
+Find similar products by mixing three signals: what the title says, what the picture looks like, and the product's attributes. It runs on the Amazon Fashion 2020 dataset (30,000 products). The mix is weighted, and the weights are tuned against ratings I made myself.
 
 The project is built for the SAP technical exercise. The original task description is in the [assignment repository](https://github.com/punitmishra/sap-cxii-tech-ex-01).
 
