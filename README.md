@@ -16,8 +16,7 @@ The project is built for the SAP technical exercise. The original task descripti
 - [Features in detail](#features-in-detail)
 - [How the results were evaluated](#how-the-results-were-evaluated)
 - [What I tried, and what I kept](#what-i-tried-and-what-i-kept)
-- [Analysis notebooks](#analysis-notebooks)
-- [Where the numbers come from](#where-the-numbers-come-from)
+- [Notebooks and results](#notebooks-and-results)
 - [The service and Docker](#the-service-and-docker)
 - [Example](#example)
 - [The page](#the-page)
@@ -1089,41 +1088,32 @@ python experiments/log_final_test.py          # records the runs in MLflow
 
 </details>
 
-## Analysis notebooks
+## Notebooks and results
 
-| Notebook | What it does | Main findings |
+This section is a map for anyone who wants to check my work. There is one row for each of the 15 notebooks. A row says what the notebook does, what it found, and which files in `results/` hold its raw numbers. So for any number in this README, you can find the notebook that shows it and the file it comes from.
+
+How to read the table:
+- Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
+- A dash means that notebook has no results file of its own.
+- Every experiment was also recorded in MLflow. The MLflow databases stay on my computer (they are not in Git), so the screenshots in [What I tried, and what I kept](#what-i-tried-and-what-i-kept) show the runs.
+
+| Notebook | What it does and what it found | Results files |
 |---|---|---|
-| `01_data_exploration` | Loads the 30,000 products, checks the file is the original, and charts each attribute. It recomputes 24 figures to confirm them | Name, category and image are almost always present, and brand and price mostly. Weight is mostly a placeholder, colour is a list of options, and ratings often have no reviews. About a third of products share a title, and 471 rows are repeats |
-| `02_preprocessing` | Cleans the data step by step with before-and-after charts: repeated products, weight, brands, categories, colours, audience, reviews and price | One record per product, with every ID still valid. Missing categories are filled from the products on the same shelf (about 97% matched in a hide-and-guess check). Guessing brands from titles is built but switched off |
-| `03_baseline_examples` | Runs the first `find_similar_products` on five real queries, explains each score, times it, and compares it with simpler methods | Results come back in about 6 ms. Title similarity (TF-IDF) and attribute similarity give very different lists. Two weaknesses are noted: near-copies in the results, and products with little data scoring too high |
-| `04_evaluation_baseline` | Scores the three methods against the ratings with nDCG@10 and precision@10, with 95% ranges | The title plus attributes beats either alone, and both gaps are larger than luck. Title only versus attributes only cannot be told apart with 30 products |
-| `05_image_similarity` | Turns pictures into vectors with ResNet and CLIP, searches among the 708 development pictures, and scores the results with the same ratings as the text methods | CLIP ties the text baseline (nDCG@10 0.695 against 0.681), and ResNet is clearly lower (0.569). Image search only looked at pictures the text methods had already picked, so the full test comes next |
-| `06_clip_whole_catalogue` | Downloads the first picture of almost every product, turns them all into CLIP vectors, searches the whole catalogue, and scores the results with all my ratings next to the text methods | CLIP over the whole catalogue scores highest (nDCG@10 0.757). It is clearly better than title only and attributes only, and ahead of the text baseline (0.644) by a gap too small to be sure about with 30 products |
-| `07_sentence_vectors_on_titles` | Turns every title into a vector with a ready-made sentence model, searches, and scores the results with all my ratings next to TF-IDF, attributes and CLIP | Sentence vectors (nDCG@10 0.662) are clearly better than TF-IDF on titles (0.500) and about the same as my baseline (0.637). CLIP is still highest (0.751), but its gap over sentence vectors could be luck |
-| `08_hybrid_search` | Mixes the title (TF-IDF and sentence vectors), CLIP and the attributes into one score, tunes the weights with coordinate ascent, checks them with 5-fold cross-validation, and scores the result next to every single method | The 4-weight hybrid scores highest (nDCG@10 0.806, against 0.750 for CLIP and 0.637 for the baseline). Sentence vectors and pictures carry most of the weight. The gap over CLIP alone could be luck with 30 products |
-| `09_fast_vector_search` | Times the exact search, compares FAISS HNSW and IVF and Annoy with it (time, memory, recall@10) and uses a fast index inside the hybrid | HNSW is about 60 times faster than the exact search and finds 97% of the exact top 10. The exact search is already about 1 ms at this size, so the gain matters for a bigger catalogue |
-| `10_shorter_vectors_pca` | Cuts the vectors with PCA to 256, 128 and 64 numbers, runs the exact search, HNSW, IVF and Annoy on them (time, memory, recall@10), and times the extra projection step | PCA makes the index 2 to 4 times smaller, but recall drops to 71% (pictures) and 82% (sentences) at 128 numbers, and the speed-up disappears once the query projection is counted. I keep the full vectors with HNSW |
-| `11_tsne_picture_vectors` | Squeezes 3,000 picture vectors into two numbers with t-SNE, with the full vectors and after PCA, and colours the biggest categories | The categories form separate groups, and the groups stay the same after PCA. It is only a picture for looking |
-| `12_final_search` | Checks that the real search gives the same results as the notebooks, then compares its exact mode and fast mode (the same hybrid; the fast mode only speeds up the sentence and picture parts with HNSW indexes) with my ratings as the truth (nDCG@10, precision@10), the results I rated 2, 1 and 0 in each mode, product by product, and the time | Same top 10 for all 30 products (nDCG@10 0.8105). The fast mode gives nearly the same quality (0.8095, same precision@10) and is about 15 times faster (0.58 ms against 8.5 ms). I keep the exact mode as the default and the fast mode as a switch |
-| `13_caching` | Explains the in-process cache, measures a request that is in the cache against one that is not (200 products), and simulates traffic where a few products are asked for often, for several cache sizes | A hit takes 0.77 ms against 9.6 ms for a search (about 12 times faster). With an assumed popular-products traffic, a cache of 1,000 answers answers about half of the requests and halves the average time (10.3 ms to 5.5 ms) |
-| `14_final_test` | The one test of the finished search on the 20 locked products: both modes pooled into one blind page (204 results), rated by me, scored with nDCG@10 and precision@10, and timed | Precision@10 is 0.87 for both modes (0.877 on the development products). The fast mode has the same quality and is about 17 times faster (0.42 ms against 7.0 ms) |
-| `15_stronger_api` | Shows real requests to the real service: every error with its code, the `mode` option, the `weights` option (simple and advanced), and how the cache treats another mode or other weights | Bad input gets a 422 with a sentence, an unknown product a 404. Different weights give different lists. The cache never gives the answer of one set of weights for another |
-
-Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
-
-## Where the numbers come from
-
-Every result in this page can be traced to a notebook, a results file and an MLflow experiment. The MLflow databases stay on my computer (they are not in Git), so the screenshots in `evaluation/` show the runs.
-
-| Result | Notebook | Results files | MLflow experiment |
-|---|---|---|---|
-| The first text methods (TF-IDF, attributes) | [04](notebooks/04_evaluation_baseline.ipynb) | [`dev_scoreboard.csv`](results/dev_scoreboard.csv), [`dev_evaluation_report.md`](results/dev_evaluation_report.md) | `dev-ratings` |
-| Pictures, small test (ResNet, CLIP) | [05](notebooks/05_image_similarity.ipynb) | [`dev_image_scoreboard.csv`](results/dev_image_scoreboard.csv), [`dev_image_evaluation_report.md`](results/dev_image_evaluation_report.md) | `dev-images`, `dev-ratings-with-images` |
-| CLIP over the whole catalogue | [06](notebooks/06_clip_whole_catalogue.ipynb) | [`dev_full_image_scoreboard.csv`](results/dev_full_image_scoreboard.csv), [`dev_full_image_evaluation_report.md`](results/dev_full_image_evaluation_report.md) | `dev-ratings-full-images` |
-| Sentence vectors on titles | [07](notebooks/07_sentence_vectors_on_titles.ipynb) | [`dev_text_vector_scoreboard.csv`](results/dev_text_vector_scoreboard.csv), [`dev_text_vector_evaluation_report.md`](results/dev_text_vector_evaluation_report.md) | `dev-ratings-text-vectors` |
-| Hybrid search and its weights | [08](notebooks/08_hybrid_search.ipynb) | [`dev_hybrid_scoreboard.csv`](results/dev_hybrid_scoreboard.csv), [`hybrid_tuning.json`](results/hybrid_tuning.json), [`hybrid_tuning_first_round.json`](results/hybrid_tuning_first_round.json) | `dev-hybrid-tuning`, `dev-ratings-hybrid` |
-| Speed of the exact and the fast search | [09](notebooks/09_fast_vector_search.ipynb) | [`ann_exact_baseline.json`](results/ann_exact_baseline.json), [`ann_benchmark.json`](results/ann_benchmark.json), [`ann_hybrid_check.json`](results/ann_hybrid_check.json) | `ann-benchmark`, `ann-hybrid-check` |
-| Shorter vectors with PCA | [10](notebooks/10_shorter_vectors_pca.ipynb) | [`ann_pca.json`](results/ann_pca.json) | `ann-pca` |
+| [01 Data exploration](notebooks/01_data_exploration.ipynb) | Checks the 30,000 products and charts each attribute (24 figures recomputed). Name, category and image are almost always there, weight is mostly a placeholder, a third of the products share a title, and 471 rows are repeats | – |
+| [02 Preprocessing](notebooks/02_preprocessing.ipynb) | Cleans the data step by step with before-and-after charts. One record per product, every ID still valid, missing categories filled from the same shelf (about 97% right in a hide-and-guess check). Guessing brands from titles is built but switched off | – |
+| [03 Baseline examples](notebooks/03_baseline_examples.ipynb) | Runs the first `find_similar_products` on five real queries and explains each score. About 6 ms per search. Two weaknesses: near-copies in the results, and products with little data scoring too high | – |
+| [04 Evaluation of the baseline](notebooks/04_evaluation_baseline.ipynb) | Scores three text methods against my ratings. Title plus attributes beats either alone, and both gaps are larger than luck | [`dev_scoreboard.csv`](results/dev_scoreboard.csv), [`dev_evaluation_report.md`](results/dev_evaluation_report.md) |
+| [05 Image similarity](notebooks/05_image_similarity.ipynb) | ResNet and CLIP on the 708 development pictures. CLIP scores nDCG@10 0.695 and ResNet 0.569 | [`dev_image_scoreboard.csv`](results/dev_image_scoreboard.csv), [`dev_image_evaluation_report.md`](results/dev_image_evaluation_report.md) |
+| [06 CLIP over the whole catalogue](notebooks/06_clip_whole_catalogue.ipynb) | Every picture turned into a CLIP vector. CLIP scores highest (0.757), clearly above title only and attributes only | [`dev_full_image_scoreboard.csv`](results/dev_full_image_scoreboard.csv), [`dev_full_image_evaluation_report.md`](results/dev_full_image_evaluation_report.md) |
+| [07 Sentence vectors on titles](notebooks/07_sentence_vectors_on_titles.ipynb) | Sentence vectors (0.662) are clearly better than TF-IDF on titles (0.500) | [`dev_text_vector_scoreboard.csv`](results/dev_text_vector_scoreboard.csv), [`dev_text_vector_evaluation_report.md`](results/dev_text_vector_evaluation_report.md) |
+| [08 Hybrid search](notebooks/08_hybrid_search.ipynb) | Mixes title, picture and attributes, tunes the weights, and checks them with 5-fold cross-validation. The 4-weight hybrid scores highest (0.806) | [`dev_hybrid_scoreboard.csv`](results/dev_hybrid_scoreboard.csv), [`hybrid_tuning.json`](results/hybrid_tuning.json), [`hybrid_tuning_first_round.json`](results/hybrid_tuning_first_round.json), [`coordinate_ascent_trace.json`](results/coordinate_ascent_trace.json) |
+| [09 Fast vector search](notebooks/09_fast_vector_search.ipynb) | Compares exact search, FAISS HNSW, IVF and Annoy on time, memory and recall@10. HNSW is about 60 times faster and finds 97% of the exact top 10 | [`ann_exact_baseline.json`](results/ann_exact_baseline.json), [`ann_benchmark.json`](results/ann_benchmark.json), [`ann_hybrid_check.json`](results/ann_hybrid_check.json) |
+| [10 Shorter vectors with PCA](notebooks/10_shorter_vectors_pca.ipynb) | Cuts the vectors to 256, 128 and 64 numbers. The index gets 2 to 4 times smaller, but recall drops to 71% (pictures) and 82% (sentences) at 128 numbers | [`ann_pca.json`](results/ann_pca.json) |
+| [11 t-SNE of the picture vectors](notebooks/11_tsne_picture_vectors.ipynb) | Draws 3,000 picture vectors as dots. Categories form separate groups, and they stay the same after PCA. A picture to look at only | – |
+| [12 The final search](notebooks/12_final_search.ipynb) | Exact mode and fast mode with my ratings as the truth. nDCG@10 0.8105 against 0.8095, and fast mode is about 15 times faster | [`final_search_check.json`](results/final_search_check.json), [`final_search_ratings.json`](results/final_search_ratings.json), [`fast_vs_exact_check.json`](results/fast_vs_exact_check.json) |
+| [13 Caching](notebooks/13_caching.ipynb) | A cache hit takes 0.77 ms against 9.6 ms for a search (about 12 times faster) | [`cache_benchmark.json`](results/cache_benchmark.json) |
+| [14 The final test](notebooks/14_final_test.ipynb) | The one test on the 20 locked products. Precision@10 is 0.87 in both modes, and fast mode is about 17 times faster | [`final_test_scores.json`](results/final_test_scores.json), [`final_test_coverage.json`](results/final_test_coverage.json) |
+| [15 A stronger API](notebooks/15_stronger_api.ipynb) | Shows real requests to the real service: every error with its code, the `mode` and `weights` options, and how the cache treats them. Bad input gets a 422, an unknown product a 404 | – |
 
 ## The service and Docker
 
