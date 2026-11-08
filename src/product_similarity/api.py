@@ -6,6 +6,8 @@ import logging
 import time
 from collections.abc import Callable
 from contextlib import asynccontextmanager
+from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Query, Request, Response
@@ -33,6 +35,15 @@ from product_similarity.weights import (
 )
 
 logger = logging.getLogger("product_similarity.api")
+
+# The page that people use to try the search. It is one HTML file next to this module.
+PAGE_FILE = Path(__file__).parent / "web" / "index.html"
+
+
+@lru_cache(maxsize=1)
+def page_html() -> str:
+    return PAGE_FILE.read_text(encoding="utf-8")
+
 
 # Every ID in the dataset is 32 lowercase hexadecimal characters.
 ID_PATTERN = r"^[0-9a-f]{32}$"
@@ -161,6 +172,15 @@ def create_app(
         if engine is None:
             raise ApiError(503, "not_ready", "the service is not ready yet")
         return engine
+
+    @app.get("/", include_in_schema=False)
+    def page() -> Response:
+        """The page: choose a product, set the mode and the weights, see the time of each search."""
+        return Response(page_html(), media_type="text/html")
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon() -> Response:
+        return Response(status_code=204)
 
     @app.get("/find_similar_products", response_model=list[str])
     def find_similar_products(

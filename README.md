@@ -6,6 +6,12 @@ The project is built for the SAP technical exercise. The original task descripti
 
 > **Status: work in progress.** I am building this one step at a time. This page describes what is done and tested today, what I found, and what comes next.
 
+## What it does
+
+Give it a product ID and it returns the most similar products (you choose how many). The details endpoint also returns each product's title, price and score.
+
+Each candidate gets one score from 10 parts: the title words (TF-IDF), the title meaning (sentence vectors), the picture (CLIP), and seven attributes (category, brand, audience, price, colour, weight and rating). The parts are mixed with tuned weights into a weighted average, and a part that is missing for a product is skipped. The exact mode compares your product with every product. The fast mode first picks about 100 close products with an HNSW index and then ranks them with the same score. A search takes a few milliseconds, and the service runs as a FastAPI app, in Docker and in Kubernetes, with a page at `/`.
+
 ## Status
 
 | Area | State |
@@ -36,6 +42,7 @@ The project is built for the SAP technical exercise. The original task descripti
 | Vector search benchmarks (FAISS Flat and HNSW, Annoy) | Planned |
 | Kubernetes files (2 pods, a Service, probes, a rolling update) | Done: deployed and tested in a temporary cluster in CI on every push |
 | Monitoring (`/metrics`, Prometheus, Grafana, two alert rules) | Done: checked in CI, and a dashboard screenshot from a local run |
+| The page at `/` | Done: choose a product, the mode and the weights, and see the results with the time of each search |
 
 ## What I did so far
 
@@ -60,6 +67,7 @@ I work in small steps. After each step I check the result, and I write down what
 17. **Automated the checks (CI/CD).** Every push runs the linter, the tests and a Docker smoke test.
 18. **Ran it on Kubernetes.** The image runs as 2 pods behind one Service, with liveness and readiness probes and a rolling update. CI starts a temporary cluster on every push and tests it. (See "Kubernetes".)
 19. **Added monitoring.** The service reports its own numbers on `/metrics`. Prometheus collects them, Grafana draws them, and two alert rules judge them. (See "Monitoring".)
+20. **Built a page.** A page at `/` where I choose a product, the mode and the weights, and see the similar products with the time of each search. (See "The page".)
 
 The sections below explain each step: what I did, why, and what I found.
 
@@ -172,6 +180,7 @@ The service is a small FastAPI app. The engine is built once at startup (about 2
 
 | Endpoint | What it returns |
 |---|---|
+| `GET /` | The page (see "The page") |
 | `GET /find_similar_products?product_id=...&num_similar=...` | The list of the most similar product IDs (the required endpoint). The headers `X-Cache` (`hit` or `miss`) and `X-Search-Mode` (the mode that ran) |
 | `GET /find_similar_products/details?...` | The same search with the question, readable product details, the scores, `mode`, `weights`, `cached` and `response_time_ms` |
 | `GET /weights` | The modes, the limits, the names of the weights and the tuned weights (simple and advanced), for a page that sets them |
@@ -967,6 +976,12 @@ Every result in this page can be traced to a notebook, a results file and an MLf
 | Speed of the exact and the fast search | [09](notebooks/09_fast_vector_search.ipynb) | [`ann_exact_baseline.json`](results/ann_exact_baseline.json), [`ann_benchmark.json`](results/ann_benchmark.json), [`ann_hybrid_check.json`](results/ann_hybrid_check.json) | `ann-benchmark`, `ann-hybrid-check` |
 | Shorter vectors with PCA | [10](notebooks/10_shorter_vectors_pca.ipynb) | [`ann_pca.json`](results/ann_pca.json) | `ann-pca` |
 
+## The page
+
+The service has a page at `/`, which is `http://localhost:8000/` when I run it on my laptop with `uvicorn app:app`. I choose a product (paste an ID, press Random product, or pick an example), choose the mode (exact or fast) and what counts most (best, picture, title, or my own sliders), and the similar products appear straight away. The page shows how long each search took, whether it was a new search or came from the cache, and the cache hit rate. It is one HTML file, [`src/product_similarity/web/index.html`](src/product_similarity/web/index.html), served by the same app, so it also runs in Docker and Kubernetes. CI checks that it is served. The header links to the API docs, the metrics, the health check and the Grafana dashboard (`http://localhost:3000`, which works while Grafana is running).
+
+![The page](screenshots/page.png)
+
 ## Kubernetes
 
 Docker packs the service into one image. Kubernetes runs several copies of that image (called pods) and looks after them: it restarts a pod that breaks, it sends requests only to pods that are ready, and it replaces the pods one at a time when I change something. The files are in [`k8s/`](k8s/).
@@ -1004,14 +1019,14 @@ The screenshot is from a run on my laptop with 2,052 test searches. The memory p
 
 ### Tests
 
-There are 275 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
+There are 282 tests. The unit tests cover loading, cleaning, scoring, ranking, the service, the API, the rating tools, the scoring maths, MLflow logging and the image code. The integration tests run on the real dataset and on the real API.
 
 ### CI/CD with GitHub Actions
 
 On every push and pull request, GitHub Actions runs four jobs:
 
 1. **test:** installs the project (with FAISS, so the fast-mode tests run), checks the code style with ruff, and runs all the tests.
-2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks the same question three times and prints the result of each (request 1: `X-Cache: miss`, request 2: `X-Cache: hit` with an identical answer, request 3 on the details endpoint: `cached: true`), checks that `/cache` reports 2 hits and 1 miss, checks that the fast mode and the weights work (for five searches it prints the mode asked and the mode that ran, the weights set and the weights used, the response time, whether it came from the cache, and the three most similar titles; it checks that picture-only, title-only and a mix give three different lists), checks that eight kinds of bad input give a 422, checks that an unknown ID returns 404, checks that `/metrics` reports the numbers that these steps caused, checks that the container does not run as root, and scans the image with Trivy, a security test of the image.
+2. **docker:** builds the image, starts the container, waits until it is ready, checks that it runs the final search (`/ready` says `hybrid`), asks the same question three times and prints the result of each (request 1: `X-Cache: miss`, request 2: `X-Cache: hit` with an identical answer, request 3 on the details endpoint: `cached: true`), checks that `/cache` reports 2 hits and 1 miss, checks that the fast mode and the weights work (for five searches it prints the mode asked and the mode that ran, the weights set and the weights used, the response time, whether it came from the cache, and the three most similar titles; it checks that picture-only, title-only and a mix give three different lists), checks that eight kinds of bad input give a 422, checks that an unknown ID returns 404, checks that `/metrics` reports the numbers that these steps caused, checks that the page is served at `/`, checks that the container does not run as root, and scans the image with Trivy, a security test of the image.
 3. **security:** runs `pip-audit`, a security test of the packages of the service.
 4. **kubernetes:** checks the Kubernetes files against the official schemas, builds the image, starts a temporary cluster (kind) and deploys the two pods and the Service. It checks that both pods are ready and that a search through the Service works, deletes one pod and checks that 20 requests still return 200, and runs a rolling update while sending requests to check that none fails. Then it runs the same API checks as the docker job against one pod (the cache requests miss, hit, hit; the five settings; the eight bad inputs; the unknown product). Last, it checks the monitoring files, deploys Prometheus and Grafana, sends traffic, and checks that Prometheus reads both pods and that Grafana shows the dashboard.
 
@@ -1025,10 +1040,6 @@ The docker and kubernetes jobs only start if the test job passes. I merge into `
 - The sentence model was not trained on shopping titles, so it may be weaker on brand names and size words.
 - The 20 locked final products were rated once, for the final test (notebook 14). They were never used for tuning.
 - The attribute weights are untuned starting values.
-
-## What is next
-
-- A page where people set each weight with sliders (with the tuned weights as the best setting), switch between the exact and the fast mode, and see the time of each search, with and without the cache.
 
 ## Project layout
 
@@ -1063,6 +1074,7 @@ src/product_similarity/     Python package
   weights.py                Reads and checks the weights a user sets for one search
   vector_files.py           Saves and reads the half-size vector files that ship with the service
   metrics.py                The numbers on /metrics (requests, times, cache hits, errors) for Prometheus
+  web/index.html            The page served at / (one HTML file)
 experiments/                Scripts that I run by hand (nothing here is used by the service)
   run_evaluation.py         Scores the text methods against my ratings and records the runs
   check_images.py           Downloads and checks the 100-image sample
@@ -1107,11 +1119,12 @@ evaluation/                 Test products, rating rules, rating pages and my rat
   judgments/                Rating sheets, rating pages and my ratings (CSV)
   *.png                     Screenshots of the rating page and MLflow
 results/                    Exported scores, reports and image check numbers
-tests/                      275 tests
+tests/                      282 tests
   unit/                     Fast tests for each module
   integration/              Tests on the real dataset and the real API
 notebooks/                  Fifteen analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
+screenshots/                The page, from a local run
 k8s/                        Kubernetes files: deployment (2 pods, probes, rolling update), service, pod budget
 monitoring/                 Prometheus and Grafana files, alert rules, a script to run them locally, a traffic script
   screenshots/              The Grafana dashboard from a local run

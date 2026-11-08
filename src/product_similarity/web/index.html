@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product similarity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<style>
+:root{--ink:#111111;--olive:#4B5A3C;--olive-dk:#33372B;--bg:#2B2D27;--strip:#EEEEEA;--line:#DADAD5;--muted:#5F5F58;--tan:#F2E9DE;--tan-ink:#5A3B24;--sage:#E4E9DA;--sage-ink:#2F3A22;--brick:#8A2F20;--brick-bg:#F6E3DE;--brick-ink:#6E2418;--amber-bg:#F5ECD3;--amber-ink:#5C4310}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);font-family:Montserrat,"Helvetica Neue",Arial,sans-serif;color:var(--ink);font-size:14px}
+a{color:var(--ink);text-underline-offset:3px}a:hover{color:var(--olive)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--olive);outline-offset:2px}
+.panel{max-width:1180px;margin:0 auto;background:#fff;min-height:100vh}
+.bar{background:var(--olive-dk);color:#fff;text-align:center;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 16px}
+header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:16px 28px;border-bottom:1px solid var(--line)}
+h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+nav{display:flex;gap:22px;align-items:center;flex-wrap:wrap;font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+a.dash{border:1px solid var(--ink);background:var(--ink);color:#fff;padding:8px 16px;text-decoration:none;font-weight:600;letter-spacing:.06em;border-radius:2px}
+a.dash:hover{background:var(--olive);border-color:var(--olive);color:#fff}
+h2{margin:0;font-size:16px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.pill{display:inline-block;align-self:flex-start;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:5px 14px;border-radius:999px;background:var(--sage);color:var(--sage-ink)}
+.pill.exact{background:var(--ink);color:#fff}.pill.fast{background:var(--olive);color:#fff}
+.pill.new{background:var(--tan);color:var(--tan-ink)}.pill.hit{background:var(--sage);color:var(--sage-ink)}
+.pill.bad{background:var(--brick-bg);color:var(--brick-ink)}.pill.wait{background:var(--amber-bg);color:var(--amber-ink)}
+.status{display:flex;align-items:center;gap:6px;font-weight:600}
+.status i{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+.pick{padding:24px 28px 8px;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.text{flex:1 1 320px;min-width:0;height:46px;padding:0 14px;border:1px solid var(--ink);border-radius:2px;font-family:"JetBrains Mono",monospace;font-size:14px;background:#fff}
+.btn{height:46px;padding:0 22px;border:1px solid var(--ink);border-radius:2px;background:var(--ink);color:#fff;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.btn.small{height:34px;padding:0 14px;font-size:11px;background:#fff;color:var(--ink)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)}
+.chip{height:32px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:#F4F4F0;font-size:12px;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.msg{margin:0 28px;padding:10px 14px;border-top:4px solid var(--brick);background:var(--brick-bg);color:var(--brick-ink);font-weight:500}
+.msg.wait{border-top-color:#B08A3E;background:var(--amber-bg);color:var(--amber-ink)}
+.msg[hidden]{display:none}
+.strip{margin-top:16px;background:var(--strip);display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.strip>div{padding:16px 24px;display:flex;flex-direction:column;gap:6px;justify-content:center;border-right:1px solid #C9C9C2}
+.strip>div:last-child{border-right:none}
+.k{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.big{font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.small{font-size:12px}
+.body{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;padding:28px}
+aside{flex:1 1 290px;max-width:340px;display:flex;flex-direction:column;gap:22px}
+.card{display:flex;gap:12px;align-items:center;border:1px solid var(--line);padding:10px}
+.card .ph{width:80px;height:80px;flex:none}
+.ph{background:var(--strip);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center;overflow:hidden}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.group{display:flex;flex-direction:column;gap:8px}
+.seg{display:grid;border:1px solid var(--ink)}
+.seg button{height:42px;border:none;border-radius:0;background:#fff;color:var(--ink);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff;font-weight:600}
+#mode button{height:56px}
+.seg button small{display:block;margin-top:2px;font-size:10px;font-weight:400;letter-spacing:.04em;text-transform:none;color:var(--muted)}
+.seg button[aria-pressed=true] small{color:#D8D8D2}
+.mt{font-size:12px;font-weight:600;line-height:1.5}
+.help{font-size:12px;color:var(--muted);line-height:1.5}
+.sl{display:grid;grid-template-columns:84px minmax(0,1fr) 56px 36px;gap:8px;align-items:center;font-size:12px}
+.sl input[type=range]{width:100%;accent-color:var(--olive)}
+.sl input[type=number]{width:56px;height:32px;padding:0 6px;border:1px solid var(--ink);border-radius:2px;font-size:12px}
+.sl .share{font-size:11px;color:var(--muted);text-align:right}
+.count{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.count input{width:76px;height:38px;padding:0 10px;border:1px solid var(--ink);border-radius:2px}
+main{flex:999 1 540px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.res{display:flex;flex-direction:column;gap:6px}
+.res .ph{aspect-ratio:4/5}
+.res .t{font-size:12px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.res .m{font-size:12px;color:var(--muted)}
+.res .s{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600}
+.res .s div{flex:1;height:4px;background:#E4E4DE}.res .s div i{display:block;height:100%;background:var(--olive)}
+footer{border-top:1px solid var(--line);padding:16px 28px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.sr{position:absolute;left:-9999px}
+@media (max-width:640px){header,.pick,.body,footer{padding-left:16px;padding-right:16px}.msg{margin:0 16px}.strip>div{padding:12px 16px}}
+</style>
+</head>
+<body>
+<div class="panel">
+<div class="bar">Search 29,529 products · exact or fast</div>
+<header>
+<h1>Product similarity</h1>
+<nav aria-label="Service links">
+<a href="/docs">API docs</a>
+<a href="/metrics">Metrics</a>
+<a class="dash" href="http://localhost:3000" target="_blank" rel="noopener">Dashboard</a>
+<a href="/ready">Health</a>
+<span class="pill wait status" id="status"><i></i><span id="status-text">Connecting</span></span>
+</nav>
+</header>
+
+<section class="pick" aria-label="Choose a product">
+<h2>Choose a product</h2>
+<div class="row">
+<label class="sr" for="product-id">Product ID</label>
+<input class="text" id="product-id" type="text" spellcheck="false" autocomplete="off" value="26d41bdc1495de290bc8e6062d927729">
+<button class="btn" id="random" type="button">Random product</button>
+</div>
+<div class="chips"><span>Or try:</span><span id="examples" class="chips"></span></div>
+</section>
+
+<p class="msg" id="message" role="alert" hidden></p>
+
+<section class="strip" aria-label="Response time" aria-live="polite">
+<div><span class="k">This search took</span><span class="big" id="time">–</span></div>
+<div><span class="k">Mode</span><span class="pill" id="mode-pill">–</span></div>
+<div><span class="k">Answer</span><span class="pill" id="answer-pill">–</span></div>
+<div>
+<span class="small">New search: <b id="t-miss">–</b> · From the cache: <b id="t-hit">–</b></span>
+<span class="small">Cache hit rate: <b id="rate">–</b> <span id="rate-detail"></span></span>
+<span><button class="btn small" id="again" type="button">Run it again</button></span>
+</div>
+</section>
+
+<div class="body">
+<aside>
+<section class="card" aria-label="Your product">
+<div class="ph" id="q-photo">Product photo</div>
+<div class="group" style="gap:4px;min-width:0">
+<span class="k">Your product</span>
+<span id="q-title" style="font-size:13px;font-weight:500;line-height:1.35">–</span>
+<span class="help" id="q-meta"></span>
+</div>
+</section>
+
+<div class="group">
+<h3>Search mode</h3>
+<div class="seg" id="mode" style="grid-template-columns:repeat(2,minmax(0,1fr))" role="group" aria-label="Search mode"></div>
+<div class="group" style="gap:2px"><span class="mt" id="mode-title"></span><span class="help" id="mode-help"></span></div>
+</div>
+
+<div class="group">
+<h3>What counts most</h3>
+<div class="seg" id="preset" style="grid-template-columns:repeat(4,minmax(0,1fr))" role="group" aria-label="Weights"></div>
+<span class="help" id="preset-help"></span>
+<div id="custom" class="group" style="gap:10px;padding-top:6px" hidden>
+<div id="sliders" class="group" style="gap:10px"></div>
+<div class="row" style="justify-content:space-between;align-items:center">
+<button class="chip" id="advanced" type="button" aria-pressed="false">Advanced: all 10 parts</button>
+<button class="btn small" id="best" type="button">Use best weights</button>
+</div>
+</div>
+</div>
+
+<div class="count">
+<label for="count" style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Number of results</label>
+<input id="count" type="number" min="1" max="1000" value="10">
+</div>
+</aside>
+
+<main>
+<div class="head"><h2>Similar products</h2><span class="help" id="results-note"></span></div>
+<div class="grid" id="results"></div>
+</main>
+</div>
+
+<footer>
+<span>Exact compares with every product. Fast uses an index and is much faster.</span>
+<span>Score: how close a product is to yours, from 0 to 1.</span>
+</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // 30 development products: "Random product" picks one of them.
+  var RANDOM_IDS = [
+    "4a19cb1bd8b79740f2a4a0f14775e0aa", "c063efea9fd98cd1adc8250e8ece4c82", "c5d302d14d80e6a58760ebeded2e9553",
+    "af15ad6b13ee859ce2fead6ed24aebd5", "e29fd93ca27749b6e138d6288b5b2eea", "266b54b024993f68377fe82452098db8",
+    "64ac84df7170fcb1e6d31031249f296e", "5836fb8eeb46d18458b0da2dcd887d4f", "f0900590f852354863b0654f9fe5cd0b",
+    "d8239dade060b3a88d8a5f3d0ae36b4d", "385b064ea44bcd0bdcc6a0e6c0c2e866", "8490f530f6fea6d559e1c686fea90b33",
+    "d01073c100a4d80554d0bf7e5cdfece4", "caa890201c05c1e3998d76f5614fa902", "8fe29efc3daf1d366603c42cc9409ccd",
+    "9c2a9f393ddc6f5bb877727970ec4b9f", "a4a1922a9a3484775693696a2e001500", "9a8d727a5e335dcbdc6a4979ef5b81fc",
+    "78525717e34f31f62764b3123928171e", "4bf64431f3fa28ddd60c9ad4061c6c20", "b7c60c2c67d0804c0a9f3cf7d63794ad",
+    "1ab74d9bac3413006265070995ea3f7c", "b15e2dc1e8b34d6038121044d74c86f7", "da9e7531d64d63fde05444cfe7ab4e03",
+    "0716d9a59127f3c3e96cd89a62a26465", "b9a2fae15158fd4fea3c99f26ec54236", "e27353f3cad99b0b26049d0c9b6ae1e2",
+    "97a9973f9fdb020423434b254c82579e", "ff03c6fede62374e50c68f0c738a2337", "7b3b452f2b20ca5e1f183921be7a7d88"
+  ];
+  var EXAMPLES = [
+    ["Block-print fabric", "26d41bdc1495de290bc8e6062d927729"],
+    ["Men's tie", "9c2a9f393ddc6f5bb877727970ec4b9f"],
+    ["Women's kurta", "1ab74d9bac3413006265070995ea3f7c"]
+  ];
+  var ID_PATTERN = /^[0-9a-f]{32}$/;
+  var PRESETS = [["best", "Best"], ["picture", "Picture"], ["title", "Title"], ["custom", "Custom"]];
+  var PRESET_HELP = {
+    best: "The weights I tuned on my ratings. The best setting for most products.",
+    picture: "Only how the photos look. Good for patterns and colours, but it ignores what the item is.",
+    title: "Only the words of the title.",
+    custom: "Set each part yourself. The percentage is its share of the score."
+  };
+  var MODE_HELP = {
+    exact: ["Full search", "Your product is compared with all 29,529 products. The most precise. This is the default."],
+    fast: ["HNSW index", "A fast index picks about 100 close products, by title meaning and by picture. The same score then ranks them. Much faster, with nearly the same results."]
+  };
+  var LABELS = {
+    title: "Title words", text_vectors: "Title meaning", image: "Picture", attributes: "Attributes",
+    category: "Category", brand: "Brand", audience: "Audience", price: "Price", colour: "Colour",
+    weight: "Weight", rating: "Rating"
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var state = {
+    mode: "exact", preset: "best", advanced: false, meta: null,
+    custom: { simple: {}, advanced: {} }, lastMiss: null, lastHit: null
+  };
+  var seq = 0, timer = null;
+
+  function make(tag, props, kids) {
+    var node = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (k) {
+      if (k === "text") node.textContent = props[k]; else node.setAttribute(k, props[k]);
+    });
+    (kids || []).forEach(function (kid) { node.appendChild(kid); });
+    return node;
+  }
+  function ms(value) { return (value < 1 ? value.toFixed(2) : value.toFixed(1)) + " ms"; }
+  function showMessage(text, kind) {
+    var box = $("message");
+    box.textContent = text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
+    box.className = "msg" + (kind === "wait" ? " wait" : "");
+    box.hidden = !text;
+  }
+  function photo(holder, url, alt) {
+    holder.textContent = "";
+    if (url && /^https?:\/\//.test(url)) {
+      var img = make("img", { alt: alt || "", loading: "lazy", referrerpolicy: "no-referrer" });
+      img.onerror = function () { holder.textContent = "No photo"; };
+      img.src = url;
+      holder.appendChild(img);
+    } else {
+      holder.textContent = "No photo";
+    }
+  }
+  function price(p) { return p === null || p === undefined ? "no price" : "₹" + Math.round(p).toLocaleString("en-US"); }
+  function rating(r) { return r === null || r === undefined ? "" : "★ " + r.toFixed(1); }
+
+  // ---- the settings on the left ----
+  function drawSegments() {
+    var modes = $("mode");
+    modes.textContent = "";
+    [["exact", "Exact", "full search"], ["fast", "Fast", "HNSW index"]].forEach(function (m) {
+      var b = make("button", { type: "button", "aria-pressed": String(state.mode === m[0]) }, [
+        make("span", { text: m[1] }), make("small", { text: m[2] })
+      ]);
+      b.onclick = function () {
+        if (m[0] === "fast" && state.meta && state.meta.modes.indexOf("fast") < 0) {
+          showMessage("The fast mode is not available in this service.");
+          return;
+        }
+        state.mode = m[0]; drawSegments(); schedule(0);
+      };
+      modes.appendChild(b);
+    });
+    $("mode-title").textContent = MODE_HELP[state.mode][0];
+    $("mode-help").textContent = MODE_HELP[state.mode][1];
+    var presets = $("preset");
+    presets.textContent = "";
+    PRESETS.forEach(function (p) {
+      var b = make("button", { type: "button", text: p[1], "aria-pressed": String(state.preset === p[0]) });
+      b.onclick = function () { state.preset = p[0]; drawSegments(); drawSliders(); schedule(0); };
+      presets.appendChild(b);
+    });
+    $("preset-help").textContent = PRESET_HELP[state.preset];
+    $("custom").hidden = state.preset !== "custom";
+    $("advanced").setAttribute("aria-pressed", String(state.advanced));
+  }
+  function currentNames() {
+    return state.meta ? (state.advanced ? state.meta.advanced_names : state.meta.simple_names) : [];
+  }
+  function currentValues() { return state.advanced ? state.custom.advanced : state.custom.simple; }
+  function drawSliders() {
+    var holder = $("sliders");
+    holder.textContent = "";
+    if (state.preset !== "custom" || !state.meta) return;
+    var values = currentValues();
+    var names = currentNames();
+    var shares = [];
+    function updateShares() {
+      var total = names.reduce(function (a, n) { return a + values[n]; }, 0);
+      names.forEach(function (n, i) {
+        shares[i].textContent = total > 0 ? Math.round(values[n] / total * 100) + "%" : "0%";
+      });
+    }
+    names.forEach(function (n) {
+      var range = make("input", { type: "range", min: "0", max: "1", step: "0.01", id: "w-" + n });
+      var number = make("input", { type: "number", min: "0", max: "1", step: "0.01", "aria-label": LABELS[n] + " value" });
+      range.value = values[n];
+      number.value = Math.round(values[n] * 100) / 100;
+      var share = make("span", { class: "share" });
+      shares.push(share);
+      function set(raw) {
+        var v = Math.min(1, Math.max(0, Number(raw) || 0));
+        values[n] = v; range.value = v; if (number !== document.activeElement) number.value = Math.round(v * 100) / 100;
+        updateShares(); schedule(250);
+      }
+      range.oninput = function () { set(range.value); };
+      number.oninput = function () { set(number.value); };
+      holder.appendChild(make("div", { class: "sl" }, [make("label", { for: "w-" + n, text: LABELS[n] }), range, number, share]));
+    });
+    updateShares();
+  }
+  function resetCustom() {
+    var tuned = state.meta.tuned_weights;
+    ["simple", "advanced"].forEach(function (kind) {
+      state.custom[kind] = {};
+      Object.keys(tuned[kind]).forEach(function (n) {
+        state.custom[kind][n] = tuned[kind][n];
+      });
+    });
+  }
+
+  // ---- asking the service ----
+  function weightsParam() {
+    if (state.preset === "picture") return "image:1";
+    if (state.preset === "title") return "title:1";
+    if (state.preset === "custom") {
+      var values = currentValues();
+      var names = currentNames();
+      if (!names.some(function (n) { return values[n] > 0; })) return null;
+      var tuned = state.meta.tuned_weights[state.advanced ? "advanced" : "simple"];
+      if (names.every(function (n) { return values[n] === tuned[n]; })) return "";
+      return names.map(function (n) { return n + ":" + values[n]; }).join(",");
+    }
+    return "";
+  }
+  function schedule(wait) {
+    clearTimeout(timer);
+    timer = setTimeout(search, wait);
+  }
+  function search() {
+    var id = $("product-id").value.trim().toLowerCase();
+    var count = Number($("count").value);
+    var max = state.meta ? state.meta.max_results : 1000;
+    if (!ID_PATTERN.test(id)) { showMessage("A product ID has 32 lowercase letters and digits."); return; }
+    if (!(count >= 1 && count <= max && Math.floor(count) === count)) {
+      showMessage("Number of results must be a whole number from 1 to " + max.toLocaleString("en-US") + "."); return;
+    }
+    var weights = weightsParam();
+    if (weights === null) { showMessage("Set at least one weight above 0."); return; }
+    var url = "/find_similar_products/details?product_id=" + id + "&num_similar=" + count + "&mode=" + state.mode;
+    if (weights) url += "&weights=" + encodeURIComponent(weights);
+    var mine = ++seq;
+    fetch(url).then(function (response) {
+      return response.json().then(function (body) { return { ok: response.ok, status: response.status, body: body }; });
+    }).then(function (reply) {
+      if (mine !== seq) return;
+      if (!reply.ok) {
+        if (reply.status === 503) {
+          showMessage("Loading the products… this takes about 15 seconds after a start.", "wait");
+          setTimeout(function () { schedule(0); }, 3000);
+          return;
+        }
+        showMessage((reply.body && reply.body.message) || "Something went wrong.");
+        return;
+      }
+      showMessage("");
+      draw(reply.body);
+      return fetch("/cache").then(function (r) { return r.json(); }).then(function (c) { if (mine === seq) drawCache(c); });
+    }).catch(function () {
+      if (mine === seq) showMessage("Could not reach the service. Is it running?");
+    });
+  }
+  function draw(body) {
+    var time = body.response_time_ms;
+    $("time").textContent = ms(time);
+    var mode = $("mode-pill");
+    mode.textContent = body.mode; mode.className = "pill " + body.mode;
+    var answer = $("answer-pill");
+    answer.textContent = body.cached ? "From the cache" : "New search";
+    answer.className = "pill " + (body.cached ? "hit" : "new");
+    if (body.cached) state.lastHit = time; else state.lastMiss = time;
+    $("t-miss").textContent = state.lastMiss === null ? "–" : ms(state.lastMiss);
+    $("t-hit").textContent = state.lastHit === null ? "–" : ms(state.lastHit);
+    if (body.mode_note) showMessage(body.mode_note);
+
+    var q = body.query;
+    $("q-title").textContent = q.title;
+    $("q-meta").textContent = [q.brand, price(q.price), rating(q.rating)].filter(Boolean).join(" · ");
+    photo($("q-photo"), q.image_url, q.title);
+
+    var grid = $("results");
+    grid.textContent = "";
+    var top = body.results.length ? Math.max(body.results[0].score, 0.0001) : 1;
+    body.results.forEach(function (r, i) {
+      var ph = make("div", { class: "ph" });
+      photo(ph, r.image_url, r.title);
+      var width = Math.max(2, Math.round(Math.max(r.score, 0) / top * 100));
+      var bar = make("div", {}, [make("i", { style: "width:" + width + "%" })]);
+      grid.appendChild(make("article", { class: "res" }, [
+        ph,
+        make("span", { class: "t", text: "#" + (i + 1) + " " + r.title }),
+        make("span", { class: "m", text: [r.brand, price(r.price), rating(r.rating)].filter(Boolean).join(" · ") }),
+        make("div", { class: "s" }, [bar, make("span", { text: r.score.toFixed(2) })])
+      ]));
+    });
+    $("results-note").textContent = body.results.length + " by score";
+  }
+  function drawCache(c) {
+    if (!c.enabled) { $("rate").textContent = "cache is off"; $("rate-detail").textContent = ""; return; }
+    var total = c.hits + c.misses;
+    $("rate").textContent = total ? Math.round(c.hit_rate * 100) + "%" : "–";
+    $("rate-detail").textContent = total ? "(" + c.hits + " hits, " + c.misses + " misses)" : "";
+  }
+
+  // ---- start ----
+  function status(kind, text) {
+    $("status").className = "pill status " + kind;
+    $("status-text").textContent = text;
+  }
+  function start() {
+    fetch("/ready").then(function (r) {
+      if (r.status === 503) throw new Error("loading");
+      return r.json();
+    }).then(function (ready) {
+      status("hit", "Ready · " + ready.products.toLocaleString("en-US") + " products" + (ready.fast_ready ? " · fast mode ready" : ""));
+      return fetch("/weights").then(function (r) { return r.json(); });
+    }).then(function (meta) {
+      state.meta = meta;
+      $("count").max = meta.max_results;
+      resetCustom();
+      drawSegments();
+      drawSliders();
+      search();
+    }).catch(function (error) {
+      var loading = error && error.message === "loading";
+      status(loading ? "wait" : "bad", loading ? "Loading the products…" : "Not reachable");
+      showMessage(loading ? "Loading the products… this takes about 15 seconds after a start." : "Could not reach the service. Is it running?", loading ? "wait" : "");
+      setTimeout(start, 3000);
+    });
+  }
+
+  EXAMPLES.forEach(function (e) {
+    var b = make("button", { type: "button", class: "chip", text: e[0] });
+    b.onclick = function () { $("product-id").value = e[1]; schedule(0); };
+    $("examples").appendChild(b);
+  });
+  $("random").onclick = function () {
+    var now = $("product-id").value, next;
+    do { next = RANDOM_IDS[Math.floor(Math.random() * RANDOM_IDS.length)]; } while (next === now);
+    $("product-id").value = next; schedule(0);
+  };
+  $("product-id").oninput = function () { schedule(400); };
+  $("count").oninput = function () { schedule(400); };
+  $("again").onclick = function () { schedule(0); };
+  $("best").onclick = function () { resetCustom(); drawSliders(); schedule(0); };
+  $("advanced").onclick = function () { state.advanced = !state.advanced; drawSegments(); drawSliders(); schedule(0); };
+  drawSegments();
+  start();
+})();
+</script>
+</body>
+</html>

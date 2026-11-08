@@ -255,6 +255,14 @@ jobs:
           assert "ps_process_resident_memory_bytes" in text
           print("The counts match what the steps above did.")
           PY
+      - name: "The page - served at / and it has its parts"
+        run: |
+          curl -fsS -D headers.txt -o page.html http://localhost:8000/
+          grep -qi '^content-type: text/html' headers.txt
+          for part in 'id="product-id"' 'id="random"' 'id="mode"' 'id="preset"' 'id="sliders"' 'id="count"' 'id="time"' 'id="results"'; do
+            grep -q "$part" page.html || { echo "the page is missing $part"; exit 1; }
+          done
+          echo "The page is served at / ($(wc -c < page.html) bytes) and has the product box, the mode, the weights, the time and the results"
       - name: Container runs as a non-root user
         run: test "$(docker exec ps id -u)" != "0"
       - name: "Scan the image for known vulnerabilities (Trivy, warning only)"
@@ -511,6 +519,14 @@ jobs:
         run: |
           code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/find_similar_products?product_id=00000000000000000000000000000000&num_similar=5")
           test "$code" = "404"
+      - name: "Pod - The page is served at / and it has its parts"
+        run: |
+          curl -fsS -D headers.txt -o page.html http://localhost:8000/
+          grep -qi '^content-type: text/html' headers.txt
+          for part in 'id="product-id"' 'id="random"' 'id="mode"' 'id="preset"' 'id="sliders"' 'id="count"' 'id="time"' 'id="results"'; do
+            grep -q "$part" page.html || { echo "the page is missing $part"; exit 1; }
+          done
+          echo "The page is served at / ($(wc -c < page.html) bytes) and has the product box, the mode, the weights, the time and the results"
       - name: "Monitoring - check the Prometheus files (promtool) and the cluster files"
         run: |
           docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" --entrypoint promtool prom/prometheus:v2.55.1 check config /etc/prometheus/prometheus.yml
