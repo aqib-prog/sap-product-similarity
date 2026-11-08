@@ -1418,7 +1418,7 @@ The deployment strategy is a **rolling update** (`maxSurge: 1`, `maxUnavailable:
 2. waits until that pod is ready;
 3. only then stops one old pod, and repeats for the other one.
 
-So there is never a moment with fewer than 2 ready pods, and users do not notice the release. If the new version never becomes ready, the rollout stops and the old pods keep serving. The other common choice, stopping all old pods and then starting the new ones, would leave the service down for the 15 seconds the new pods need to load.
+So there is never a moment with fewer than 2 ready pods. An old pod also waits 5 seconds before it stops (`preStop` in [`deployment.yaml`](k8s/deployment.yaml)): Kubernetes takes it out of the Service and asks it to stop at the same time, so a request that is already on its way can still arrive, and the wait lets it finish. In one CI run, 1 of 101 requests failed during a rolling update, which is why I added this wait. If the new version never becomes ready, the rollout stops and the old pods keep serving. The other common choice, stopping all old pods and then starting the new ones, would leave the service down for the 15 seconds the new pods need to load.
 
 ### Memory, CPU and safety
 
@@ -1531,7 +1531,7 @@ The `kubernetes` job ([`ci.yml`](.github/workflows/ci.yml)) checks the monitorin
 
 ### Tests
 
-There are **283 tests**: 274 unit tests and 9 integration tests. They run with one command:
+There are **284 tests**: 275 unit tests and 9 integration tests. They run with one command:
 
 ```bash
 pytest
@@ -1550,7 +1550,7 @@ The code style is checked with `ruff` (`ruff check .` and `ruff format --check .
 
 | Job | What it checks | Stops the pipeline? |
 |---|---|---|
-| **test** | Installs the project (with FAISS, so the fast-mode tests run), checks the code style with ruff, and runs all 283 tests | Yes |
+| **test** | Installs the project (with FAISS, so the fast-mode tests run), checks the code style with ruff, and runs all 284 tests | Yes |
 | **docker** | Builds the image, starts the container, and tests the running service (see below) | Yes, except the Trivy scan, which is a warning |
 | **security** | Runs `pip-audit` on the packages of the service, looking for known vulnerabilities | No, a warning only |
 | **kubernetes** | Checks the Kubernetes files, then deploys them on a temporary cluster and tests them (see below) | Yes |
@@ -1628,7 +1628,7 @@ pip install -e ".[dev]" faiss-cpu==1.13.0
 pytest
 ```
 
-On a fresh clone this gives 281 passed and 1 skipped. The skipped test needs MLflow (`pip install -e ".[experiments]"`). `make lint` checks the code style, and `make test` runs the tests.
+On a fresh clone this gives 282 passed and 1 skipped. The skipped test needs MLflow (`pip install -e ".[experiments]"`). `make lint` checks the code style, and `make test` runs the tests.
 
 ### 4. Open the notebooks
 
@@ -1782,8 +1782,8 @@ evaluation/                 Test products, rating rules, rating pages and my rat
   judgments/                Rating sheets, rating pages and my ratings (CSV)
   *.png                     Screenshots of the rating page and MLflow, and the t-SNE picture
 results/                    Exported scores, reports and measurements (JSON, CSV and Markdown)
-tests/                      283 tests
-  unit/                     274 tests for each module, the page, the metrics and the Kubernetes files
+tests/                      284 tests
+  unit/                     275 tests for each module, the page, the metrics and the Kubernetes files
   integration/              9 tests on the real dataset and the real API
 notebooks/                  Fifteen analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise

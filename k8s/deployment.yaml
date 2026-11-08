@@ -65,6 +65,13 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
+          # Stopping a copy: wait 5 s first. Kubernetes takes the copy out of the Service
+          # at the same time as it asks it to stop, so a request that is already on its way
+          # can still arrive. The wait lets those requests finish and the Service forget the copy.
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
           # Startup: loading the vectors and building the fast indexes takes about 15 s.
           # Until /ready answers, the other two probes wait (up to 5 s x 40 = 200 s).
           startupProbe:

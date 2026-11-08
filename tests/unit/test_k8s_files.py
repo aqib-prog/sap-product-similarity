@@ -23,6 +23,13 @@ def test_two_copies_with_a_zero_downtime_rolling_update():
     assert spec["strategy"]["rollingUpdate"]["maxSurge"] == 1
 
 
+def test_a_stopping_copy_waits_before_it_exits():
+    c = container()
+    assert c["lifecycle"]["preStop"]["exec"]["command"] == ["sleep", "5"]
+    pod = load("deployment.yaml")["spec"]["template"]["spec"]
+    assert pod["terminationGracePeriodSeconds"] >= 30
+
+
 def test_probes_use_the_api_endpoints():
     c = container()
     assert c["startupProbe"]["httpGet"]["path"] == "/ready"
