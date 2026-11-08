@@ -4,6 +4,41 @@ Find similar products by mixing three kinds of features: what the title says, wh
 
 The project is built for the SAP technical exercise. The original task description is in the [assignment repository](https://github.com/punitmishra/sap-cxii-tech-ex-01).
 
+## Contents
+
+- [What it does](#what-it-does)
+- [Architecture](#architecture)
+- [Results at a glance](#results-at-a-glance)
+- [What I did so far](#what-i-did-so-far)
+- [Getting started](#getting-started)
+- [Run the service](#run-the-service)
+- [The data](#the-data)
+- [Cleaning the data](#cleaning-the-data)
+- [How the first similarity search works](#how-the-first-similarity-search-works)
+- [The service and Docker](#the-service-and-docker)
+- [Example](#example)
+- [Analysis notebooks](#analysis-notebooks)
+- [How the results were evaluated](#how-the-results-were-evaluated)
+- [Image sample check](#image-sample-check)
+- [Image similarity (small test)](#image-similarity-small-test)
+- [Image similarity over the whole catalogue](#image-similarity-over-the-whole-catalogue)
+- [Sentence vectors on titles](#sentence-vectors-on-titles)
+- [Hybrid search](#hybrid-search)
+- [Fast vector search](#fast-vector-search)
+- [Shorter vectors (PCA)](#shorter-vectors-pca)
+- [A picture of the vectors (t-SNE)](#a-picture-of-the-vectors-t-sne)
+- [The final search: exact mode and fast mode](#the-final-search-exact-mode-and-fast-mode)
+- [Caching](#caching)
+- [The final test on the 20 locked products](#the-final-test-on-the-20-locked-products)
+- [Where the numbers come from](#where-the-numbers-come-from)
+- [The page](#the-page)
+- [Kubernetes](#kubernetes)
+- [Monitoring](#monitoring)
+- [Tests and CI/CD](#tests-and-cicd)
+- [Limits so far](#limits-so-far)
+- [Project layout](#project-layout)
+- [License](#license)
+
 ## What it does
 
 Give it a product ID and it returns the most similar products (you choose how many). The details endpoint also returns each product's title, price and score.
@@ -105,41 +140,6 @@ About 12 times faster.
 The cache is **in-process**: each running copy of the service keeps the last 1,024 answers in its own memory. A question is the product, the number of results, the mode and the weights. Answers for more than 100 results are never kept. The cache is lost when the service restarts, and each Kubernetes pod has its own. A shared cache such as Redis would fix that, and I describe it as the upgrade but did not build it. More in [Caching](#caching).
 
 Notebook: [13 Caching](notebooks/13_caching.ipynb). Numbers: [`cache_benchmark.json`](results/cache_benchmark.json).
-
-## Contents
-
-- [What it does](#what-it-does)
-- [Architecture](#architecture)
-- [Results at a glance](#results-at-a-glance)
-- [What I did so far](#what-i-did-so-far)
-- [Getting started](#getting-started)
-- [Run the service](#run-the-service)
-- [The data](#the-data)
-- [Cleaning the data](#cleaning-the-data)
-- [How the first similarity search works](#how-the-first-similarity-search-works)
-- [The service and Docker](#the-service-and-docker)
-- [Example](#example)
-- [Analysis notebooks](#analysis-notebooks)
-- [How the results were evaluated](#how-the-results-were-evaluated)
-- [Image sample check](#image-sample-check)
-- [Image similarity (small test)](#image-similarity-small-test)
-- [Image similarity over the whole catalogue](#image-similarity-over-the-whole-catalogue)
-- [Sentence vectors on titles](#sentence-vectors-on-titles)
-- [Hybrid search](#hybrid-search)
-- [Fast vector search](#fast-vector-search)
-- [Shorter vectors (PCA)](#shorter-vectors-pca)
-- [A picture of the vectors (t-SNE)](#a-picture-of-the-vectors-t-sne)
-- [The final search: exact mode and fast mode](#the-final-search-exact-mode-and-fast-mode)
-- [Caching](#caching)
-- [The final test on the 20 locked products](#the-final-test-on-the-20-locked-products)
-- [Where the numbers come from](#where-the-numbers-come-from)
-- [The page](#the-page)
-- [Kubernetes](#kubernetes)
-- [Monitoring](#monitoring)
-- [Tests and CI/CD](#tests-and-cicd)
-- [Limits so far](#limits-so-far)
-- [Project layout](#project-layout)
-- [License](#license)
 
 ## What I did so far
 
