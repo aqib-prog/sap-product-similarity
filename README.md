@@ -168,7 +168,7 @@ The Kubernetes files are in [`k8s/`](k8s/), explained in [Kubernetes](#kubernete
 
 ### Part 3: vector search (bonus)
 
-The slow part of a search is comparing the picture and sentence vectors with every product. I replaced that with an **HNSW index** from FAISS (Malkov and Yashunin, [Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs](https://arxiv.org/abs/1603.09320); library: Johnson, Douze and Jégou, [Billion-scale similarity search with GPUs](https://arxiv.org/abs/1702.08734)). There is one index for the sentence vectors and one for the picture vectors (shortened here):
+The slow part of a search is comparing the picture and sentence vectors with every product. I replaced that with an **HNSW index** from FAISS (Y. A. Malkov and D. A. Yashunin, "[Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs](https://doi.org/10.1109/TPAMI.2018.2889473)," *IEEE Transactions on Pattern Analysis and Machine Intelligence*, vol. 42, no. 4, pp. 824-836, 1 April 2020; library: J. Johnson, M. Douze and H. Jégou, "[Billion-Scale Similarity Search with GPUs](https://doi.org/10.1109/TBDATA.2019.2921572)," *IEEE Transactions on Big Data*, vol. 7, no. 3, pp. 535-547, 1 July 2021). There is one index for the sentence vectors and one for the picture vectors (shortened here):
 
 ```python
 # src/product_similarity/hybrid.py, _build_indexes_now()
@@ -1039,7 +1039,7 @@ The fast index inside the hybrid is the experiment `ann-hybrid-check`:
 The walk-through, with every table and chart, is in [notebook 09](notebooks/09_fast_vector_search.ipynb).
 
 
-References: Malkov and Yashunin, [Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs](https://arxiv.org/abs/1603.09320) (HNSW); Johnson, Douze and Jégou, [Billion-scale similarity search with GPUs](https://arxiv.org/abs/1702.08734) (FAISS); [Annoy](https://github.com/spotify/annoy) from Spotify.
+References: Y. A. Malkov and D. A. Yashunin, "[Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs](https://doi.org/10.1109/TPAMI.2018.2889473)," *IEEE Transactions on Pattern Analysis and Machine Intelligence*, vol. 42, no. 4, pp. 824-836, 1 April 2020 (HNSW); J. Johnson, M. Douze and H. Jégou, "[Billion-Scale Similarity Search with GPUs](https://doi.org/10.1109/TBDATA.2019.2921572)," *IEEE Transactions on Big Data*, vol. 7, no. 3, pp. 535-547, 1 July 2021 (FAISS); [Annoy](https://github.com/spotify/annoy) from Spotify.
 
 ### Reproduce it
 
