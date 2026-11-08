@@ -1807,8 +1807,6 @@ Every paper below is a published one (a journal or a conference), with a link th
 |---|---|---|
 | Title words (TF-IDF) | K. Spärck Jones, "[A statistical interpretation of term specificity and its application in retrieval](https://doi.org/10.1108/eb026526)," *Journal of Documentation*, vol. 28, no. 1, pp. 11-21, 1972 | [The title](#the-title) |
 | Title meaning (sentence vectors) | N. Reimers and I. Gurevych, "[Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://doi.org/10.18653/v1/D19-1410)," *EMNLP-IJCNLP*, pp. 3982-3992, 2019 | [Titles](#2-titles-sentence-vectors) |
-| The sentence model | W. Wang et al., "[MiniLM: Deep Self-Attention Distillation for Task-Agnostic Compression of Pre-Trained Transformers](https://papers.nips.cc/paper/2020/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html)," *NeurIPS*, 2020 | [Titles](#2-titles-sentence-vectors) |
-| Pictures (CLIP) | A. Radford et al., "[Learning Transferable Visual Models From Natural Language Supervision](https://proceedings.mlr.press/v139/radford21a.html)," *ICML*, 2021 | [Pictures](#1-pictures) |
 | Pictures (ResNet, compared and dropped) | K. He, X. Zhang, S. Ren and J. Sun, "[Deep Residual Learning for Image Recognition](https://doi.org/10.1109/CVPR.2016.90)," *CVPR*, pp. 770-778, 2016 | [Pictures](#1-pictures) |
 | The weighted mix of parts | D. Metzler and W. B. Croft, "[Linear feature-based models for information retrieval](https://doi.org/10.1007/s10791-006-9019-z)," *Information Retrieval*, vol. 10, no. 3, pp. 257-274, 2007 | [The mix](#3-the-mix-hybrid-search) |
 | Mixing text and vector scores | S. Bruch, S. Gai and A. Ingber, "[An Analysis of Fusion Functions for Hybrid Retrieval](https://doi.org/10.1145/3596512)," *ACM Transactions on Information Systems*, vol. 42, no. 1, pp. 1-35, 2023 | [The mix](#3-the-mix-hybrid-search) |
@@ -1816,7 +1814,6 @@ Every paper below is a published one (a journal or a conference), with a link th
 | The fast index (HNSW) | Y. A. Malkov and D. A. Yashunin, "[Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs](https://doi.org/10.1109/TPAMI.2018.2889473)," *IEEE Transactions on Pattern Analysis and Machine Intelligence*, vol. 42, no. 4, pp. 824-836, 2020 | [Fast search](#4-fast-search) |
 | The fast-search library (FAISS) | J. Johnson, M. Douze and H. Jégou, "[Billion-Scale Similarity Search with GPUs](https://doi.org/10.1109/TBDATA.2019.2921572)," *IEEE Transactions on Big Data*, vol. 7, no. 3, pp. 535-547, 2021 | [Fast search](#4-fast-search) |
 | Shorter vectors (PCA) | I. T. Jolliffe and J. Cadima, "[Principal component analysis: a review and recent developments](https://doi.org/10.1098/rsta.2015.0202)," *Philosophical Transactions of the Royal Society A*, vol. 374, no. 2065, article 20150202, 2016 | [Shorter vectors](#5-shorter-vectors-pca) |
-| Drawing the vectors (t-SNE) | L. van der Maaten and G. Hinton, "[Visualizing Data using t-SNE](https://www.jmlr.org/papers/v9/vandermaaten08a.html)," *Journal of Machine Learning Research*, vol. 9, 2008 | [Drawing the vectors](#6-drawing-the-vectors-t-sne) |
 
 ### Models
 
