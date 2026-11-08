@@ -14,12 +14,12 @@ The project is built for the SAP technical exercise. The original task descripti
 - [Data exploration (EDA)](#data-exploration-eda)
 - [Preprocessing (cleaning the data)](#preprocessing-cleaning-the-data)
 - [Features in detail](#features-in-detail)
-- [The service and Docker](#the-service-and-docker)
-- [Example](#example)
-- [Analysis notebooks](#analysis-notebooks)
 - [How the results were evaluated](#how-the-results-were-evaluated)
 - [What I tried, and what I kept](#what-i-tried-and-what-i-kept)
+- [Analysis notebooks](#analysis-notebooks)
 - [Where the numbers come from](#where-the-numbers-come-from)
+- [The service and Docker](#the-service-and-docker)
+- [Example](#example)
 - [The page](#the-page)
 - [Kubernetes](#kubernetes)
 - [Monitoring](#monitoring)
@@ -608,172 +608,6 @@ The weights of the parts that were used add up to 98.2% and not 100%, so the tot
 - **A missing part is skipped.** If either product does not have a part (no picture, no price, no brand), that part is left out, and the weights of the other parts are rescaled so they still add up to 1. Missing data is never filled in with a guess, and a product is never punished for it.
 - **A fixed order.** Scores are rounded to 6 decimals, and ties go to the smaller product ID, so the same question always gives the same list.
 
-## The service and Docker
-
-The service is a small FastAPI app. The engine is built once at startup (about 2 seconds, and about 13 more for the fast indexes in the Docker image), and then each request takes a few milliseconds. `num_similar` must be at least 1.
-
-| Endpoint | What it returns |
-|---|---|
-| `GET /` | The page (see "The page") |
-| `GET /find_similar_products?product_id=...&num_similar=...` | The list of the most similar product IDs (the required endpoint). The headers `X-Cache` (`hit` or `miss`) and `X-Search-Mode` (the mode that ran) |
-| `GET /find_similar_products/details?...` | The same search with the question, readable product details, the scores, `mode`, `weights`, `cached` and `response_time_ms` |
-| `GET /weights` | The modes, the limits, the names of the weights and the tuned weights (simple and advanced), for a page that sets them |
-| `GET /cache` | The cache statistics: `enabled`, `max_entries`, `entries`, `hits`, `misses` and `hit_rate` |
-| `GET /live` | The process is running |
-| `GET /ready` | The data is loaded; it also says which search runs, the modes, and whether the fast mode is ready |
-| `GET /metrics` | The service's own numbers (requests, times, cache hits, errors) as text, for Prometheus (see "Monitoring") |
-
-```bash
-docker build -t product-similarity .
-docker run -p 8000:8000 product-similarity
-```
-
-The Docker image is built on `python:3.10-slim`, installs only the pinned serving packages from `requirements.txt` (no MLflow, no notebooks, no image models; FAISS is included, for the fast mode), and runs as a non-root user.
-
-### The vectors in the image
-
-The final search needs the picture vectors (CLIP) and the sentence vectors (MiniLM). They are computed once, offline, and the full-size files are too big for GitHub (56 MB and 43 MB, and git ignores them). So the service ships a **half-size copy**: every number is stored in 2 bytes instead of 4 (float16), in two files that are each under 50 MB (28.0 MB and 21.5 MB) in [`artifacts/vectors/`](artifacts/vectors/). The image copies them in, and the service reads them back as normal numbers when it starts.
-
-- **It does not change my results.** For the 30 development products, the top 10 is identical with the half-size vectors in the exact mode and in the fast mode (30 of 30), and nDCG@10 and precision@10 are the same (0.8105 and 0.8767 for the exact mode). On 1,000 random products, 987 of the exact mode's lists are identical, and 99.96% of the products in the top 10s are the same (fast mode: 948 identical lists, 99.2% the same products). The rounding error of one number is at most 0.00024. The record is [`results/vector_files_check.json`](results/vector_files_check.json).
-- **A damaged file is noticed.** `manifest.json` holds the SHA-256 of each file, and the service checks it when it starts.
-- **No silent fallback in the container.** The image sets `PS_REQUIRE_VECTORS=1`: if the vectors are missing or do not match the products, the service stops with an error instead of quietly using the old baseline search. Without that setting (on a laptop), the service falls back to the baseline with a warning.
-- **`/ready` says which search is running**, for example `{"status": "ready", "products": 29529, "search": "hybrid (exact)"}`.
-
-```bash
-python experiments/export_vectors.py       # makes the half-size files from the full-size ones
-python experiments/check_vector_files.py   # checks that the results do not change
-```
-
-### Parameters and errors
-
-| Parameter | Meaning | Rule |
-|---|---|---|
-| `product_id` | The product to start from (required) | 32 lowercase hexadecimal characters |
-| `num_similar` | How many similar products to return (required) | A whole number from 1 to 1,000 (`PS_MAX_RESULTS`) |
-| `mode` | `exact` or `fast` (optional) | The default is `exact` |
-| `weights` | How much each part counts (optional) | `name:value` pairs, each value from 0 to 1, for example `image:0.6,title:0.4`. If it is left out, the tuned weights are used |
-
-- **Weights, two ways.** The simple way has 4 names (`title`, `text_vectors`, `image`, `attributes`, where `attributes` is the seven attributes together). The advanced way has the 10 parts. They cannot be mixed. What you send is what is used, and a part you leave out gets 0. The weights do not have to add up to 1. At least one must be above 0.
-- **The fast mode with weights.** Its shortlist comes from the sentence and picture vectors, so if both of their weights are 0 the exact mode runs instead, and the answer says so (`mode_note`).
-- **Every error has the same shape:** `{"error": "<code>", "message": "<a sentence>"}`.
-
-| Status | `error` | When |
-|---|---|---|
-| 422 | `invalid_input` | `product_id` or `num_similar` is missing or not valid |
-| 422 | `invalid_mode` | the mode is not `exact` or `fast` |
-| 422 | `invalid_weights` | a weight is unknown, repeated, not from 0 to 1, all zero, or simple and advanced are mixed |
-| 422 | `mode_not_available` / `option_not_available` | the service cannot do it (no FAISS, or the baseline search) |
-| 404 | `product_not_found` | no product has that ID |
-| 503 | `not_ready` | the data is not loaded yet |
-| 500 | `internal_error` | something unexpected; the details go to the log only |
-
-The cache question is the product, the number of results, the mode and the weights, so an answer for one set of weights is never given for another. The settings are environment variables: `PS_SEARCH_MODE`, `PS_MAX_RESULTS`, `PS_CACHE_SIZE`, `PS_PREBUILD_FAST` (the Docker image builds the fast indexes at start) and `PS_REQUIRE_VECTORS`.
-
-## Example
-
-The required endpoint returns a plain JSON list of product IDs:
-
-```bash
-curl "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3"
-```
-
-```json
-["d8f9a3fe8b80227a37b8c5529931f383", "2d249ce6637640fe9ef8a5cf20cbc9dc", "706ee970954ce7332dee5defe042b254"]
-```
-
-For display, `/find_similar_products/details` returns the same results with the question asked, readable product details, scores and the response time:
-
-```bash
-curl "http://localhost:8000/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3"
-```
-
-```json
-{
-  "question": {
-    "product_id": "26d41bdc1495de290bc8e6062d927729",
-    "num_similar": 3
-  },
-  "query": {
-    "id": "26d41bdc1495de290bc8e6062d927729",
-    "title": "LA' Facon Cotton Kalamkari Handblock Saree Blouse Fabric 100 cms Black Base Dancers (Cotton)",
-    "brand": "LA' Facon",
-    "category": "WomensKurtasKurtis",
-    "audience": "women",
-    "price": 200.0,
-    "rating": 5.0,
-    "image_url": "https://images-na.ssl-images-amazon.com/images/I/51Wj2WownyL.jpg"
-  },
-  "results": [
-    {
-      "id": "d8f9a3fe8b80227a37b8c5529931f383",
-      "title": "Kalamkari Print Cotton Fabric for Women's Clothes Like Kurti, Blouse, Dress, Patiala, Palazzo and Chudidar",
-      "brand": "Generic",
-      "category": "WomensKurtasKurtis",
-      "audience": "women",
-      "price": 600.0,
-      "rating": 5.0,
-      "image_url": "https://images-na.ssl-images-amazon.com/images/I/516COs2TCIL.jpg",
-      "score": 0.480195
-    },
-    {
-      "id": "2d249ce6637640fe9ef8a5cf20cbc9dc",
-      "title": "Cotton Kalamkari Handblock Saree Blouse/Kurti Fabric 100 cms Purple Colour - Budda Print",
-      "brand": "LA' Facon",
-      "category": "WomensEthnicUnstitchedFabric",
-      "audience": "women",
-      "price": 200.0,
-      "rating": 3.0,
-      "image_url": "https://images-na.ssl-images-amazon.com/images/I/41NZcbBhbuL.jpg",
-      "score": 0.465029
-    },
-    {
-      "id": "706ee970954ce7332dee5defe042b254",
-      "title": "Worldoftextile Women's Cotton Sanganeri Hand Block Jaipuri Dabu Floral Print Salwar Suit, 5m(Multicolour)",
-      "brand": "Worldoftextile",
-      "category": "WomensEthnicUnstitchedFabric",
-      "audience": "women",
-      "price": null,
-      "rating": 5.0,
-      "image_url": "https://images-na.ssl-images-amazon.com/images/I/61qgXhqar9L.jpg",
-      "score": 0.384028
-    }
-  ],
-  "response_time_ms": 9.42
-}
-```
-
-
-The query is a saree blouse fabric that the dataset files under the kurta category, so every result is a kurta. Category-based matching carries over that label. The response time varies by machine.
-
-With Docker:
-
-```bash
-docker build -t product-similarity .
-docker run -p 8000:8000 product-similarity
-```
-
-## Analysis notebooks
-
-| Notebook | What it does | Main findings |
-|---|---|---|
-| `01_data_exploration` | Loads the 30,000 products, checks the file is the original, and charts each attribute. It recomputes 24 figures to confirm them | Name, category and image are almost always present, and brand and price mostly. Weight is mostly a placeholder, colour is a list of options, and ratings often have no reviews. About a third of products share a title, and 471 rows are repeats |
-| `02_preprocessing` | Cleans the data step by step with before-and-after charts: repeated products, weight, brands, categories, colours, audience, reviews and price | One record per product, with every ID still valid. Missing categories are filled from the products on the same shelf (about 97% matched in a hide-and-guess check). Guessing brands from titles is built but switched off |
-| `03_baseline_examples` | Runs the first `find_similar_products` on five real queries, explains each score, times it, and compares it with simpler methods | Results come back in about 6 ms. Title similarity (TF-IDF) and attribute similarity give very different lists. Two weaknesses are noted: near-copies in the results, and products with little data scoring too high |
-| `04_evaluation_baseline` | Scores the three methods against the ratings with nDCG@10 and precision@10, with 95% ranges | The title plus attributes beats either alone, and both gaps are larger than luck. Title only versus attributes only cannot be told apart with 30 products |
-| `05_image_similarity` | Turns pictures into vectors with ResNet and CLIP, searches among the 708 development pictures, and scores the results with the same ratings as the text methods | CLIP ties the text baseline (nDCG@10 0.695 against 0.681), and ResNet is clearly lower (0.569). Image search only looked at pictures the text methods had already picked, so the full test comes next |
-| `06_clip_whole_catalogue` | Downloads the first picture of almost every product, turns them all into CLIP vectors, searches the whole catalogue, and scores the results with all my ratings next to the text methods | CLIP over the whole catalogue scores highest (nDCG@10 0.757). It is clearly better than title only and attributes only, and ahead of the text baseline (0.644) by a gap too small to be sure about with 30 products |
-| `07_sentence_vectors_on_titles` | Turns every title into a vector with a ready-made sentence model, searches, and scores the results with all my ratings next to TF-IDF, attributes and CLIP | Sentence vectors (nDCG@10 0.662) are clearly better than TF-IDF on titles (0.500) and about the same as my baseline (0.637). CLIP is still highest (0.751), but its gap over sentence vectors could be luck |
-| `08_hybrid_search` | Mixes the title (TF-IDF and sentence vectors), CLIP and the attributes into one score, tunes the weights with coordinate ascent, checks them with 5-fold cross-validation, and scores the result next to every single method | The 4-weight hybrid scores highest (nDCG@10 0.806, against 0.750 for CLIP and 0.637 for the baseline). Sentence vectors and pictures carry most of the weight. The gap over CLIP alone could be luck with 30 products |
-| `09_fast_vector_search` | Times the exact search, compares FAISS HNSW and IVF and Annoy with it (time, memory, recall@10) and uses a fast index inside the hybrid | HNSW is about 60 times faster than the exact search and finds 97% of the exact top 10. The exact search is already about 1 ms at this size, so the gain matters for a bigger catalogue |
-| `10_shorter_vectors_pca` | Cuts the vectors with PCA to 256, 128 and 64 numbers, runs the exact search, HNSW, IVF and Annoy on them (time, memory, recall@10), and times the extra projection step | PCA makes the index 2 to 4 times smaller, but recall drops to 71% (pictures) and 82% (sentences) at 128 numbers, and the speed-up disappears once the query projection is counted. I keep the full vectors with HNSW |
-| `11_tsne_picture_vectors` | Squeezes 3,000 picture vectors into two numbers with t-SNE, with the full vectors and after PCA, and colours the biggest categories | The categories form separate groups, and the groups stay the same after PCA. It is only a picture for looking |
-| `12_final_search` | Checks that the real search gives the same results as the notebooks, then compares its exact mode and fast mode (the same hybrid; the fast mode only speeds up the sentence and picture parts with HNSW indexes) with my ratings as the truth (nDCG@10, precision@10), the results I rated 2, 1 and 0 in each mode, product by product, and the time | Same top 10 for all 30 products (nDCG@10 0.8105). The fast mode gives nearly the same quality (0.8095, same precision@10) and is about 15 times faster (0.58 ms against 8.5 ms). I keep the exact mode as the default and the fast mode as a switch |
-| `13_caching` | Explains the in-process cache, measures a request that is in the cache against one that is not (200 products), and simulates traffic where a few products are asked for often, for several cache sizes | A hit takes 0.77 ms against 9.6 ms for a search (about 12 times faster). With an assumed popular-products traffic, a cache of 1,000 answers answers about half of the requests and halves the average time (10.3 ms to 5.5 ms) |
-| `14_final_test` | The one test of the finished search on the 20 locked products: both modes pooled into one blind page (204 results), rated by me, scored with nDCG@10 and precision@10, and timed | Precision@10 is 0.87 for both modes (0.877 on the development products). The fast mode has the same quality and is about 17 times faster (0.42 ms against 7.0 ms) |
-| `15_stronger_api` | Shows real requests to the real service: every error with its code, the `mode` option, the `weights` option (simple and advanced), and how the cache treats another mode or other weights | Bad input gets a 422 with a sentence, an unknown product a 404. Different weights give different lists. The cache never gives the answer of one set of weights for another |
-
-Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
-
 ## How the results were evaluated
 
 The data has no answer key saying which products are similar, so I made one. A method is judged by how well its top 10 results match my ratings.
@@ -1255,6 +1089,28 @@ python experiments/log_final_test.py          # records the runs in MLflow
 
 </details>
 
+## Analysis notebooks
+
+| Notebook | What it does | Main findings |
+|---|---|---|
+| `01_data_exploration` | Loads the 30,000 products, checks the file is the original, and charts each attribute. It recomputes 24 figures to confirm them | Name, category and image are almost always present, and brand and price mostly. Weight is mostly a placeholder, colour is a list of options, and ratings often have no reviews. About a third of products share a title, and 471 rows are repeats |
+| `02_preprocessing` | Cleans the data step by step with before-and-after charts: repeated products, weight, brands, categories, colours, audience, reviews and price | One record per product, with every ID still valid. Missing categories are filled from the products on the same shelf (about 97% matched in a hide-and-guess check). Guessing brands from titles is built but switched off |
+| `03_baseline_examples` | Runs the first `find_similar_products` on five real queries, explains each score, times it, and compares it with simpler methods | Results come back in about 6 ms. Title similarity (TF-IDF) and attribute similarity give very different lists. Two weaknesses are noted: near-copies in the results, and products with little data scoring too high |
+| `04_evaluation_baseline` | Scores the three methods against the ratings with nDCG@10 and precision@10, with 95% ranges | The title plus attributes beats either alone, and both gaps are larger than luck. Title only versus attributes only cannot be told apart with 30 products |
+| `05_image_similarity` | Turns pictures into vectors with ResNet and CLIP, searches among the 708 development pictures, and scores the results with the same ratings as the text methods | CLIP ties the text baseline (nDCG@10 0.695 against 0.681), and ResNet is clearly lower (0.569). Image search only looked at pictures the text methods had already picked, so the full test comes next |
+| `06_clip_whole_catalogue` | Downloads the first picture of almost every product, turns them all into CLIP vectors, searches the whole catalogue, and scores the results with all my ratings next to the text methods | CLIP over the whole catalogue scores highest (nDCG@10 0.757). It is clearly better than title only and attributes only, and ahead of the text baseline (0.644) by a gap too small to be sure about with 30 products |
+| `07_sentence_vectors_on_titles` | Turns every title into a vector with a ready-made sentence model, searches, and scores the results with all my ratings next to TF-IDF, attributes and CLIP | Sentence vectors (nDCG@10 0.662) are clearly better than TF-IDF on titles (0.500) and about the same as my baseline (0.637). CLIP is still highest (0.751), but its gap over sentence vectors could be luck |
+| `08_hybrid_search` | Mixes the title (TF-IDF and sentence vectors), CLIP and the attributes into one score, tunes the weights with coordinate ascent, checks them with 5-fold cross-validation, and scores the result next to every single method | The 4-weight hybrid scores highest (nDCG@10 0.806, against 0.750 for CLIP and 0.637 for the baseline). Sentence vectors and pictures carry most of the weight. The gap over CLIP alone could be luck with 30 products |
+| `09_fast_vector_search` | Times the exact search, compares FAISS HNSW and IVF and Annoy with it (time, memory, recall@10) and uses a fast index inside the hybrid | HNSW is about 60 times faster than the exact search and finds 97% of the exact top 10. The exact search is already about 1 ms at this size, so the gain matters for a bigger catalogue |
+| `10_shorter_vectors_pca` | Cuts the vectors with PCA to 256, 128 and 64 numbers, runs the exact search, HNSW, IVF and Annoy on them (time, memory, recall@10), and times the extra projection step | PCA makes the index 2 to 4 times smaller, but recall drops to 71% (pictures) and 82% (sentences) at 128 numbers, and the speed-up disappears once the query projection is counted. I keep the full vectors with HNSW |
+| `11_tsne_picture_vectors` | Squeezes 3,000 picture vectors into two numbers with t-SNE, with the full vectors and after PCA, and colours the biggest categories | The categories form separate groups, and the groups stay the same after PCA. It is only a picture for looking |
+| `12_final_search` | Checks that the real search gives the same results as the notebooks, then compares its exact mode and fast mode (the same hybrid; the fast mode only speeds up the sentence and picture parts with HNSW indexes) with my ratings as the truth (nDCG@10, precision@10), the results I rated 2, 1 and 0 in each mode, product by product, and the time | Same top 10 for all 30 products (nDCG@10 0.8105). The fast mode gives nearly the same quality (0.8095, same precision@10) and is about 15 times faster (0.58 ms against 8.5 ms). I keep the exact mode as the default and the fast mode as a switch |
+| `13_caching` | Explains the in-process cache, measures a request that is in the cache against one that is not (200 products), and simulates traffic where a few products are asked for often, for several cache sizes | A hit takes 0.77 ms against 9.6 ms for a search (about 12 times faster). With an assumed popular-products traffic, a cache of 1,000 answers answers about half of the requests and halves the average time (10.3 ms to 5.5 ms) |
+| `14_final_test` | The one test of the finished search on the 20 locked products: both modes pooled into one blind page (204 results), rated by me, scored with nDCG@10 and precision@10, and timed | Precision@10 is 0.87 for both modes (0.877 on the development products). The fast mode has the same quality and is about 17 times faster (0.42 ms against 7.0 ms) |
+| `15_stronger_api` | Shows real requests to the real service: every error with its code, the `mode` option, the `weights` option (simple and advanced), and how the cache treats another mode or other weights | Bad input gets a 422 with a sentence, an unknown product a 404. Different weights give different lists. The cache never gives the answer of one set of weights for another |
+
+Each notebook ends with a conclusion in plain words. The logic lives in the Python package, and the notebooks only call it and show results.
+
 ## Where the numbers come from
 
 Every result in this page can be traced to a notebook, a results file and an MLflow experiment. The MLflow databases stay on my computer (they are not in Git), so the screenshots in `evaluation/` show the runs.
@@ -1268,6 +1124,150 @@ Every result in this page can be traced to a notebook, a results file and an MLf
 | Hybrid search and its weights | [08](notebooks/08_hybrid_search.ipynb) | [`dev_hybrid_scoreboard.csv`](results/dev_hybrid_scoreboard.csv), [`hybrid_tuning.json`](results/hybrid_tuning.json), [`hybrid_tuning_first_round.json`](results/hybrid_tuning_first_round.json) | `dev-hybrid-tuning`, `dev-ratings-hybrid` |
 | Speed of the exact and the fast search | [09](notebooks/09_fast_vector_search.ipynb) | [`ann_exact_baseline.json`](results/ann_exact_baseline.json), [`ann_benchmark.json`](results/ann_benchmark.json), [`ann_hybrid_check.json`](results/ann_hybrid_check.json) | `ann-benchmark`, `ann-hybrid-check` |
 | Shorter vectors with PCA | [10](notebooks/10_shorter_vectors_pca.ipynb) | [`ann_pca.json`](results/ann_pca.json) | `ann-pca` |
+
+## The service and Docker
+
+The service is a small FastAPI app. The engine is built once at startup (about 2 seconds, and about 13 more for the fast indexes in the Docker image), and then each request takes a few milliseconds. `num_similar` must be at least 1.
+
+| Endpoint | What it returns |
+|---|---|
+| `GET /` | The page (see "The page") |
+| `GET /find_similar_products?product_id=...&num_similar=...` | The list of the most similar product IDs (the required endpoint). The headers `X-Cache` (`hit` or `miss`) and `X-Search-Mode` (the mode that ran) |
+| `GET /find_similar_products/details?...` | The same search with the question, readable product details, the scores, `mode`, `weights`, `cached` and `response_time_ms` |
+| `GET /weights` | The modes, the limits, the names of the weights and the tuned weights (simple and advanced), for a page that sets them |
+| `GET /cache` | The cache statistics: `enabled`, `max_entries`, `entries`, `hits`, `misses` and `hit_rate` |
+| `GET /live` | The process is running |
+| `GET /ready` | The data is loaded; it also says which search runs, the modes, and whether the fast mode is ready |
+| `GET /metrics` | The service's own numbers (requests, times, cache hits, errors) as text, for Prometheus (see "Monitoring") |
+
+```bash
+docker build -t product-similarity .
+docker run -p 8000:8000 product-similarity
+```
+
+The Docker image is built on `python:3.10-slim`, installs only the pinned serving packages from `requirements.txt` (no MLflow, no notebooks, no image models; FAISS is included, for the fast mode), and runs as a non-root user.
+
+### The vectors in the image
+
+The final search needs the picture vectors (CLIP) and the sentence vectors (MiniLM). They are computed once, offline, and the full-size files are too big for GitHub (56 MB and 43 MB, and git ignores them). So the service ships a **half-size copy**: every number is stored in 2 bytes instead of 4 (float16), in two files that are each under 50 MB (28.0 MB and 21.5 MB) in [`artifacts/vectors/`](artifacts/vectors/). The image copies them in, and the service reads them back as normal numbers when it starts.
+
+- **It does not change my results.** For the 30 development products, the top 10 is identical with the half-size vectors in the exact mode and in the fast mode (30 of 30), and nDCG@10 and precision@10 are the same (0.8105 and 0.8767 for the exact mode). On 1,000 random products, 987 of the exact mode's lists are identical, and 99.96% of the products in the top 10s are the same (fast mode: 948 identical lists, 99.2% the same products). The rounding error of one number is at most 0.00024. The record is [`results/vector_files_check.json`](results/vector_files_check.json).
+- **A damaged file is noticed.** `manifest.json` holds the SHA-256 of each file, and the service checks it when it starts.
+- **No silent fallback in the container.** The image sets `PS_REQUIRE_VECTORS=1`: if the vectors are missing or do not match the products, the service stops with an error instead of quietly using the old baseline search. Without that setting (on a laptop), the service falls back to the baseline with a warning.
+- **`/ready` says which search is running**, for example `{"status": "ready", "products": 29529, "search": "hybrid (exact)"}`.
+
+```bash
+python experiments/export_vectors.py       # makes the half-size files from the full-size ones
+python experiments/check_vector_files.py   # checks that the results do not change
+```
+
+### Parameters and errors
+
+| Parameter | Meaning | Rule |
+|---|---|---|
+| `product_id` | The product to start from (required) | 32 lowercase hexadecimal characters |
+| `num_similar` | How many similar products to return (required) | A whole number from 1 to 1,000 (`PS_MAX_RESULTS`) |
+| `mode` | `exact` or `fast` (optional) | The default is `exact` |
+| `weights` | How much each part counts (optional) | `name:value` pairs, each value from 0 to 1, for example `image:0.6,title:0.4`. If it is left out, the tuned weights are used |
+
+- **Weights, two ways.** The simple way has 4 names (`title`, `text_vectors`, `image`, `attributes`, where `attributes` is the seven attributes together). The advanced way has the 10 parts. They cannot be mixed. What you send is what is used, and a part you leave out gets 0. The weights do not have to add up to 1. At least one must be above 0.
+- **The fast mode with weights.** Its shortlist comes from the sentence and picture vectors, so if both of their weights are 0 the exact mode runs instead, and the answer says so (`mode_note`).
+- **Every error has the same shape:** `{"error": "<code>", "message": "<a sentence>"}`.
+
+| Status | `error` | When |
+|---|---|---|
+| 422 | `invalid_input` | `product_id` or `num_similar` is missing or not valid |
+| 422 | `invalid_mode` | the mode is not `exact` or `fast` |
+| 422 | `invalid_weights` | a weight is unknown, repeated, not from 0 to 1, all zero, or simple and advanced are mixed |
+| 422 | `mode_not_available` / `option_not_available` | the service cannot do it (no FAISS, or the baseline search) |
+| 404 | `product_not_found` | no product has that ID |
+| 503 | `not_ready` | the data is not loaded yet |
+| 500 | `internal_error` | something unexpected; the details go to the log only |
+
+The cache question is the product, the number of results, the mode and the weights, so an answer for one set of weights is never given for another. The settings are environment variables: `PS_SEARCH_MODE`, `PS_MAX_RESULTS`, `PS_CACHE_SIZE`, `PS_PREBUILD_FAST` (the Docker image builds the fast indexes at start) and `PS_REQUIRE_VECTORS`.
+
+## Example
+
+The required endpoint returns a plain JSON list of product IDs:
+
+```bash
+curl "http://localhost:8000/find_similar_products?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3"
+```
+
+```json
+["d8f9a3fe8b80227a37b8c5529931f383", "2d249ce6637640fe9ef8a5cf20cbc9dc", "706ee970954ce7332dee5defe042b254"]
+```
+
+For display, `/find_similar_products/details` returns the same results with the question asked, readable product details, scores and the response time:
+
+```bash
+curl "http://localhost:8000/find_similar_products/details?product_id=26d41bdc1495de290bc8e6062d927729&num_similar=3"
+```
+
+```json
+{
+  "question": {
+    "product_id": "26d41bdc1495de290bc8e6062d927729",
+    "num_similar": 3
+  },
+  "query": {
+    "id": "26d41bdc1495de290bc8e6062d927729",
+    "title": "LA' Facon Cotton Kalamkari Handblock Saree Blouse Fabric 100 cms Black Base Dancers (Cotton)",
+    "brand": "LA' Facon",
+    "category": "WomensKurtasKurtis",
+    "audience": "women",
+    "price": 200.0,
+    "rating": 5.0,
+    "image_url": "https://images-na.ssl-images-amazon.com/images/I/51Wj2WownyL.jpg"
+  },
+  "results": [
+    {
+      "id": "d8f9a3fe8b80227a37b8c5529931f383",
+      "title": "Kalamkari Print Cotton Fabric for Women's Clothes Like Kurti, Blouse, Dress, Patiala, Palazzo and Chudidar",
+      "brand": "Generic",
+      "category": "WomensKurtasKurtis",
+      "audience": "women",
+      "price": 600.0,
+      "rating": 5.0,
+      "image_url": "https://images-na.ssl-images-amazon.com/images/I/516COs2TCIL.jpg",
+      "score": 0.480195
+    },
+    {
+      "id": "2d249ce6637640fe9ef8a5cf20cbc9dc",
+      "title": "Cotton Kalamkari Handblock Saree Blouse/Kurti Fabric 100 cms Purple Colour - Budda Print",
+      "brand": "LA' Facon",
+      "category": "WomensEthnicUnstitchedFabric",
+      "audience": "women",
+      "price": 200.0,
+      "rating": 3.0,
+      "image_url": "https://images-na.ssl-images-amazon.com/images/I/41NZcbBhbuL.jpg",
+      "score": 0.465029
+    },
+    {
+      "id": "706ee970954ce7332dee5defe042b254",
+      "title": "Worldoftextile Women's Cotton Sanganeri Hand Block Jaipuri Dabu Floral Print Salwar Suit, 5m(Multicolour)",
+      "brand": "Worldoftextile",
+      "category": "WomensEthnicUnstitchedFabric",
+      "audience": "women",
+      "price": null,
+      "rating": 5.0,
+      "image_url": "https://images-na.ssl-images-amazon.com/images/I/61qgXhqar9L.jpg",
+      "score": 0.384028
+    }
+  ],
+  "response_time_ms": 9.42
+}
+```
+
+
+The query is a saree blouse fabric that the dataset files under the kurta category, so every result is a kurta. Category-based matching carries over that label. The response time varies by machine.
+
+With Docker:
+
+```bash
+docker build -t product-similarity .
+docker run -p 8000:8000 product-similarity
+```
 
 ## The page
 
