@@ -573,6 +573,26 @@ They come from the cleaned fields (see [Preprocessing](#preprocessing-cleaning-t
 
 *Notebooks: [03 Baseline examples, section 2](notebooks/03_baseline_examples.ipynb) (what each attribute adds to a score), [02 Preprocessing](notebooks/02_preprocessing.ipynb) (where the fields come from) and [08 Hybrid search, sections 2, 6 and 7](notebooks/08_hybrid_search.ipynb) (the weights).*
 
+### How the final score is calculated (a worked example)
+
+The final score is a weighted average: multiply each part's score by its weight, add them up, and divide by the sum of the weights that were used. Here is an example pair of products. The scores are made up to show the calculation, and the weights are the real shares from the table above. The two products have no weight in common, so that part is skipped.
+
+| Part | Score (0 to 1) | Weight | Score × weight |
+|---|---|---|---|
+| Title words | 0.40 | 2.9% | 0.0114 |
+| Title meaning | 0.85 | 45.7% | 0.3886 |
+| Picture | 0.75 | 28.6% | 0.2143 |
+| Category | 1.00 (same) | 7.0% | 0.0703 |
+| Brand | 0.00 (different) | 3.5% | 0.0000 |
+| Audience | 1.00 (same) | 3.5% | 0.0352 |
+| Price | 0.70 | 3.5% | 0.0246 |
+| Colour | 0.33 | 1.8% | 0.0058 |
+| Weight | missing, **skipped** | (1.8%) | |
+| Rating | 0.75 | 1.8% | 0.0132 |
+| **Total** | | **98.2%** (the weight part is left out) | **0.7634** |
+
+The weights of the parts that were used add up to 98.2% and not 100%, so the total is rescaled: **0.7634 ÷ 0.982 = 0.777**. That is the final score of this pair. Without the rescaling, a product would lose points just for having no weight.
+
 ### Two rules that apply to every part
 
 - **A missing part is skipped.** If either product does not have a part (no picture, no price, no brand), that part is left out, and the weights of the other parts are rescaled so they still add up to 1. Missing data is never filled in with a guess, and a product is never punished for it.
