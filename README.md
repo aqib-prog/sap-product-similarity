@@ -254,8 +254,9 @@ The raw file is never changed. It is read in place, and each step below turns th
 
 **5. Colour**
 - **What I did:** the colour column lists every option, so I also read colour words from the title. Coverage rose from 19% to 44%. On the 529 products that have both, the title colour is among the listed options 83.4% of the time.
-- **Example:** a saree titled "Blue Sari" lists orange, pink and red, so the two sources can disagree.
-- **Why:** colour is only a weak hint.
+- **Example:** a saree's title says "Blue Sari", so the colour from the title is blue. But its colour column lists orange, pink and red, with no blue in it. The two sources disagree, and I cannot tell which one is right.
+- **Why:** colour is only a weak hint, so it has one of the lowest weights.
+- **Used in the final search:** yes. For each product I gather the colours from the title and from the column into one set, and two products are compared by how many colours they share. A product with no colour is skipped for this part.
 
 ![Title colour against the listed options](screenshots/preprocessing/05_colour.png)
 
