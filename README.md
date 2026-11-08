@@ -124,7 +124,7 @@ return order[order != exclude]
 5. **Return the first `num_similar` IDs.**
 
 - **Used in the final search:** yes. This is the function behind the endpoint and the page.
-- **How each feature is compared** is in the next sections, and the weights are in [Hybrid search](#3-the-mix-hybrid-search).
+- **How each feature is compared** is in [Features in detail](#features-in-detail), and how the weights were found is in [The mix](#3-the-mix-hybrid-search).
 
 *Notebooks: [03 Baseline examples, sections 1, 2 and 6](notebooks/03_baseline_examples.ipynb) (five real queries, why each product is similar, correctness checks on the real data), and [08 Hybrid search, section 2, Choosing the weights](notebooks/08_hybrid_search.ipynb).*
 
@@ -335,7 +335,7 @@ I had also written down 24 facts from a first quick look at the data, such as "3
 
 *Notebook: [01 Data exploration, section 8, Categories](notebooks/01_data_exploration.ipynb).*
 
-**10. Nearly every product has pictures.** 29,998 products have image links, most have about four, and about 99% of a 300-link sample worked. I checked the pictures themselves later (see [Image sample check](#1-pictures)).
+**10. Nearly every product has pictures.** 29,998 products have image links, most have about four, and about 99% of a 300-link sample worked. I checked the pictures themselves later (see [Pictures](#1-pictures)).
 
 ![Image links per product](screenshots/eda/10_image_links.png)
 
