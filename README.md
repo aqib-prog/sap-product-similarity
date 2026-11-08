@@ -281,15 +281,15 @@ The raw file is never changed. It is read in place, and each step below turns th
 *Notebook: [02 Preprocessing, section 9, Brand recovery from titles (switched off)](notebooks/02_preprocessing.ipynb).*
 
 **8. Rating and price**
-- **What I did:** kept the rating together with the review count, so I can tell a rating that real reviews back from one that nothing backs. I kept the price in two forms, the raw price and its log (see the exploration section).
+- **What I did:** kept the rating together with the review count, so I can tell a rating that real reviews back from one that nothing backs. I kept the price in two forms, the raw price and its log (see [Data exploration](#data-exploration-eda), finding 3).
 - **Example:** a vest has a rating of 1.0, but its page says "Be the first to review this item", so nobody has reviewed it. 6,571 products are like this.
-- **Why:** a rating with no reviews behind it cannot be trusted, so the rating only gets a small influence on the score (the weights are tuned later, see Hybrid search).
+- **Why:** a rating with no reviews behind it cannot be trusted, so the rating only gets a small influence on the score (the weights are tuned later, see [Hybrid search](#hybrid-search)).
 
 ![Review state and the shape of the log price](screenshots/preprocessing/08_rating_price.png)
 
 *Notebook: [02 Preprocessing, sections 7 and 8, Reviews and rating, Price](notebooks/02_preprocessing.ipynb).*
 
-**What the cleaned records contain.** The data is strong on name, image, category, audience and price, and weak on weight, colour and rating. So the first group leads. Missing information stays missing, and two products are compared only on what both have.
+**What the cleaned records contain.** These are the fields I carry into the next step, where they become the features of the search. The data is strong on name, image, category, audience and price, and weak on weight, colour and rating. So the first group leads. Missing information stays missing, and two products are compared only on what both have.
 
 ![What the cleaned records contain](screenshots/preprocessing/09_coverage.png)
 
