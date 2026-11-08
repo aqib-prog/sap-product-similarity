@@ -113,7 +113,10 @@ return order[order != exclude]
 
 5. **Return the first `num_similar` IDs.**
 
-How each feature is compared is in the next sections, and the weights are in [Hybrid search](#hybrid-search).
+- **Used in the final search:** yes. This is the function behind the endpoint and the page.
+- **How each feature is compared** is in the next sections, and the weights are in [Hybrid search](#hybrid-search).
+
+*Notebooks: [03 Baseline examples, sections 1, 2 and 6](notebooks/03_baseline_examples.ipynb) (five real queries, why each product is similar, correctness checks on the real data), and [08 Hybrid search, section 2, Choosing the weights](notebooks/08_hybrid_search.ipynb).*
 
 ### Part 2: the microservice
 
@@ -137,6 +140,11 @@ def find_similar_products(
 
 `app.py` has the same `if __name__ == "__main__"` block as the sample. The errors have one clear shape (`{"error": "<code>", "message": "<a sentence>"}`): 422 for wrong input, 404 for an unknown product, 503 while the data loads, and 500 for anything unexpected. The full list is in [The service and Docker](#the-service-and-docker).
 
+- **Used:** yes, this is the endpoint the page and the checks call. `mode` and `weights` let a caller choose the search mode and the weights for one search.
+- **Tested:** by the unit tests, and on every push by CI, which starts the service and calls the endpoint (see [Tests and CI/CD](#tests-and-cicd)).
+
+*Notebook: [15 A stronger API, sections 1 to 5](notebooks/15_stronger_api.ipynb) (the parameters, the errors, the `mode` option, the `weights` option and the cache question).*
+
 The **Dockerfile** keeps the sample's base image, port, `ENV NAME` and `uvicorn` command, and adds what a real service needs:
 
 ```dockerfile
@@ -155,6 +163,8 @@ CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 The Kubernetes files are in [`k8s/`](k8s/), explained in [Kubernetes](#kubernetes).
+
+- **Deployed:** the image is built and run in CI on every push, and the Kubernetes files (2 pods behind one Service) are deployed and tested in a temporary cluster in CI. I did not deploy to a real cluster. There is no notebook for this part, because CI is the proof.
 
 ### Part 3: vector search (bonus)
 
@@ -175,6 +185,10 @@ rows = np.unique(np.concatenate(found))
 Only those candidates are then scored with the same 10-part score, so the answer keeps the same quality.
 
 **Why HNSW:** I compared it with FAISS Flat (exact), IVF and Annoy on the same vectors. HNSW was about 60 times faster than the exact search and still found 97% of the exact top 10, so it gave the best speed for the recall. I also tested shorter vectors with PCA and dropped them, because they lost too much recall. The measured results are in [Fast vector search](#fast-vector-search) and [notebook 09, section 3, The fast methods](notebooks/09_fast_vector_search.ipynb), and the final comparison is in [Results at a glance](#results-at-a-glance).
+
+- **Used in the final search:** yes, as the **fast mode**. The exact mode stays the default, and the fast mode gives nearly the same quality about 15 to 17 times faster.
+
+*Notebooks: [09 Fast vector search, sections 1 to 4](notebooks/09_fast_vector_search.ipynb) (how I measured, the exact baseline, the fast methods, the fast index inside the hybrid), [10 Shorter vectors with PCA](notebooks/10_shorter_vectors_pca.ipynb), [11 t-SNE](notebooks/11_tsne_picture_vectors.ipynb) and [12 The final search, section 1](notebooks/12_final_search.ipynb).*
 
 ## Results at a glance
 
