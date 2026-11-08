@@ -263,9 +263,9 @@ The raw file is never changed. It is read in place, and each step below turns th
 *Notebook: [02 Preprocessing, section 5, Colour](notebooks/02_preprocessing.ipynb).*
 
 **6. Audience (men, women, boys, girls, baby)**
-- **What I did:** worked it out from the category, then the title. They agree 89.4% of the time on the 23,670 products where both give an answer. 99.1% of products have an audience.
+- **What I did:** audience means who the product is for. The data has no column for it, so I worked it out from the category first (a category like "Boys T-shirts" tells it) and from the title (for example "Women's Cotton Kurta"). I checked the two against each other: on the 23,670 products where both give an answer, they agree 89.4% of the time. In the end 99.1% of products have an audience.
 - **Example:** a boys' bow tie is filed under men's, so the label is wrong.
-- **Why:** I use it as a hint that raises the score without blocking other products, not as a strict filter.
+- **Why:** shoppers do not treat a men's shirt and a girl's dress as similar, so it helps to know who a product is for. I use it as a hint, not a strict filter: two products for the same audience get a higher score, but a product for another audience can still appear if it matches well on the other features.
 - **Used in the final search:** yes. Audience is one of the seven attributes, it is compared as same or different, and it counts with its own weight.
 
 ![Audience from the category against the title](screenshots/preprocessing/06_audience.png)
