@@ -4,8 +4,6 @@ Find similar products by mixing three signals: what the title says, what the pic
 
 The project is built for the SAP technical exercise. The original task description is in the [assignment repository](https://github.com/punitmishra/sap-cxii-tech-ex-01).
 
-> **Status: work in progress.** I am building this one step at a time. This page describes what is done and tested today, what I found, and what comes next.
-
 ## What it does
 
 Give it a product ID and it returns the most similar products (you choose how many). The details endpoint also returns each product's title, price and score.
