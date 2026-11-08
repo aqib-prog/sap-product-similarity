@@ -1117,7 +1117,11 @@ How to read the table:
 
 ## The service and Docker
 
-The service is a small FastAPI app. The engine is built once at startup (about 2 seconds, and about 13 more for the fast indexes in the Docker image), and then each request takes a few milliseconds. `num_similar` must be at least 1.
+### What the service is
+
+The brief asks for a microservice, so the search runs as a small web service. A **service** is a program that stays running and waits for questions. You send it a product ID over HTTP, and it sends back the most similar products. I wrote it with **FastAPI**, a Python library for web services. It checks the input for me and gives every error the same shape, and it writes an interactive help page at `/docs` by itself.
+
+The service builds the search engine once when it starts (about 2 seconds, and about 13 more for the fast indexes in the Docker image). After that, each request takes a few milliseconds. A real call and its answer are in [Example](#example).
 
 | Endpoint | What it returns |
 |---|---|
@@ -1130,12 +1134,32 @@ The service is a small FastAPI app. The engine is built once at startup (about 2
 | `GET /ready` | The data is loaded; it also says which search runs, the modes, and whether the fast mode is ready |
 | `GET /metrics` | The service's own numbers (requests, times, cache hits, errors) as text, for Prometheus (see "Monitoring") |
 
+### What Docker is, and why I used it
+
+**Docker** packs a program together with everything it needs to run (Python, the libraries, the data files) into one **image**. Anyone can start that image as a **container** with one command, and it behaves the same on my laptop, on a colleague's computer, in the CI pipeline and in Kubernetes.
+
+Without Docker, someone who wants to run my service must install the right Python version and the right library versions first, and a different version of numpy or FAISS can give a different result or an error. With Docker, those versions are fixed inside the image, so what I tested is what runs. Kubernetes runs containers, so the image is also what I deploy (see "Kubernetes").
+
 ```bash
 docker build -t product-similarity .
 docker run -p 8000:8000 product-similarity
 ```
 
-The Docker image is built on `python:3.10-slim`, installs only the pinned serving packages from `requirements.txt` (no MLflow, no notebooks, no image models; FAISS is included, for the fast mode), and runs as a non-root user.
+The first command builds the image from the [`Dockerfile`](Dockerfile). The second starts a container and connects port 8000 of the container to port 8000 of your computer, so the service is at `http://localhost:8000`.
+
+### How the image is built
+
+| Choice in the [`Dockerfile`](Dockerfile) | Why |
+|---|---|
+| Base image `python:3.10-slim` | The brief's sample uses Python 3.10, and the slim version is much smaller than the full one |
+| Install `requirements.txt` first, then copy the code | Docker keeps each step as a layer. The libraries rarely change, so a code change rebuilds only the last layers and the build is fast |
+| Only the serving packages, all pinned to one version | The image stays small and the same on every build. It has FastAPI, numpy, scipy, scikit-learn, FAISS and `prometheus-client`. It has no PyTorch, `transformers`, MLflow, Annoy or notebooks, because those are used offline to build the vectors and run the experiments |
+| A [`.dockerignore`](.dockerignore) file | Keeps the notebooks, experiments, results, images and tests out of the image |
+| Run as a user that is not root (`appuser`) | If someone breaks into the service, they do not have full rights inside the container |
+| Environment variables `PS_REQUIRE_VECTORS=1` and `PS_PREBUILD_FAST=1` | The service stops with an error when the vectors are missing, and the fast indexes are built at start so the first fast search is not slow (details below) |
+| Keeps the sample's port 8000, `ENV NAME` and `uvicorn` command | Stays close to the brief's sample |
+
+I could not run Docker on my own computer, so the image is built and tested in the CI pipeline on every push (see "Tests and CI/CD").
 
 ### The vectors in the image
 
