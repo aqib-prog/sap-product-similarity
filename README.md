@@ -8,6 +8,7 @@ The project is built for the SAP technical exercise. The original task descripti
 
 - [What it does](#what-it-does)
 - [Architecture](#architecture)
+- [How this answers the brief (code)](#how-this-answers-the-brief-code)
 - [Results at a glance](#results-at-a-glance)
 - [Data exploration (EDA)](#data-exploration-eda)
 - [Preprocessing (cleaning the data)](#preprocessing-cleaning-the-data)
@@ -64,6 +65,116 @@ Each feature gives a similarity score, and a weightage says how much that featur
 There is no answer key, so I rated results myself on blind pages ([04, section 1 The ratings](notebooks/04_evaluation_baseline.ipynb)). I tuned the weightage on those ratings, one weight at a time, and checked it with 5-fold cross-validation. I shuffled my 30 development products with a fixed seed into 5 groups, tuned on 4 groups, and scored the group left out, five times. So the scores come from products the weights had not seen ([08, section 2 Choosing the weights](notebooks/08_hybrid_search.ipynb)). The 20 locked products were kept aside for the final test ([14, section 1 How the test was done](notebooks/14_final_test.ipynb)).
 
 A search runs in one of two modes. Exact compares with every product. Fast uses an HNSW index to pick about 100 close products first ([09, section 3 The fast methods](notebooks/09_fast_vector_search.ipynb), [10, section 2 Results: every method, with and without PCA](notebooks/10_shorter_vectors_pca.ipynb), [11, section 1 How I did it](notebooks/11_tsne_picture_vectors.ipynb), [12, section 1 How the final search works](notebooks/12_final_search.ipynb)). Repeated questions are answered from a cache ([13, section 1 How my cache works](notebooks/13_caching.ipynb)). The service is a FastAPI app with the cache and a page ([15, sections 1 to 5](notebooks/15_stronger_api.ipynb)), packaged as a Docker image and run on Kubernetes with 2 pods. Prometheus and Grafana show how it behaves.
+
+## How this answers the brief (code)
+
+The assignment has three parts. This section shows the code for each, with a link to the full file. I do not use the sample's pandas `df`: the brief says to find an alternative, so my loader reads the zip in place with `zipfile` ([`data.py`](src/product_similarity/data.py)).
+
+| The brief asks for | Done | Where |
+|---|---|---|
+| **Part 1.** `find_similar_products(product_id, num_similar)` returning a list of IDs, using brand, colour, price, image, sales price, weight and rating | Yes, and I also use the title, category and audience | [`service.py`](src/product_similarity/service.py), [`scoring.py`](src/product_similarity/scoring.py) |
+| **Part 2.** `GET /find_similar_products` with FastAPI | Yes, with clear error codes instead of the sample's `raise e` | [`api.py`](src/product_similarity/api.py), [`app.py`](app.py) |
+| **Part 2.** An image that can be deployed on Kubernetes, from the sample Dockerfile | Yes | [`Dockerfile`](Dockerfile) |
+| **Part 2, optional.** A local cluster | Yes, deployed and tested in a temporary cluster in CI | [`k8s/`](k8s/), see [Kubernetes](#kubernetes) |
+| **Part 3, bonus.** Vector search, with the paper and why I chose it | Yes: HNSW | [`hybrid.py`](src/product_similarity/hybrid.py), [notebook 09](notebooks/09_fast_vector_search.ipynb) |
+| **Suggested approaches.** PCA, t-SNE, caching | Yes | [PCA](#shorter-vectors-pca), [t-SNE](#a-picture-of-the-vectors-t-sne), [Caching](#caching) |
+
+### Part 1: the function
+
+```python
+# src/product_similarity/service.py
+def find_similar_products(product_id: str, num_similar: int) -> list[str]:
+    return default_engine().find_similar(product_id, num_similar)
+```
+
+`list[str]` is the same as `List[str]` in the sample. The function follows the five steps of the brief:
+
+1. **Retrieve the product.** `resolve(product_id)` finds the product's row. An old ID of a repeated product maps to the product I kept.
+2. **Compare it with all the others.** `attribute_similarities(i)` compares the product with every other product on each attribute at once, with numpy.
+3. **Calculate a similarity score.** Each attribute has its own measure (same or different, closeness on a log scale, closeness in stars, overlap of colours), and the vectors use cosine similarity. `combine` mixes them into one weighted average (shortened here):
+
+```python
+# src/product_similarity/scoring.py, combine()
+for name, sim in sims.items():
+    known = ~np.isnan(sim)                              # skip a part a product does not have
+    total += np.where(known, weight * np.nan_to_num(sim), 0.0)
+    weight_sum += np.where(known, weight, 0.0)
+return total / weight_sum                               # weighted average of the known parts
+```
+
+4. **Sort in descending order, with a tie-break.** Equal scores are ordered by product ID, and a product is never its own match:
+
+```python
+# src/product_similarity/ranking.py, rank_indices()
+rounded = np.round(scores.astype(float), 6)     # tiny rounding errors cannot decide the order
+order = np.lexsort((id_rank, -rounded))         # best score first, ties by product ID
+return order[order != exclude]
+```
+
+5. **Return the first `num_similar` IDs.**
+
+How each feature is compared is in the next sections, and the weights are in [Hybrid search](#hybrid-search).
+
+### Part 2: the microservice
+
+The endpoint is `GET /find_similar_products` with the two required parameters. The extra parameters `mode` and `weights` are optional (shortened here):
+
+```python
+# src/product_similarity/api.py
+@app.get("/find_similar_products", response_model=list[str])
+def find_similar_products(
+    request: Request, response: Response,
+    product_id: str = Query(..., pattern=ID_PATTERN),      # 32 lowercase hex characters
+    num_similar: int = Query(..., ge=1, le=max_results),   # 1 to 1,000
+    mode: Optional[str] = Query(None),                     # optional: exact or fast
+    weights: Optional[str] = Query(None),                  # optional: my own weights
+) -> list[str]:
+    ...
+    except ProductNotFoundError:
+        raise ApiError(404, "product_not_found", f"no product has the ID {product_id}")
+    return [uid for uid, _ in ranked]
+```
+
+`app.py` has the same `if __name__ == "__main__"` block as the sample. The errors have one clear shape (`{"error": "<code>", "message": "<a sentence>"}`): 422 for wrong input, 404 for an unknown product, 503 while the data loads, and 500 for anything unexpected. The full list is in [The service and Docker](#the-service-and-docker).
+
+The **Dockerfile** keeps the sample's base image, port, `ENV NAME` and `uvicorn` command, and adds what a real service needs:
+
+```dockerfile
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt   # pinned packages first, so this layer is cached
+COPY src ./src                                       # only what the service needs, not the notebooks
+COPY app.py .
+COPY data/archive.zip ./data/archive.zip
+COPY artifacts/vectors ./artifacts/vectors           # the half-size picture and sentence vectors
+RUN useradd --create-home --uid 10001 appuser
+USER appuser                                         # does not run as root
+EXPOSE 8000
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+The Kubernetes files are in [`k8s/`](k8s/), explained in [Kubernetes](#kubernetes).
+
+### Part 3: vector search (bonus)
+
+The slow part of a search is comparing the picture and sentence vectors with every product. I replaced that with an **HNSW index** from FAISS (Malkov and Yashunin, [Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs](https://arxiv.org/abs/1603.09320); library: Johnson, Douze and Jégou, [Billion-scale similarity search with GPUs](https://arxiv.org/abs/1702.08734)). There is one index for the sentence vectors and one for the picture vectors (shortened here):
+
+```python
+# src/product_similarity/hybrid.py, _build_indexes_now()
+index = faiss.IndexHNSWFlat(data.shape[1], 16, faiss.METRIC_INNER_PRODUCT)
+index.hnsw.efConstruction = 200
+index.hnsw.efSearch = self.ef_search
+index.add(data)
+
+# candidate_rows(): about 100 nearest products by sentence vector and by picture vector
+hits = index.search(matrix[i : i + 1].astype(np.float32), count + 1)[1][0]
+rows = np.unique(np.concatenate(found))
+```
+
+Only those candidates are then scored with the same 10-part score, so the answer keeps the same quality.
+
+**Why HNSW:** I compared it with FAISS Flat (exact), IVF and Annoy on the same vectors. HNSW was about 60 times faster than the exact search and still found 97% of the exact top 10, so it gave the best speed for the recall. I also tested shorter vectors with PCA and dropped them, because they lost too much recall. The measured results are in [Fast vector search](#fast-vector-search) and [notebook 09, section 3, The fast methods](notebooks/09_fast_vector_search.ipynb), and the final comparison is in [Results at a glance](#results-at-a-glance).
 
 ## Results at a glance
 
