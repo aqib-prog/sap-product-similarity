@@ -289,7 +289,7 @@ The raw file is never changed. It is read in place, and each step below turns th
 
 *Notebook: [02 Preprocessing, sections 7 and 8, Reviews and rating, Price](notebooks/02_preprocessing.ipynb).*
 
-**What the cleaned records contain.** These are the fields I carry into the next step, where they become the features of the search. The data is strong on name, image, category, audience and price, and weak on weight, colour and rating. So the first group leads. Missing information stays missing, and two products are compared only on what both have.
+**What the cleaned records contain.** The chart below shows the final result, measured once after all the cleaning steps: the share of the 29,529 products that have a usable value for each field. These are the fields I carry into the next step, where they become the features of the search. The data is strong on name, image, category, audience and price, and weak on weight, colour and rating. So the first group leads. Missing information stays missing, and two products are compared only on what both have.
 
 ![What the cleaned records contain](screenshots/preprocessing/09_coverage.png)
 
