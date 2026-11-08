@@ -335,7 +335,7 @@ I had also written down 24 facts from a first quick look at the data, such as "3
 
 *Notebook: [01 Data exploration, section 8, Categories](notebooks/01_data_exploration.ipynb).*
 
-**10. Nearly every product has pictures.** 29,998 products have image links, most have about four, and about 99% of a 300-link sample worked. I checked the pictures themselves later (see [Pictures](#1-pictures)).
+**10. Nearly every product has pictures.** 29,998 products have image links, most have about four, and when I later downloaded the first picture of almost every product, 29,107 of 29,241 links worked (about 99.5%), as shown in [Pictures](#1-pictures).
 
 ![Image links per product](screenshots/eda/10_image_links.png)
 
@@ -1436,7 +1436,7 @@ The `kubernetes` job in [`ci.yml`](.github/workflows/ci.yml) starts a temporary 
 - both pods become ready;
 - a search through the Service works;
 - when one pod is deleted, 20 requests in a row still return 200;
-- during a rolling update no request fails (84 requests, 0 failures in the run I checked).
+- during a rolling update no request fails (the job fails if even one request fails).
 
 The cluster is deleted when the job ends. See [Tests and CI/CD](#tests-and-cicd).
 
