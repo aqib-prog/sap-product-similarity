@@ -1337,9 +1337,46 @@ An ID that is valid but not in the dataset gives a 404 with `"error": "product_n
 
 ## The page
 
-The service has a page at `/`, which is `http://localhost:8000/` when I run it on my laptop with `uvicorn app:app`. I choose a product (paste an ID, press Random product, or pick an example), choose the mode (exact or fast) and what counts most (best, picture, title, or my own sliders), and the similar products appear straight away. The page shows how long each search took, whether it was a new search or came from the cache, and the cache hit rate. It is one HTML file, [`src/product_similarity/web/index.html`](src/product_similarity/web/index.html), served by the same app, so it also runs in Docker and Kubernetes. CI checks that it is served. The header links to the API docs, the metrics, the health check and the Grafana dashboard (`http://localhost:3000`, which works while Grafana is running).
+The service has a small page at `/`, which is `http://localhost:8000/` when I run it on my laptop. It is a front end on top of the API: you try the search without typing `curl`, and you see the products, their pictures, and how long each search took.
 
-![The page](screenshots/page.png)
+![The page: the product, the controls, the response time and the similar products](screenshots/page.png)
+
+### What you can do on it
+
+1. **Choose a product.** Paste a product ID, press **Random product**, or pick one of the examples (block-print fabric, men's tie, women's kurta). The ID must be a product in the dataset. If it is wrong, the page tells you why in a red message under the box. An ID that is not 32 lowercase letters and digits is stopped on the page, and nothing is sent. An ID with the right shape that no product has gets a 404 from the service, and the page shows its message.
+2. **Choose the mode.** **Exact** compares your product with all 29,529 products and is the default. **Fast** uses the HNSW indexes (see [Fast search](#4-fast-search)) and is quicker, but approximate.
+3. **Choose what counts most.** **Best** uses my tuned weights. **Picture** counts only the picture, and **Title** counts only the title words. **Custom** gives a slider for each part, and each slider shows its share of the score. The sliders start at my tuned weights, so changing one changes only that part (see [Features in detail](#how-much-each-part-counts)). **Use best weights** puts them back.
+4. **Choose how many results.** Any number up to 1,000.
+
+The similar products appear straight away, with their pictures, titles, brands, prices, ratings and a score bar.
+
+### What it shows about the search
+
+| On the page | What it tells you |
+|---|---|
+| **This search took** | The time of this search in milliseconds |
+| **Mode** | Exact or fast |
+| **Answer** | A new search, or an answer kept in the cache (see [The cache](#8-the-cache)) |
+| **New search / From the cache** | The time of a new search and of a cached answer, so you can compare them |
+| **Cache hit rate** | How many of the requests were answered from the cache |
+| **Run it again** | Asks the same question again, so you can watch it turn from a new search into a cached answer |
+| The green badge | The service is ready, how many products it holds, and whether the fast mode is ready |
+
+The header links to the API docs (`/docs`), the metrics (`/metrics`), the health check (`/ready`) and the Grafana dashboard (`http://localhost:3000`, which works while Grafana is running, see [Monitoring](#monitoring)).
+
+### How it is built
+
+- **One file.** The page is [`src/product_similarity/web/index.html`](src/product_similarity/web/index.html), with plain HTML, CSS and JavaScript. It has no build step and uses no framework.
+- **The same service serves it.** The app sends the file at `/`, so it also runs in Docker and in Kubernetes with nothing extra.
+- **It uses the API, not a copy of it.** It calls `/find_similar_products/details` for each search, and `/cache`, `/ready` and `/weights` for the rest, so what it shows is what the API returns.
+- **Safe text.** Product titles come from the dataset, so the page puts them in with `textContent`. It never inserts them as HTML.
+- **Tested.** 8 tests in [`tests/unit/test_page.py`](tests/unit/test_page.py) check that the page is served and what it contains, and CI runs them on every push.
+
+### Limits
+
+- The product pictures load from the image links in the dataset, so they need an internet connection, and a link that no longer exists shows the words "No photo". The font also loads from Google Fonts, and the page still works without it.
+- The Dashboard link works only while Grafana is running.
+- The page has a layout for narrow screens, but I did not test it on other browsers.
 
 ## Kubernetes
 
