@@ -1,0 +1,124 @@
+{
+  "round_one_from_the_first_guess": [
+    {
+      "weight": "title",
+      "best_value": 0.4,
+      "ndcg_at_10": 0.6403
+    },
+    {
+      "weight": "text_vectors",
+      "best_value": 0.2,
+      "ndcg_at_10": 0.658
+    },
+    {
+      "weight": "image",
+      "best_value": 0.2,
+      "ndcg_at_10": 0.7399
+    },
+    {
+      "weight": "attributes",
+      "best_value": 0.6,
+      "ndcg_at_10": 0.7422
+    }
+  ],
+  "starts": [
+    {
+      "start_no": 1,
+      "start": {
+        "title": 0.35,
+        "text_vectors": 0.0,
+        "image": 0.0,
+        "attributes": 0.65
+      },
+      "final": {
+        "title": 0.3,
+        "text_vectors": 0.25,
+        "image": 0.2,
+        "attributes": 0.6
+      },
+      "ndcg_at_10": 0.752527605399744,
+      "rounds": 3
+    },
+    {
+      "start_no": 2,
+      "start": {
+        "title": 0.2,
+        "text_vectors": 0.2,
+        "image": 0.2,
+        "attributes": 0.4
+      },
+      "final": {
+        "title": 0.025,
+        "text_vectors": 0.6,
+        "image": 0.4,
+        "attributes": 0.3
+      },
+      "ndcg_at_10": 0.8071218153293377,
+      "rounds": 5
+    },
+    {
+      "start_no": 3,
+      "start": {
+        "title": 0.25,
+        "text_vectors": 0.25,
+        "image": 0.25,
+        "attributes": 0.25
+      },
+      "final": {
+        "title": 0.025,
+        "text_vectors": 0.6,
+        "image": 0.4,
+        "attributes": 0.3
+      },
+      "ndcg_at_10": 0.8071218153293377,
+      "rounds": 5
+    },
+    {
+      "start_no": 4,
+      "start": {
+        "title": 0.4,
+        "text_vectors": 0.4,
+        "image": 0.05,
+        "attributes": 0.5
+      },
+      "final": {
+        "title": 0.025,
+        "text_vectors": 0.5,
+        "image": 0.3,
+        "attributes": 0.25
+      },
+      "ndcg_at_10": 0.8086411303166346,
+      "rounds": 4
+    },
+    {
+      "start_no": 5,
+      "start": {
+        "title": 0.2,
+        "text_vectors": 0.5,
+        "image": 0.3,
+        "attributes": 0.1
+      },
+      "final": {
+        "title": 0.025,
+        "text_vectors": 0.4,
+        "image": 0.25,
+        "attributes": 0.2
+      },
+      "ndcg_at_10": 0.8104828489974595,
+      "rounds": 2
+    }
+  ],
+  "best_start_no": 5,
+  "best_weights": {
+    "title": 0.025,
+    "text_vectors": 0.4,
+    "image": 0.25,
+    "attributes": 0.2
+  },
+  "best_shares": {
+    "title": 0.028571428571428574,
+    "text_vectors": 0.4571428571428572,
+    "image": 0.2857142857142857,
+    "attributes": 0.2285714285714286
+  }
+}
