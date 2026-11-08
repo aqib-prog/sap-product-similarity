@@ -255,7 +255,7 @@ The raw file is never changed. It is read in place, and each step below turns th
 **5. Colour**
 - **What I did:** the colour column lists every option, so I also read colour words from the title. Coverage rose from 19% to 44%. On the 529 products that have both, the title colour is among the listed options 83.4% of the time.
 - **Example:** a saree's title says "Blue Sari", so the colour from the title is blue. But its colour column lists orange, pink and red, with no blue in it. The two sources disagree, and I cannot tell which one is right.
-- **Why:** colour is only a weak hint, so it has one of the lowest weights.
+- **Why:** colour is only a weak hint, so it has one of the lowest weights. A hint raises the score a little, and it never throws a product out, as a filter would.
 - **Used in the final search:** yes. For each product I gather the colours from the title and from the column into one set, and two products are compared by how many colours they share. A product with no colour is skipped for this part.
 
 ![Title colour against the listed options](screenshots/preprocessing/05_colour.png)
@@ -271,7 +271,8 @@ The raw file is never changed. It is read in place, and each step below turns th
   5. So I use the category first and the title when the category says nothing. In the end 99.1% of products have an audience, and about 1% have none.
 - **Example:** a boys' bow tie is filed under men's, so the label is wrong.
 - **Why:** shoppers do not treat a men's shirt and a girl's dress as similar, so it helps to know who a product is for.
-- **Used in the final search:** yes. Audience is one of the seven attributes, and two products are compared as same or different. It counts with its own weight (0.10 by default), as a hint and not a strict filter: two products for the same audience get a higher score, but a product for another audience can still appear if it matches well on the other features.
+- **Used in the final search:** yes. Audience is one of the seven attributes, and two products are compared as same or different. It counts with its own weight (0.10 by default).
+- **A hint, not a filter:** a filter is a hard rule that throws products out (for example "only show the same audience"). A hint only raises the score a little. So two products for the same audience score higher, but a product for another audience can still appear if it matches well on the other features.
 
 ![Audience from the category against the title](screenshots/preprocessing/06_audience.png)
 
