@@ -13,7 +13,7 @@ The project is built for the SAP technical exercise. The original task descripti
 - [Results at a glance](#results-at-a-glance)
 - [Data exploration (EDA)](#data-exploration-eda)
 - [Preprocessing (cleaning the data)](#preprocessing-cleaning-the-data)
-- [How the first similarity search works](#how-the-first-similarity-search-works)
+- [Features in detail](#features-in-detail)
 - [The service and Docker](#the-service-and-docker)
 - [Example](#example)
 - [Analysis notebooks](#analysis-notebooks)
@@ -463,46 +463,107 @@ Three fields were cleaned, not created: the **brand** (spellings merged), the **
 
 *Notebook: [02 Preprocessing, section 10, Coverage after cleaning](notebooks/02_preprocessing.ipynb).*
 
-## How the first similarity search works
+## Features in detail
 
-`find_similar_products(product_id, num_similar)` scores one product against all the others and returns the best matches. Each comparison gives a score between 0 and 1, and the scores are mixed with weights.
+A search compares your product with every other product on ten parts. Each part gives a score from 0 (nothing alike) to 1 (the same), and the final score is a weighted average of the ten. A part that a product does not have is skipped (see the two rules at the end). The last column shows how much each part counts in the final, tuned mix (rounded, so it adds up to about 100%).
 
-### Titles
+| Part | Where it comes from | Counts for |
+|---|---|---|
+| Title words | the title, as words (TF-IDF) | 2.9% |
+| Title meaning | the title, as meaning (sentence vectors) | 45.7% |
+| Picture | the first picture (CLIP vectors) | 28.6% |
+| Category | the category field, or the shelf | 7.0% |
+| Brand | the brand, cleaned | 3.5% |
+| Audience | worked out from the category and the title | 3.5% |
+| Price | `sales_price` | 3.5% |
+| Colour | the title and the colour column | 1.8% |
+| Weight | the weight, in grams | 1.8% |
+| Rating | the rating | 1.8% |
 
-Titles are turned into sparse vectors with TF-IDF, and two titles are compared with cosine similarity. Words that are rare across the catalogue count more than common ones.
+### How much each part counts
 
-### Attributes
+These shares are not set by hand. I found them by tuning against my own ratings:
 
-Each attribute is compared directly:
+1. I tuned the four main weights (title words, title meaning, picture, and the seven attributes together). The method is **coordinate ascent**: change one weight at a time, keep the value that gives the best **nDCG@10** on my ratings, and repeat until nothing improves.
+2. I checked the result with **5-fold cross-validation**: the weights were tuned on some products and scored on products they had not seen.
+3. The result: title words 2.9%, title meaning 45.7%, picture 28.6%, attributes 22.9%.
 
-- **Category, brand, audience:** same or different.
-- **Price and weight:** closeness on a log scale, so a 10 times difference scores 0.
-- **Rating:** closeness in stars, reaching 0 at 4 stars apart.
-- **Colour:** how much the two colour lists overlap (Jaccard).
+Inside the attributes group, the split between the seven attributes (category 7.0%, brand, audience and price 3.5% each, colour, weight and rating 1.8% each) uses my own starting ratios, and it is **not tuned**. I tried tuning all ten weights separately, and it scored lower (nDCG@10 0.764 against 0.806 for the four-weight version), so I kept the four tuned weights. Details: [Hybrid search](#hybrid-search), and [notebook 08, sections 2, 5, 6 and 7](notebooks/08_hybrid_search.ipynb).
 
-### Mixing the scores
+**How good is each part on its own** (the same 30 development products and the same rating pool):
 
-| Part | Weight |
-|---|---|
-| Title | 0.35 |
-| Category | 0.20 |
-| Brand | 0.10 |
-| Audience | 0.10 |
-| Price | 0.10 |
-| Colour | 0.05 |
-| Weight | 0.05 |
-| Rating | 0.05 |
-| Image | 0 (off until picture vectors are added) |
+| Method | nDCG@10 | Precision@10 |
+|---|---|---|
+| Title words only | 0.498 | 0.55 |
+| Title meaning only | 0.659 | 0.76 |
+| Picture only | 0.750 | 0.85 |
+| Attributes only | 0.420 | 0.62 |
+| **All combined (the hybrid)** | **0.806** | **0.87** |
 
-These starting weights are **not tuned**. They are a placeholder until experiments choose better ones.
+### The title
 
-### Missing data
+**1. Title words (TF-IDF)**
+- **What I did:** turned every title into a list of word counts, where a word that appears in few titles counts more than a common one, and compared two titles with cosine similarity.
+- **Example:** "Kalamkari" appears in few titles, so two titles that both have it are very alike. "Women's" appears in thousands of titles, so sharing it says little.
+- **Why:** it is simple, fast and catches exact shared words. Its weakness is that it cannot see that two different words mean the same.
+- **Used in the final search:** yes, but it counts for only 2.9%, because the other features turned out to be better. On its own it is the weakest title feature.
 
-If either product lacks an attribute, that attribute is skipped and the remaining weights are rescaled so they still add up to 1. Missing data is never filled in with a guess.
+*Reference: K. Spärck Jones, "[A statistical interpretation of term specificity and its application in retrieval](https://doi.org/10.1108/eb026526)," Journal of Documentation, 1972. Notebooks: [03 Baseline examples, section 2](notebooks/03_baseline_examples.ipynb) and [08 Hybrid search, section 8, Scoreboard](notebooks/08_hybrid_search.ipynb).*
 
-### A fixed order
+**2. Title meaning (sentence vectors)**
+- **What I did:** turned every title into 384 numbers with a ready-made sentence model (`all-MiniLM-L6-v2` from Hugging Face), so that titles with a similar meaning get numbers that are close together. Two titles are compared with cosine similarity, shifted so that two unrelated products score about 0.
+- **Example:** "kurta" and "kurti" are different words for the same garment, and TF-IDF treats them as different. The sentence model puts them close.
+- **Why:** it understands meaning, not just words.
+- **Used in the final search:** yes, and it is the largest part, 45.7%. On its own it is clearly better than title words (see the table above).
 
-Scores are rounded to 6 decimals, and ties are broken by product ID, so the same question always gives the same list.
+*References: N. Reimers and I. Gurevych, "[Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://doi.org/10.18653/v1/D19-1410)," EMNLP-IJCNLP 2019; W. Wang et al., "[MiniLM: Deep Self-Attention Distillation for Task-Agnostic Compression of Pre-Trained Transformers](https://papers.nips.cc/paper/2020/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html)," NeurIPS 2020; model: [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2). Notebook: [07 Sentence vectors on titles, sections 1, 2 and 4](notebooks/07_sentence_vectors_on_titles.ipynb).*
+
+### The picture
+
+**3. Picture (CLIP vectors)**
+- **What I did:** downloaded the pictures and turned each one into 512 numbers with CLIP, so that pictures that look alike get numbers that are close together. Two pictures are compared with cosine similarity, shifted the same way as the titles.
+- **Example:** two block-print fabrics with a similar pattern are close, even when their titles use different words.
+- **Why CLIP and not ResNet:** I tried both on the same pictures and ratings, and CLIP was clearly better:
+
+| Small test (708 pictures) | nDCG@10 | Precision@10 |
+|---|---|---|
+| CLIP | 0.695 | 0.74 |
+| ResNet-50 | 0.569 | 0.63 |
+
+- **Used in the final search:** yes, 28.6%. On its own, picture is the best single part (see the table above). A product without a usable picture is skipped for this part.
+
+*References: A. Radford et al., "[Learning Transferable Visual Models From Natural Language Supervision](https://proceedings.mlr.press/v139/radford21a.html)," ICML 2021, model: [`clip-vit-base-patch32`](https://huggingface.co/openai/clip-vit-base-patch32); K. He et al., "[Deep Residual Learning for Image Recognition](https://doi.org/10.1109/CVPR.2016.90)," CVPR 2016. Notebooks: [05 Image similarity, sections 2 and 3](notebooks/05_image_similarity.ipynb) and [06 CLIP over the whole catalogue, sections 3 and 5](notebooks/06_clip_whole_catalogue.ipynb).*
+
+### The seven attributes
+
+They come from the cleaned fields (see [Preprocessing](#preprocessing-cleaning-the-data)). Each is compared in its own simple way, and all of them are hints, not filters: they raise the score a little and never throw a product out.
+
+**4. Category.** Same or different (1 or 0). A missing category is filled from the Amazon shelf. Counts for 7.0%, the largest attribute.
+
+**5. Brand.** Same or different, after the spellings were merged. Counts for 3.5%. A missing brand stays missing.
+
+**6. Audience.** Same or different. It is worked out from the category and the title, and they agree 89.4% of the time. Counts for 3.5%. (The full story is in Preprocessing, step 6.)
+
+**7. Price.** Closeness on a log scale: `1 − |log10(price A) − log10(price B)|`, never below 0. A 10 times difference scores 0, and 300 against 600 INR scores about 0.70. Counts for 3.5%.
+
+**8. Colour.** The two products' colours are compared by how many they share, out of all the colours either has (the colours from the title and from the colour column together). Product A has blue and white, product B has blue and red: they share 1 of 3 colours, so the score is 1 ÷ 3 = 0.33. The same colours score 1 and no shared colour scores 0. Counts for 1.8%.
+
+**9. Weight**
+- **What I did:** compare the two weights in grams on a log scale, so 200 g against 400 g is as far apart as 2 kg against 4 kg.
+- **Example:** 200 g against 400 g scores about 0.70. 200 g against 2,000 g (10 times more) scores 0.
+- **Why it counts for little (1.8%):** only 20.9% of products have a real weight, and most of those are round default numbers like 200 g.
+
+**10. Rating**
+- **What I did:** compare the two ratings in stars. The score is 1 minus the gap in stars divided by 4, and never below 0.
+- **Example:** 4.5 stars against 3.5 stars is a gap of 1, so the score is 1 − 1 ÷ 4 = 0.75. 5 stars against 1 star scores 0.
+- **Why it counts for little (1.8%):** a rating with no reviews behind it cannot be trusted (6,571 products are like this).
+
+*Notebooks: [03 Baseline examples, section 2](notebooks/03_baseline_examples.ipynb) (what each attribute adds to a score), [02 Preprocessing](notebooks/02_preprocessing.ipynb) (where the fields come from) and [08 Hybrid search, sections 2, 6 and 7](notebooks/08_hybrid_search.ipynb) (the weights).*
+
+### Two rules that apply to every part
+
+- **A missing part is skipped.** If either product does not have a part (no picture, no price, no brand), that part is left out, and the weights of the other parts are rescaled so they still add up to 1. Missing data is never filled in with a guess, and a product is never punished for it.
+- **A fixed order.** Scores are rounded to 6 decimals, and ties go to the smaller product ID, so the same question always gives the same list.
 
 ## The service and Docker
 
