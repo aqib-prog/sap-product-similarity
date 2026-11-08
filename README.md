@@ -465,6 +465,10 @@ Three fields were cleaned, not created: the **brand** (spellings merged), the **
 
 ## Features in detail
 
+![The ten parts, how each is compared, and how they become one final score](screenshots/features.png)
+
+*The ten parts, how each one is compared, and how they become one score.*
+
 A search compares your product with every other product on ten parts. Each part gives a score from 0 (nothing alike) to 1 (the same), and the final score is a weighted average of the ten. A part that a product does not have is skipped (see the two rules at the end). The last column shows how much each part counts in the final, tuned mix (rounded, so it adds up to about 100%).
 
 | Part | Where it comes from | Counts for |
@@ -544,13 +548,13 @@ They come from the cleaned fields (see [Preprocessing](#preprocessing-cleaning-t
 
 **6. Audience.** Same or different. It is worked out from the category and the title, and they agree 89.4% of the time. Counts for 3.5%. (The full story is in Preprocessing, step 6.)
 
-**7. Price.** Closeness on a log scale: `1 − |log10(price A) − log10(price B)|`, never below 0. A 10 times difference scores 0, and 300 against 600 INR scores about 0.70. Counts for 3.5%.
+**7. Price.** Closeness on a log scale: `1 − |log10(price A) − log10(price B)|`, never below 0. A 10 times difference scores 0, and 300 against 600 INR scores about 0.70 (the gap is log10(2) = 0.30, and 1 − 0.30 = 0.70). Counts for 3.5%.
 
 **8. Colour.** The two products' colours are compared by how many they share, out of all the colours either has (the colours from the title and from the colour column together). Product A has blue and white, product B has blue and red: they share 1 of 3 colours, so the score is 1 ÷ 3 = 0.33. The same colours score 1 and no shared colour scores 0. Counts for 1.8%.
 
 **9. Weight**
-- **What I did:** compare the two weights in grams on a log scale, so 200 g against 400 g is as far apart as 2 kg against 4 kg.
-- **Example:** 200 g against 400 g scores about 0.70. 200 g against 2,000 g (10 times more) scores 0.
+- **What I did:** compare the two weights in grams on a log scale, with the same formula as the price: `1 − |log10(weight A) − log10(weight B)|`, never below 0. On a log scale, what counts is how many times bigger one is than the other, so 200 g against 400 g is as far apart as 2 kg against 4 kg.
+- **Example:** 200 g against 400 g is twice as much, log10(2) = 0.30, so the score is 1 − 0.30 = 0.70. 200 g against 2,000 g is 10 times more, log10(10) = 1, so the score is 1 − 1 = 0.
 - **Why it counts for little (1.8%):** only 20.9% of products have a real weight, and most of those are round default numbers like 200 g.
 
 **10. Rating**
