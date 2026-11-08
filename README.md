@@ -527,7 +527,7 @@ Inside the attributes group, the split between the seven attributes (category 7.
 - **Why:** it understands meaning, not just words.
 - **Used in the final search:** yes, and it is the largest part, 45.7%. On its own it is clearly better than title words (see the table above).
 
-*References: N. Reimers and I. Gurevych, "[Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://doi.org/10.18653/v1/D19-1410)," EMNLP-IJCNLP 2019; W. Wang et al., "[MiniLM: Deep Self-Attention Distillation for Task-Agnostic Compression of Pre-Trained Transformers](https://papers.nips.cc/paper/2020/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html)," NeurIPS 2020; model: [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2). Notebook: [07 Sentence vectors on titles, sections 1, 2 and 4](notebooks/07_sentence_vectors_on_titles.ipynb).*
+*References: N. Reimers and I. Gurevych, "[Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://doi.org/10.18653/v1/D19-1410)," EMNLP-IJCNLP 2019; model: [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2). Notebook: [07 Sentence vectors on titles, sections 1, 2 and 4](notebooks/07_sentence_vectors_on_titles.ipynb).*
 
 ### The picture
 
@@ -543,7 +543,7 @@ Inside the attributes group, the split between the seven attributes (category 7.
 
 - **Used in the final search:** yes, 28.6%. On its own, picture is the best single part (see the table above). A product without a usable picture is skipped for this part.
 
-*References: A. Radford et al., "[Learning Transferable Visual Models From Natural Language Supervision](https://proceedings.mlr.press/v139/radford21a.html)," ICML 2021, model: [`clip-vit-base-patch32`](https://huggingface.co/openai/clip-vit-base-patch32); K. He et al., "[Deep Residual Learning for Image Recognition](https://doi.org/10.1109/CVPR.2016.90)," CVPR 2016. Notebooks: [05 Image similarity, sections 2 and 3](notebooks/05_image_similarity.ipynb) and [06 CLIP over the whole catalogue, sections 3 and 5](notebooks/06_clip_whole_catalogue.ipynb).*
+*Model: [`clip-vit-base-patch32`](https://huggingface.co/openai/clip-vit-base-patch32). Reference: K. He et al., "[Deep Residual Learning for Image Recognition](https://doi.org/10.1109/CVPR.2016.90)," CVPR 2016. Notebooks: [05 Image similarity, sections 2 and 3](notebooks/05_image_similarity.ipynb) and [06 CLIP over the whole catalogue, sections 3 and 5](notebooks/06_clip_whole_catalogue.ipynb).*
 
 ### The seven attributes
 
@@ -732,7 +732,7 @@ On the whole catalogue:
 
 **Limits.** 30 test products and one rater. Precision@10 is how many of the top 10 I rated 1 or 2.
 
-*References: A. Radford et al., "[Learning Transferable Visual Models From Natural Language Supervision](https://proceedings.mlr.press/v139/radford21a.html)," ICML 2021 (model: [`clip-vit-base-patch32`](https://huggingface.co/openai/clip-vit-base-patch32)); K. He et al., "[Deep Residual Learning for Image Recognition](https://doi.org/10.1109/CVPR.2016.90)," CVPR 2016. Notebooks: [05 Image similarity, sections 1 to 3](notebooks/05_image_similarity.ipynb) and [06 CLIP over the whole catalogue, sections 1 to 6](notebooks/06_clip_whole_catalogue.ipynb). Numbers: [`dev_image_evaluation_report.md`](results/dev_image_evaluation_report.md) and [`dev_full_image_evaluation_report.md`](results/dev_full_image_evaluation_report.md).*
+*Model: [`clip-vit-base-patch32`](https://huggingface.co/openai/clip-vit-base-patch32). Reference: K. He et al., "[Deep Residual Learning for Image Recognition](https://doi.org/10.1109/CVPR.2016.90)," CVPR 2016. Notebooks: [05 Image similarity, sections 1 to 3](notebooks/05_image_similarity.ipynb) and [06 CLIP over the whole catalogue, sections 1 to 6](notebooks/06_clip_whole_catalogue.ipynb). Numbers: [`dev_image_evaluation_report.md`](results/dev_image_evaluation_report.md) and [`dev_full_image_evaluation_report.md`](results/dev_full_image_evaluation_report.md).*
 
 ![MLflow comparing the image_resnet and image_clip runs: nDCG@10 and precision@10 side by side](evaluation/mlflow_image_runs.png)
 
@@ -780,7 +780,7 @@ TF-IDF only matches words. Here I tried a model that understands the meaning of 
 
 **Limits.** 30 test products and one rater. The model was trained on questions, answers and captions, not on shopping titles, so it may miss brand names and size words.
 
-*References: N. Reimers and I. Gurevych, "[Sentence-BERT](https://doi.org/10.18653/v1/D19-1410)," EMNLP-IJCNLP 2019; W. Wang et al., "[MiniLM](https://papers.nips.cc/paper/2020/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html)," NeurIPS 2020 (model: [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)). Notebook: [07 Sentence vectors on titles, sections 1 to 5](notebooks/07_sentence_vectors_on_titles.ipynb). Numbers: [`dev_text_vector_evaluation_report.md`](results/dev_text_vector_evaluation_report.md).*
+*References: N. Reimers and I. Gurevych, "[Sentence-BERT](https://doi.org/10.18653/v1/D19-1410)," EMNLP-IJCNLP 2019 (model: [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)). Notebook: [07 Sentence vectors on titles, sections 1 to 5](notebooks/07_sentence_vectors_on_titles.ipynb). Numbers: [`dev_text_vector_evaluation_report.md`](results/dev_text_vector_evaluation_report.md).*
 
 ![MLflow comparing the five methods: nDCG@10 and precision@10 side by side](evaluation/mlflow_text_vector_runs.png)
 
@@ -966,7 +966,7 @@ The picture vectors are long lists of numbers, which nobody can look at. t-SNE s
 
 **Limits.** The picture is a rough view: distances in it are not exact, and it shows 3,000 products out of about 29,500. It does not replace the recall numbers.
 
-*References: L. van der Maaten and G. Hinton, "[Visualizing Data using t-SNE](https://www.jmlr.org/papers/v9/vandermaaten08a.html)," Journal of Machine Learning Research, 2008. Notebook: [11 t-SNE, section 1](notebooks/11_tsne_picture_vectors.ipynb).*
+*Notebook: [11 t-SNE, section 1](notebooks/11_tsne_picture_vectors.ipynb).*
 
 ### 7. The final search
 
