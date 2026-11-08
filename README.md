@@ -26,6 +26,7 @@ The project is built for the SAP technical exercise. The original task descripti
 - [Getting started](#getting-started)
 - [Limits and improvements](#limits-and-improvements)
 - [Project layout](#project-layout)
+- [References](#references)
 - [License](#license)
 
 ## What it does
@@ -1682,9 +1683,29 @@ What I would do next, and why. I described these and did not build them.
 
 ## Project layout
 
+### Where to look
+
+| If you want to see... | Look at |
+|---|---|
+| The required function `find_similar_products` | [`service.py`](src/product_similarity/service.py) |
+| How a score is calculated, part by part | [`scoring.py`](src/product_similarity/scoring.py) and [`hybrid.py`](src/product_similarity/hybrid.py) (the final search) |
+| How the weights were tuned | [`tuning.py`](src/product_similarity/tuning.py) and [`experiments/tune_hybrid_weights.py`](experiments/tune_hybrid_weights.py) |
+| The web routes | [`api.py`](src/product_similarity/api.py) |
+| The page | [`web/index.html`](src/product_similarity/web/index.html) |
+| The cache | [`cache.py`](src/product_similarity/cache.py) |
+| The numbers on `/metrics` | [`metrics.py`](src/product_similarity/metrics.py) |
+| How the service is packaged | [`Dockerfile`](Dockerfile) and [`k8s/`](k8s/) |
+| The pipeline | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| The tests | [`tests/`](tests/) |
+| My ratings and the rules for them | [`evaluation/`](evaluation/) |
+| The raw numbers behind the README | [`results/`](results/) and [Notebooks and results](#notebooks-and-results) |
+
+### All files
+
 ```text
 app.py                      Entry point for uvicorn
 Dockerfile                  Builds the service image (serving packages and the vectors, non-root user)
+.dockerignore               Keeps notebooks, experiments, results and tests out of the image
 requirements.txt            Pinned packages used by the service and the Docker image
 pyproject.toml              Package settings and the optional extras (dev, notebooks, experiments, images, text, ann)
 Makefile                    Shortcuts: make install, lint, format, test
@@ -1714,6 +1735,7 @@ src/product_similarity/     Python package
   vector_files.py           Saves and reads the half-size vector files that ship with the service
   metrics.py                The numbers on /metrics (requests, times, cache hits, errors) for Prometheus
   web/index.html            The page served at / (one HTML file)
+artifacts/vectors/          The half-size picture and sentence vectors, with a manifest of checksums (shipped with the service)
 experiments/                Scripts that I run by hand (nothing here is used by the service)
   run_evaluation.py         Scores the text methods against my ratings and records the runs
   check_images.py           Downloads and checks the 100-image sample
@@ -1731,6 +1753,7 @@ experiments/                Scripts that I run by hand (nothing here is used by 
   run_text_vector_evaluation.py  Scores TF-IDF, sentence vectors and CLIP together and records the runs
   hybrid_setup.py           Shared set-up for the hybrid scripts (ratings, vectors, scorer)
   tune_hybrid_weights.py    Tunes the hybrid weights and checks them with 5-fold cross-validation
+  trace_coordinate_ascent.py  Shows coordinate ascent step by step on the four weights, with real numbers
   run_hybrid_search.py      Finds hybrid results without a rating and writes the rating page
   run_hybrid_evaluation.py  Scores the hybrid next to the single methods and records the runs
   log_hybrid_tuning.py      Records the tuning runs in MLflow
@@ -1745,32 +1768,60 @@ experiments/                Scripts that I run by hand (nothing here is used by 
   check_vector_files.py     Checks that the half-size vectors do not change the results
   check_final_search.py     Checks that the real search gives the same results as the notebooks
   measure_cache.py          Measures a cache hit against a miss, and a traffic simulation
+  run_final_search_rating.py  Finds results without a rating for the final search and writes the rating page
+  rating_comparison.py      Scores the exact and the fast mode with my ratings only
+  check_fast_vs_exact.py    Compares the exact and the fast mode (misses, time, memory)
+  log_final_search.py       Records the final-search runs in MLflow
   run_final_test_rating.py  Makes the blind rating page for the 20 locked products (used once)
   score_final_test.py       Scores both modes on the 20 locked products with my ratings
   log_final_test.py         Records the final test in MLflow
   log_cache.py              Records the cache measurements in MLflow
-  run_final_search_rating.py Finds results without a rating for the final search and writes the rating page
-  check_fast_vs_exact.py    Compares the exact and the fast mode (misses, time, memory)
-  log_final_search.py       Records the final-search runs in MLflow
 evaluation/                 Test products, rating rules, rating pages and my ratings
   queries.json              The 50 test products (30 development, 20 locked)
   rubric.md                 The rules for rating 0, 1 or 2
   judgments/                Rating sheets, rating pages and my ratings (CSV)
-  *.png                     Screenshots of the rating page and MLflow
-results/                    Exported scores, reports and image check numbers
-tests/                      282 tests
-  unit/                     Fast tests for each module
-  integration/              Tests on the real dataset and the real API
+  *.png                     Screenshots of the rating page and MLflow, and the t-SNE picture
+results/                    Exported scores, reports and measurements (JSON, CSV and Markdown)
+tests/                      283 tests
+  unit/                     274 tests for each module, the page, the metrics and the Kubernetes files
+  integration/              9 tests on the real dataset and the real API
 notebooks/                  Fifteen analysis notebooks (they import logic from the package)
 data/archive.zip            Dataset supplied with the exercise
-screenshots/                The page, from a local run
+screenshots/                The page, the three diagrams, and the charts of the data exploration and cleaning
 k8s/                        Kubernetes files: deployment (2 pods, probes, rolling update), service, pod budget
 monitoring/                 Prometheus and Grafana files, alert rules, a script to run them locally, a traffic script
   screenshots/              The Grafana dashboard from a local run
 .github/workflows/ci.yml    Continuous integration (lint, tests, Docker and Kubernetes checks)
+LICENSE                     The licence
 ```
 
-Not in Git: the downloaded pictures, the saved picture vectors and the local MLflow databases. They stay on my computer.
+Not in Git: the downloaded pictures, the full-size saved vectors and the local MLflow databases. They stay on my computer.
+
+## References
+
+Every paper below is a published one (a journal or a conference), with a link that opens its page. Each row names the section of this README that uses its method.
+
+### Papers
+
+| Used for | Reference | Where in this README |
+|---|---|---|
+| Title words (TF-IDF) | K. Spärck Jones, "[A statistical interpretation of term specificity and its application in retrieval](https://doi.org/10.1108/eb026526)," *Journal of Documentation*, vol. 28, no. 1, pp. 11-21, 1972 | [The title](#the-title) |
+| Title meaning (sentence vectors) | N. Reimers and I. Gurevych, "[Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://doi.org/10.18653/v1/D19-1410)," *EMNLP-IJCNLP*, pp. 3982-3992, 2019 | [Titles](#2-titles-sentence-vectors) |
+| The sentence model | W. Wang et al., "[MiniLM: Deep Self-Attention Distillation for Task-Agnostic Compression of Pre-Trained Transformers](https://papers.nips.cc/paper/2020/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html)," *NeurIPS*, 2020 | [Titles](#2-titles-sentence-vectors) |
+| Pictures (CLIP) | A. Radford et al., "[Learning Transferable Visual Models From Natural Language Supervision](https://proceedings.mlr.press/v139/radford21a.html)," *ICML*, 2021 | [Pictures](#1-pictures) |
+| Pictures (ResNet, compared and dropped) | K. He, X. Zhang, S. Ren and J. Sun, "[Deep Residual Learning for Image Recognition](https://doi.org/10.1109/CVPR.2016.90)," *CVPR*, pp. 770-778, 2016 | [Pictures](#1-pictures) |
+| The weighted mix of parts | D. Metzler and W. B. Croft, "[Linear feature-based models for information retrieval](https://doi.org/10.1007/s10791-006-9019-z)," *Information Retrieval*, vol. 10, no. 3, pp. 257-274, 2007 | [The mix](#3-the-mix-hybrid-search) |
+| Mixing text and vector scores | S. Bruch, S. Gai and A. Ingber, "[An Analysis of Fusion Functions for Hybrid Retrieval](https://doi.org/10.1145/3596512)," *ACM Transactions on Information Systems*, vol. 42, no. 1, pp. 1-35, 2023 | [The mix](#3-the-mix-hybrid-search) |
+| The measure nDCG@10 | K. Järvelin and J. Kekäläinen, "[Cumulated gain-based evaluation of IR techniques](https://doi.org/10.1145/582415.582418)," *ACM Transactions on Information Systems*, vol. 20, no. 4, pp. 422-446, 2002 | [Results at a glance](#results-at-a-glance) |
+| The fast index (HNSW) | Y. A. Malkov and D. A. Yashunin, "[Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs](https://doi.org/10.1109/TPAMI.2018.2889473)," *IEEE Transactions on Pattern Analysis and Machine Intelligence*, vol. 42, no. 4, pp. 824-836, 2020 | [Fast search](#4-fast-search) |
+| The fast-search library (FAISS) | J. Johnson, M. Douze and H. Jégou, "[Billion-Scale Similarity Search with GPUs](https://doi.org/10.1109/TBDATA.2019.2921572)," *IEEE Transactions on Big Data*, vol. 7, no. 3, pp. 535-547, 2021 | [Fast search](#4-fast-search) |
+| Shorter vectors (PCA) | I. T. Jolliffe and J. Cadima, "[Principal component analysis: a review and recent developments](https://doi.org/10.1098/rsta.2015.0202)," *Philosophical Transactions of the Royal Society A*, vol. 374, no. 2065, article 20150202, 2016 | [Shorter vectors](#5-shorter-vectors-pca) |
+| Drawing the vectors (t-SNE) | L. van der Maaten and G. Hinton, "[Visualizing Data using t-SNE](https://www.jmlr.org/papers/v9/vandermaaten08a.html)," *Journal of Machine Learning Research*, vol. 9, 2008 | [Drawing the vectors](#6-drawing-the-vectors-t-sne) |
+
+### Models
+
+- [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2): the sentence model (Apache-2.0 licence).
+- [`clip-vit-base-patch32`](https://huggingface.co/openai/clip-vit-base-patch32): the CLIP model.
 
 ## License
 
